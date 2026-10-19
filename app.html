@@ -134,6 +134,62 @@ body{background:#000;color:#fff}
 .notif{position:fixed;top:0;left:0;right:0;background:#F97316;padding:12px 16px;z-index:9999;font-size:13px;display:none;align-items:center;gap:8px;cursor:pointer}
 .notif.show{display:flex}
 
+/* YouTube-style home feed */
+.yt-feed{height:100%;overflow-y:auto;background:#0f0f0f;padding-bottom:10px}
+.yt-feed::-webkit-scrollbar{display:none}
+.yt-card{margin-bottom:8px}
+.yt-thumb{width:100%;aspect-ratio:16/9;background:#000;position:relative;overflow:hidden;cursor:pointer}
+.yt-thumb video{width:100%;height:100%;object-fit:cover;pointer-events:none}
+.yt-thumb .play-ov{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:54px;height:54px;border-radius:50%;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center}
+.yt-thumb .play-ov svg{width:26px;height:26px;color:#fff;margin-left:3px}
+.yt-thumb .dur{position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,.8);color:#fff;font-size:11px;padding:2px 5px;border-radius:3px}
+.yt-meta{display:flex;align-items:flex-start;gap:10px;padding:10px 14px}
+.yt-ava{width:36px;height:36px;border-radius:50%;background:#333;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#666;font-size:16px}
+.yt-ava img{width:100%;height:100%;object-fit:cover}
+.yt-info{flex:1;min-width:0}
+.yt-title{font-size:15px;font-weight:600;color:#fff;line-height:1.3;margin-bottom:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.yt-sub{font-size:13px;color:#aaa}
+.yt-sub .sep{margin:0 4px}
+.yt-menu{flex-shrink:0;cursor:pointer;color:#aaa;padding:4px}
+.yt-menu svg{width:20px;height:20px}
+
+/* Video detail / player view */
+.vd-view{height:100%;overflow-y:auto;background:#0f0f0f}
+.vd-view::-webkit-scrollbar{display:none}
+.vd-player{width:100%;aspect-ratio:16/9;background:#000;position:relative}
+.vd-player video{width:100%;height:100%;object-fit:contain}
+.vd-back{position:absolute;top:12px;left:12px;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:5}
+.vd-back svg{width:22px;height:22px;color:#fff}
+.vd-body{padding:12px 14px}
+.vd-title{font-size:17px;font-weight:700;color:#fff;line-height:1.3;margin-bottom:6px}
+.vd-stats{font-size:13px;color:#aaa;margin-bottom:12px}
+.vd-stats .more{color:#3ea6ff;cursor:pointer}
+.vd-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-bottom:12px;border-bottom:1px solid #222;margin-bottom:12px}
+.vd-channel{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+.vd-channel .yt-ava{width:40px;height:40px}
+.vd-chinfo{flex:1;min-width:0}
+.vd-chname{font-size:14px;font-weight:600;color:#fff;display:flex;align-items:center;gap:3px}
+.vd-chsub{font-size:12px;color:#aaa}
+.vd-btn{padding:8px 14px;border-radius:20px;border:none;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.vd-member{background:#fff;color:#000}
+.vd-bell{width:36px;height:36px;border-radius:50%;background:#1e1e1e;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.vd-bell svg{width:20px;height:20px;color:#fff}
+.vd-actbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.vd-act{display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:20px;background:#1e1e1e;border:none;cursor:pointer;color:#fff;font-size:13px;font-weight:600}
+.vd-act svg{width:20px;height:20px}
+.vd-act.liked svg{fill:#ff3b5c;stroke:#ff3b5c}
+.vd-actgrp{display:flex;align-items:center;background:#1e1e1e;border-radius:20px;overflow:hidden}
+.vd-actgrp .vd-act{background:transparent;border-radius:0}
+.vd-actgrp .vd-act+.vd-act{border-left:1px solid #333}
+.vd-cmt-head{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700;color:#fff;margin-bottom:14px}
+.vd-cmt-head .cnt{font-weight:400;color:#aaa;font-size:14px}
+.vd-cmt-preview{display:flex;gap:10px;margin-bottom:8px;cursor:pointer}
+.vd-cmt-preview .ca{width:32px;height:32px;border-radius:50%;background:#333;overflow:hidden;flex-shrink:0}
+.vd-cmt-preview .ca img{width:100%;height:100%;object-fit:cover}
+.vd-cmt-preview .ct{flex:1}
+.vd-cmt-preview .cn{font-size:13px;font-weight:600;color:#fff;display:flex;align-items:center;gap:3px}
+.vd-cmt-preview .cc{font-size:13px;color:#ccc}
+
 /* Comments */
 .comments-panel{position:fixed;bottom:0;left:0;right:0;height:60%;background:#1a1a1a;border-radius:16px 16px 0 0;z-index:100;display:none;flex-direction:column}
 .comments-panel.show{display:flex}
@@ -198,10 +254,11 @@ function verifiedBadge(type){
   return '';
 }
 function userNameDisplay(u){ return '<span style="display:flex;align-items:center;gap:3px">'+escapeHtml(u.name)+(u.isCreator?'👑':'')+verifiedBadge(u.verifiedType)+'</span>'; }
-function avatarHtml(u, sz){
+function avatarHtml(u, sz, cls){
   var s=sz||44;
-  if(u && u.photo) return '<div style="width:'+s+'px;height:'+s+'px;border-radius:50%;overflow:hidden;flex-shrink:0"><img src="'+u.photo+'" style="width:100%;height:100%;object-fit:cover"></div>';
-  return '<div style="width:'+s+'px;height:'+s+'px;border-radius:50%;background:#333;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#666;font-size:'+(s/2.5)+'px">'+(u?escapeHtml(u.name[0]||'?'):'?')+'</div>';
+  var c=cls?(' '+cls):'';
+  if(u && u.photo) return '<div class="'+c+'" style="width:'+s+'px;height:'+s+'px;border-radius:50%;overflow:hidden;flex-shrink:0"><img src="'+u.photo+'" style="width:100%;height:100%;object-fit:cover"></div>';
+  return '<div class="'+c+'" style="width:'+s+'px;height:'+s+'px;border-radius:50%;background:#333;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#666;font-size:'+(s/2.5)+'px">'+(u?escapeHtml(u.name[0]||'?'):'?')+'</div>';
 }
 
 // ==================== STATE ====================
@@ -214,12 +271,13 @@ var panelTab = 'videos';
 var currentVideoId = null;
 var feedObserver = null;
 var botTimer = null;
+var vdVideoId = null;
 
 // ==================== NAV ====================
 var ICONS = {
   home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l9-9 9 9M5 10v10h14V10"/></svg>',
   pvb: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
-  ia: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 1 3 3v1h1a3 3 0 0 1 3 3v1a3 3 0 0 1 1 5v1a3 3 0 0 1-3 3h-1v1a3 3 0 0 1-6 0v-1H8a3 3 0 0 1-3-3v-1a3 3 0 0 1-1-5V8a3 3 0 0 1 3-3h1V5a3 3 0 0 1 3-3z"/><circle cx="9" cy="11" r="1"/><circle cx="15" cy="11" r="1"/></svg>',
+  shorts: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 6.5L6.5 17.5"/><path d="M9 7l8.5-2.5L15 13z" fill="currentColor"/><path d="M15 17l-8.5 2.5L9 11z" fill="currentColor"/></svg>',
   post: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
   profile: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>'
 };
@@ -227,11 +285,11 @@ var ICONS = {
 function renderNav(){
   var u = curUser();
   var items = [
-    {key:'home', label:'Home', icon:ICONS.home},
-    {key:'pvb', label:'PVB', icon:ICONS.pvb},
-    {key:'ia', label:'IA', icon:ICONS.ia},
+    {key:'home', label:'Início', icon:ICONS.home},
+    {key:'shorts', label:'Shorts', icon:ICONS.shorts},
     {key:'post', label:'Postar', icon:ICONS.post, circle:true},
-    {key:'profile', label:'Perfil', icon:ICONS.profile}
+    {key:'pvb', label:'PVB', icon:ICONS.pvb},
+    {key:'profile', label:'Você', icon:ICONS.profile}
   ];
   var html = items.map(function(it){
     var cls = 'nav-item' + (view===it.key ? ' active' : '');
@@ -267,19 +325,190 @@ function render(){
   renderNav();
   switch(view){
     case 'home': renderHome(); break;
-    case 'ia': renderIA(); break;
+    case 'shorts': renderShorts(); break;
     case 'pvb': renderPVB(); break;
     case 'profile': renderProfile(); break;
     case 'post': renderPost(); break;
     case 'panel': renderPanel(); break;
+    case 'detail': renderVideoDetail(); break;
   }
 }
 
-// ==================== HOME ====================
+// ==================== HOME (YouTube-style feed) ====================
 function renderHome(){
-  var vids = DB.videos();
+  var vids = DB.videos().filter(function(v){return v.type!=='short';});
   if(vids.length===0){
-    document.getElementById('app').innerHTML = '<div style="height:100%;display:flex;align-items:center;justify-content:center;color:#666;font-size:16px;text-align:center;padding:20px">Nenhum vídeo ainda.<br>Use o botão "Postar" para adicionar! 🎬</div>';
+    document.getElementById('app').innerHTML = '<div style="height:100%;display:flex;align-items:center;justify-content:center;color:#666;font-size:16px;text-align:center;padding:20px">Nenhum vídeo ainda.<br>Use o botão "+" para publicar! 🎬</div>';
+    return;
+  }
+  var u = curUser();
+  var html = '<div class="yt-feed" id="ytFeed">';
+  vids.forEach(function(v){
+    var owner = getUser(v.userId) || {name:v.userName, photo:v.userPhoto, verifiedType:null, isCreator:false};
+    var timeAgo = timeAgoStr(v.timestamp);
+    html += '<div class="yt-card">'+
+      '<div class="yt-thumb" onclick="openVideoDetail(\''+v.id+'\')">'+
+        '<video src="'+v.url+'" muted playsinline preload="metadata"></video>'+
+        '<div class="play-ov"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>'+
+      '</div>'+
+      '<div class="yt-meta">'+
+        avatarHtml(owner,36,'yt-ava')+
+        '<div class="yt-info" onclick="openVideoDetail(\''+v.id+'\')">'+
+          '<div class="yt-title">'+escapeHtml(v.description||'')+'</div>'+
+          '<div class="yt-sub">'+userNameDisplay(owner)+'<span class="sep">·</span>'+fmt(v.views||0)+' visualizações<span class="sep">·</span>'+timeAgo+'</div>'+
+        '</div>'+
+        '<div class="yt-menu" onclick="showNotif(\'Opções em breve ⋯\')"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></div>'+
+      '</div>'+
+    '</div>';
+  });
+  html += '</div>';
+  document.getElementById('app').innerHTML = html;
+}
+
+function timeAgoStr(ts){
+  if(!ts) return 'agora';
+  var d = Math.floor((Date.now()-ts)/1000);
+  if(d<60) return 'agora';
+  if(d<3600) return 'há '+Math.floor(d/60)+' min';
+  if(d<86400) return 'há '+Math.floor(d/3600)+' h';
+  if(d<604800) return 'há '+Math.floor(d/86400)+' d';
+  return 'há '+Math.floor(d/604800)+' sem';
+}
+
+// ==================== VIDEO DETAIL (player) ====================
+function openVideoDetail(vid){
+  vdVideoId = vid;
+  view = 'detail';
+  var v = DB.videos().find(function(x){return x.id===vid;});
+  if(v){ v.views = (v.views||0)+1; DB.saveVideos(DB.videos()); }
+  render();
+}
+
+function renderVideoDetail(){
+  var v = DB.videos().find(function(x){return x.id===vdVideoId;});
+  if(!v){ view='home'; render(); return; }
+  var u = curUser();
+  var owner = getUser(v.userId) || {name:v.userName, photo:v.userPhoto, verifiedType:null, isCreator:false, followers:0};
+  var liked = v.likedBy && v.likedBy.indexOf(u.id)>=0;
+  var disliked = v.dislikedBy && v.dislikedBy.indexOf(u.id)>=0;
+  var saved = u.savedVideos && u.savedVideos.indexOf(v.id)>=0;
+  var isFollowing = u.following && u.following.indexOf(owner.id)>=0;
+  var previewCmt = v.comments && v.comments.length>0 ? v.comments[v.comments.length-1] : null;
+  var pcu = previewCmt ? (getUser(previewCmt.userId) || {name:previewCmt.userName, photo:null, verifiedType:null}) : null;
+
+  var html = '<div class="vd-view">'+
+    '<div class="vd-player">'+
+      '<video src="'+v.url+'" autoplay controls playsinline style="width:100%;height:100%;object-fit:contain"></video>'+
+      '<div class="vd-back" onclick="view=\'home\';render()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></div>'+
+    '</div>'+
+    '<div class="vd-body">'+
+      '<div class="vd-title">'+escapeHtml(v.description||'')+'</div>'+
+      '<div class="vd-stats">'+fmt(v.likes||0)+' curtidas · '+fmt(v.views||0)+' visualizações · '+timeAgoStr(v.timestamp)+' <span class="more">...mais</span></div>'+
+      '<div class="vd-actions">'+
+        '<div class="vd-channel">'+
+          avatarHtml(owner,40,'yt-va')+
+          '<div class="vd-chinfo"><div class="vd-chname">'+userNameDisplay(owner)+'</div><div class="vd-chsub">'+fmt(owner.followers||0)+' inscritos</div></div>'+
+        '</div>'+
+        (owner.id===u.id?'':
+          '<button class="vd-btn '+(isFollowing?'':'vd-member')+'" onclick="toggleFollowDetail(\''+owner.id+'\')">'+(isFollowing?'Inscrito ✓':'Inscrever-se')+'</button>'
+        )+
+        '<button class="vd-bell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/></svg></button>'+
+      '</div>'+
+      '<div class="vd-actbar">'+
+        '<div class="vd-actgrp">'+
+          '<button class="vd-act'+(liked?' liked':'')+'" onclick="likeVideoDetail(\''+v.id+'\')">'+
+            '<svg viewBox="0 0 24 24" fill="'+(liked?'#ff3b5c':'none')+'" stroke="'+(liked?'#ff3b5c':'#fff')+'" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.3a2 2 0 0 0 2-1.7l1.4-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>'+
+            '<span>'+fmt(v.likes||0)+'</span>'+
+          '</button>'+
+          '<button class="vd-act'+(disliked?' liked':'')+'" onclick="dislikeVideoDetail(\''+v.id+'\')">'+
+            '<svg viewBox="0 0 24 24" fill="'+(disliked?'#888':'none')+'" stroke="'+(disliked?'#888':'#fff')+'" stroke-width="2"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.7a2 2 0 0 0-2 1.7L2.3 13a2 2 0 0 0 2 2.3zM17 2h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3"/></svg>'+
+          '</button>'+
+        '</div>'+
+        '<button class="vd-act" onclick="openComments(\''+v.id+'\')">'+
+          '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>'+
+          '<span>'+(v.comments?v.comments.length:0)+'</span>'+
+        '</button>'+
+        '<button class="vd-act" onclick="shareVideo(\''+v.id+'\')">'+
+          '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v14"/></svg>'+
+          '<span>Compartilhar</span>'+
+        '</button>'+
+        '<button class="vd-act'+(saved?' liked':'')+'" onclick="saveVideoDetail(\''+v.id+'\')">'+
+          '<svg viewBox="0 0 24 24" fill="'+(saved?'#F97316':'none')+'" stroke="'+(saved?'#F97316':'#fff')+'" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>'+
+          '<span>Salvar</span>'+
+        '</button>'+
+      '</div>'+
+      '<div class="vd-cmt-head">Comentários <span class="cnt">'+(v.comments?v.comments.length:0)+'</span></div>'+
+      (previewCmt?
+        '<div class="vd-cmt-preview" onclick="openComments(\''+v.id+'\')">'+
+          '<div class="ca">'+(pcu.photo?'<img src="'+pcu.photo+'">':escapeHtml((pcu.name||'?')[0]))+'</div>'+
+          '<div class="ct"><div class="cn">'+userNameDisplay(pcu)+'</div><div class="cc">'+escapeHtml(previewCmt.text)+'</div></div>'+
+        '</div>'
+      :'<div style="color:#666;font-size:14px;margin-bottom:8px">Nenhum comentário ainda</div>')+
+    '</div>'+
+  '</div>';
+  document.getElementById('app').innerHTML = html;
+}
+
+function likeVideoDetail(vid){
+  var u = curUser();
+  var vids = DB.videos();
+  var v = vids.find(function(x){return x.id===vid;});
+  if(!v) return;
+  if(!v.likedBy) v.likedBy = [];
+  if(!v.dislikedBy) v.dislikedBy = [];
+  var idx = v.likedBy.indexOf(u.id);
+  if(idx>=0){ v.likedBy.splice(idx,1); v.likes = Math.max(0,(v.likes||0)-1); }
+  else {
+    v.likedBy.push(u.id); v.likes = (v.likes||0)+1;
+    var di = v.dislikedBy.indexOf(u.id); if(di>=0) v.dislikedBy.splice(di,1);
+  }
+  DB.saveVideos(vids);
+  renderVideoDetail();
+}
+function dislikeVideoDetail(vid){
+  var u = curUser();
+  var vids = DB.videos();
+  var v = vids.find(function(x){return x.id===vid;});
+  if(!v) return;
+  if(!v.dislikedBy) v.dislikedBy = [];
+  if(!v.likedBy) v.likedBy = [];
+  var idx = v.dislikedBy.indexOf(u.id);
+  if(idx>=0) v.dislikedBy.splice(idx,1);
+  else {
+    v.dislikedBy.push(u.id);
+    var li = v.likedBy.indexOf(u.id);
+    if(li>=0){ v.likedBy.splice(li,1); v.likes = Math.max(0,(v.likes||0)-1); }
+  }
+  DB.saveVideos(vids);
+  renderVideoDetail();
+}
+function saveVideoDetail(vid){
+  var users = DB.users();
+  var u = users.find(function(x){return x.id===localStorage.getItem('gl_current_user');});
+  if(!u.savedVideos) u.savedVideos = [];
+  var idx = u.savedVideos.indexOf(vid);
+  if(idx>=0) u.savedVideos.splice(idx,1);
+  else u.savedVideos.push(vid);
+  DB.saveUsers(users);
+  renderVideoDetail();
+}
+function toggleFollowDetail(uid){
+  var users = DB.users();
+  var cu = users.find(function(x){return x.id===localStorage.getItem('gl_current_user');});
+  var tu = users.find(function(x){return x.id===uid;});
+  if(!cu.following) cu.following = [];
+  var idx = cu.following.indexOf(uid);
+  if(idx>=0){ cu.following.splice(idx,1); tu.followers = Math.max(0,(tu.followers||0)-1); }
+  else { cu.following.push(uid); tu.followers = (tu.followers||0)+1; }
+  DB.saveUsers(users);
+  renderVideoDetail();
+}
+
+// ==================== SHORTS (full-screen feed) ====================
+function renderShorts(){
+  var vids = DB.videos().filter(function(v){return v.type==='short';});
+  if(vids.length===0){
+    document.getElementById('app').innerHTML = '<div style="height:100%;display:flex;align-items:center;justify-content:center;color:#666;font-size:16px;text-align:center;padding:20px">Nenhum short ainda.<br>Use o botão "+" para adicionar! ⚡</div>';
     return;
   }
   var u = curUser();
@@ -289,7 +518,7 @@ function renderHome(){
     var liked = v.likedBy && v.likedBy.indexOf(u.id)>=0;
     var saved = u.savedVideos && u.savedVideos.indexOf(v.id)>=0;
     html += '<div class="video-slide" data-vid="'+v.id+'">'+
-      '<video src="'+v.url+'" loop playsinline preload="auto" '+(liked?'':'')+'></video>'+
+      '<video src="'+v.url+'" loop playsinline preload="auto"></video>'+
       '<div class="tap-area" onclick="togglePause(this)"></div>'+
       '<div class="pause-icon">⏸</div>'+
       '<div class="video-info">'+
@@ -297,7 +526,7 @@ function renderHome(){
         '<div class="desc">'+escapeHtml(v.description||'')+'</div>'+
       '</div>'+
       '<div class="video-overlay">'+
-        '<div class="vbtn'+(liked?' liked':'')+'" onclick="likeVideo(\''+v.id+'\')">'+
+        '<div class="vbtn'+(liked?' liked':'')+'" onclick="likeShort(\''+v.id+'\')">'+
           '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>'+
           '<span class="count">'+fmt(v.likes||0)+'</span>'+
         '</div>'+
@@ -309,7 +538,7 @@ function renderHome(){
           '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v14"/></svg>'+
           '<span class="count">Compartilhar</span>'+
         '</div>'+
-        '<div class="vbtn'+(saved?' saved':'')+'" onclick="saveVideo(\''+v.id+'\')">'+
+        '<div class="vbtn'+(saved?' saved':'')+'" onclick="saveShort(\''+v.id+'\')">'+
           '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>'+
           '<span class="count">Salvar</span>'+
         '</div>'+
@@ -319,7 +548,6 @@ function renderHome(){
   html += '</div>';
   document.getElementById('app').innerHTML = html;
 
-  // Setup video observer
   if(feedObserver) feedObserver.disconnect();
   var vids2 = document.querySelectorAll('.video-slide video');
   feedObserver = new IntersectionObserver(function(entries){
@@ -343,14 +571,7 @@ function renderHome(){
   vids2.forEach(function(v){ feedObserver.observe(v); });
 }
 
-function togglePause(el){
-  var slide = el.closest('.video-slide');
-  var v = slide.querySelector('video');
-  if(v.paused){ v.play(); slide.classList.remove('paused'); }
-  else { v.pause(); slide.classList.add('paused'); }
-}
-
-function likeVideo(vid){
+function likeShort(vid){
   var u = curUser();
   var vids = DB.videos();
   var v = vids.find(function(x){return x.id===vid;});
@@ -360,10 +581,10 @@ function likeVideo(vid){
   if(idx>=0){ v.likedBy.splice(idx,1); v.likes = Math.max(0,(v.likes||0)-1); }
   else { v.likedBy.push(u.id); v.likes = (v.likes||0)+1; }
   DB.saveVideos(vids);
-  renderHome();
+  renderShorts();
 }
 
-function saveVideo(vid){
+function saveShort(vid){
   var users = DB.users();
   var u = users.find(function(x){return x.id===localStorage.getItem('gl_current_user');});
   if(!u.savedVideos) u.savedVideos = [];
@@ -371,7 +592,14 @@ function saveVideo(vid){
   if(idx>=0) u.savedVideos.splice(idx,1);
   else u.savedVideos.push(vid);
   DB.saveUsers(users);
-  renderHome();
+  renderShorts();
+}
+
+function togglePause(el){
+  var slide = el.closest('.video-slide');
+  var v = slide.querySelector('video');
+  if(v.paused){ v.play(); slide.classList.remove('paused'); }
+  else { v.pause(); slide.classList.add('paused'); }
 }
 
 function shareVideo(vid){
@@ -482,7 +710,7 @@ function aiResponse(text, img){
   if(text.match(/tudo bem|como vai|como estas|td bem/)) return 'Tudo ótimo! 😄 E com você? 💖 Espero que esteja bem! 🌟';
   if(text.match(/nome|quem e você|quem e vc|o que voce e/)) return 'Eu sou a Good Look IA! 🤖✨ Sua assistente virtual! 😊';
   if(text.match(/ajuda|socorro|help/)) return 'Claro! 😊 Posso conversar, ver fotos 📸, responder perguntas... É só pedir! 🤖✨';
-  if(text.match amor||amor)) return 'Amor é lindo! 💖😍 Espero que você tenha muito amor na vida! 🌹✨';
+  if(text.match(/amor/)) return 'Amor é lindo! 💖😍 Espero que você tenha muito amor na vida! 🌹✨';
   if(text.match(/triste|mal|ruim|chato/)) return 'Poxa... 😢 Não fique assim! 🤗 As coisas vão melhorar! 💪✨';
   if(text.match(/feliz|bom|ótimo|otimo|legal/)) return 'Que maravilha! 😄🎉 Fico feliz por você! 💖✨';
   if(text.match(/vídeo|video/)) return 'Vídeos são incríveis! 🎬 Você pode postar na Home! 📱✨';
@@ -751,32 +979,37 @@ var postMode = 'link';
 var postFileUrl = null;
 
 function renderPost(){
+  var isShort = postMode==='shorts';
   var html = '<div class="post-view">'+
-    '<h2>Postar Vídeo 🎬</h2>'+
+    '<h2>'+(isShort?'Postar Short ⚡':'Postar Vídeo 🎬')+'</h2>'+
     '<div class="post-opts">'+
-      '<div class="post-opt '+(postMode==='gallery'?'active':'')+'" onclick="postMode=\'gallery\';renderPost()">'+
-        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>'+
-        '<div class="t">Galeria</div>'+
-      '</div>'+
       '<div class="post-opt '+(postMode==='link'?'active':'')+'" onclick="postMode=\'link\';renderPost()">'+
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>'+
-        '<div class="t">Link</div>'+
+        '<div class="t">Pública por link</div>'+
+      '</div>'+
+      '<div class="post-opt '+(postMode==='video'?'active':'')+'" onclick="postMode=\'video\';renderPost()">'+
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>'+
+        '<div class="t">Vídeo</div>'+
+      '</div>'+
+      '<div class="post-opt '+(postMode==='shorts'?'active':'')+'" onclick="postMode=\'shorts\';renderPost()">'+
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 6.5L6.5 17.5"/><path d="M9 7l8.5-2.5L15 13z" fill="currentColor"/><path d="M15 17l-8.5 2.5L9 11z" fill="currentColor"/></svg>'+
+        '<div class="t">Shorts</div>'+
       '</div>'+
     '</div>'+
-    (postMode==='gallery'?
-      '<input type="file" id="postFile" accept="video/*" style="display:none">'+
-      '<button class="post-btn" style="background:#1e1e1e;margin-bottom:12px" onclick="document.getElementById(\'postFile\').click()">Escolher vídeo da galeria</button>'+
-      '<div id="postPreview"></div>'
-    :
+    (postMode==='link'?
       '<input class="post-field" id="postUrl" placeholder="Cole o link do vídeo (URL)">'+
       '<div id="postPreview"></div>'
+    :
+      '<input type="file" id="postFile" accept="video/*" style="display:none">'+
+      '<button class="post-btn" style="background:#1e1e1e;margin-bottom:12px" onclick="document.getElementById(\'postFile\').click()">Escolher '+(isShort?'short':'vídeo')+' da galeria</button>'+
+      '<div id="postPreview"></div>'
     )+
-    '<input class="post-field" id="postDesc" placeholder="Descrição do vídeo">'+
+    '<input class="post-field" id="postDesc" placeholder="Descrição">'+
     '<button class="post-btn" onclick="publishVideo()">Publicar 🚀</button>'+
   '</div>';
   document.getElementById('app').innerHTML = html;
 
-  if(postMode==='gallery'){
+  if(postMode!=='link'){
     document.getElementById('postFile').addEventListener('change', function(e){
       var f = e.target.files[0]; if(!f) return;
       postFileUrl = URL.createObjectURL(f);
@@ -788,21 +1021,22 @@ function renderPost(){
 function publishVideo(){
   var u = curUser();
   var url, desc;
-  if(postMode==='gallery'){
-    url = postFileUrl;
-    if(!url){ showNotif('Escolha um vídeo primeiro! 📹'); return; }
-  } else {
+  var type = postMode==='shorts' ? 'short' : 'video';
+  if(postMode==='link'){
     url = document.getElementById('postUrl').value.trim();
     if(!url){ showNotif('Cole o link do vídeo! 🔗'); return; }
+  } else {
+    url = postFileUrl;
+    if(!url){ showNotif('Escolha um '+(type==='short'?'short':'vídeo')+' primeiro! 📹'); return; }
   }
   desc = document.getElementById('postDesc').value.trim() || 'Sem descrição';
   var vids = DB.videos();
-  var vid = { id:'vid'+Date.now(), userId:u.id, userName:u.name, userPhoto:u.photo, url:url, description:desc, likes:0, views:0, comments:[], timestamp:Date.now(), likedBy:[], botLikes:0 };
+  var vid = { id:'vid'+Date.now(), userId:u.id, userName:u.name, userPhoto:u.photo, url:url, description:desc, type:type, likes:0, views:0, comments:[], timestamp:Date.now(), likedBy:[], dislikedBy:[], botLikes:0 };
   vids.unshift(vid);
   DB.saveVideos(vids);
   postFileUrl = null;
-  showNotif('Vídeo publicado! 🎉');
-  setTimeout(function(){ view='home'; render(); }, 800);
+  showNotif(type==='short'?'Short publicado! ⚡🎉':'Vídeo publicado! 🎉');
+  setTimeout(function(){ view=(type==='short'?'shorts':'home'); render(); }, 800);
 }
 
 // ==================== PANEL (Creator) ====================
@@ -997,7 +1231,7 @@ function startBots(){
     if(changed){
       DB.saveVideos(vids);
       // If on home, update counts without full re-render
-      if(view==='home'){
+      if(view==='shorts'){
         var slides = document.querySelectorAll('.video-slide');
         slides.forEach(function(s){
           var vid = s.dataset.vid;
@@ -1017,6 +1251,7 @@ window.addEventListener('storage', function(e){
   if(e.key==='gl_pubmsg' && view==='pvb' && pvbView==='public') renderPVBPublic();
   if(e.key==='gl_privmsg' && view==='pvb' && pvbView==='private') renderPVBPrivate();
   if(e.key==='gl_videos' && view==='home') renderHome();
+  if(e.key==='gl_videos' && view==='shorts') renderShorts();
 });
 
 // ==================== INIT ====================
@@ -1030,15 +1265,21 @@ window.addEventListener('storage', function(e){
   // Seed videos if empty
   var vids = DB.videos();
   if(vids.length===0){
-    var samples = [
-      {desc:'Bunny 🐰',url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'},
-      {desc:'Sonho dos elefantes 🐘',url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4'},
-      {desc:'Muito fogo! 🔥',url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'},
-      {desc:'Fuga 🏃',url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4'},
-      {desc:'Diversão pura 😎',url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4'}
+    var vSamples = [
+      {desc:'PEGUEI O OVO DIVINO MAIS RARO DO HALLOWEEN! 🎃🥚',url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'},
+      {desc:'TOP GLOBAL no jogo mais difícil! 🏆',url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4'},
+      {desc:'DEMON SLAYER — melhor momento do anime! ⚔️🔥',url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4'}
     ];
-    samples.forEach(function(s,i){
-      vids.push({id:'vid'+i,userId:'creator',userName:'raibow',userPhoto:null,url:s.url,description:s.desc,likes:Math.floor(Math.random()*50)+5,views:Math.floor(Math.random()*500)+100,comments:[],timestamp:Date.now()-i*86400000,likedBy:[],botLikes:0});
+    vSamples.forEach(function(s,i){
+      vids.push({id:'v'+i,userId:'creator',userName:'raibow',userPhoto:null,url:s.url,description:s.desc,type:'video',likes:Math.floor(Math.random()*500)+100,views:Math.floor(Math.random()*15000)+1000,comments:[],timestamp:Date.now()-(i+1)*43200000,likedBy:[],dislikedBy:[],botLikes:0});
+    });
+    var sSamples = [
+      {desc:'Bunny 🐰',url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'},
+      {desc:'Muito fogo! 🔥',url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4'},
+      {desc:'Diversão pura 😎',url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4'}
+    ];
+    sSamples.forEach(function(s,i){
+      vids.push({id:'s'+i,userId:'creator',userName:'raibow',userPhoto:null,url:s.url,description:s.desc,type:'short',likes:Math.floor(Math.random()*50)+5,views:Math.floor(Math.random()*500)+100,comments:[],timestamp:Date.now()-i*3600000,likedBy:[],dislikedBy:[],botLikes:0});
     });
     DB.saveVideos(vids);
   }

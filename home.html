@@ -69,15 +69,21 @@
       // Seed sample videos
       var vids = JSON.parse(localStorage.getItem('gl_videos') || '[]');
       if (vids.length === 0) {
-        var samples = [
-          { desc:'Bunny 🐰', url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4' },
-          { desc:'Sonho dos elefantes 🐘', url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4' },
-          { desc:'Muito fogo! 🔥', url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4' },
-          { desc:'Fuga 🏃', url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4' },
-          { desc:'Diversão pura 😎', url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4' }
+        var vSamples = [
+          { desc:'PEGUEI O OVO DIVINO MAIS RARO DO HALLOWEEN! 🎃🥚', url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4' },
+          { desc:'TOP GLOBAL no jogo mais difícil! 🏆', url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4' },
+          { desc:'DEMON SLAYER — melhor momento do anime! ⚔️🔥', url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4' }
         ];
-        samples.forEach(function(s, i){
-          vids.push({ id:'vid'+i, userId:'creator', userName:'raibow', userPhoto:null, url:s.url, description:s.desc, likes:Math.floor(Math.random()*50)+5, views:Math.floor(Math.random()*500)+100, comments:[], timestamp:Date.now()-i*86400000, likedBy:[], botLikes:0 });
+        vSamples.forEach(function(s, i){
+          vids.push({ id:'v'+i, userId:'creator', userName:'raibow', userPhoto:null, url:s.url, description:s.desc, type:'video', likes:Math.floor(Math.random()*500)+100, views:Math.floor(Math.random()*15000)+1000, comments:[], timestamp:Date.now()-(i+1)*43200000, likedBy:[], dislikedBy:[], botLikes:0 });
+        });
+        var sSamples = [
+          { desc:'Bunny 🐰', url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4' },
+          { desc:'Muito fogo! 🔥', url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4' },
+          { desc:'Diversão pura 😎', url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4' }
+        ];
+        sSamples.forEach(function(s, i){
+          vids.push({ id:'s'+i, userId:'creator', userName:'raibow', userPhoto:null, url:s.url, description:s.desc, type:'short', likes:Math.floor(Math.random()*50)+5, views:Math.floor(Math.random()*500)+100, comments:[], timestamp:Date.now()-i*3600000, likedBy:[], dislikedBy:[], botLikes:0 });
         });
         localStorage.setItem('gl_videos', JSON.stringify(vids));
       }
