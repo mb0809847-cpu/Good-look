@@ -2,102 +2,141 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Good Look — Criar conta</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Good Look — Entrar</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { height: 100%; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: linear-gradient(135deg, #fef3e5 0%, #e5eaff 100%);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #1e293b;
+      min-height: 100vh; display: flex; align-items: center; justify-content: center; color: #1e293b;
     }
-    .card {
-      background: #fff;
-      border-radius: 16px;
-      box-shadow: 0 10px 30px rgba(15,23,42,0.08);
-      padding: 32px 28px;
-      width: 100%;
-      max-width: 360px;
-      text-align: center;
-    }
+    .card { background: #fff; border-radius: 16px; box-shadow: 0 10px 30px rgba(15,23,42,0.08); padding: 32px 28px; width: 100%; max-width: 360px; text-align: center; }
     .brand { font-size: 24px; font-weight: 800; color: #0f172a; margin-bottom: 4px; }
     .lead { font-size: 14px; color: #94a3b8; margin-bottom: 22px; }
-    .avatar {
-      width: 72px; height: 72px;
-      border-radius: 50%;
-      background: #f1f5f9;
-      margin: 0 auto 22px;
-      display: flex; align-items: center; justify-content: center;
-      color: #cbd5e1;
-    }
+    .avatar { width: 72px; height: 72px; border-radius: 50%; background: #f1f5f9; margin: 0 auto 22px; display: flex; align-items: center; justify-content: center; color: #cbd5e1; overflow: hidden; cursor: pointer; position: relative; }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; }
     .avatar svg { width: 28px; height: 28px; }
-    .field {
-      width: 100%;
-      padding: 13px 14px;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
-      font-size: 15px;
-      color: #334155;
-      margin-bottom: 12px;
-      outline: none;
-      transition: border-color .15s ease;
-    }
+    .field { width: 100%; padding: 13px 14px; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 15px; color: #334155; margin-bottom: 12px; outline: none; transition: border-color .15s; }
     .field:focus { border-color: #F97316; }
-    .btn {
-      width: 100%;
-      padding: 13px;
-      border: none;
-      border-radius: 10px;
-      background: #F97316;
-      color: #fff;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-      margin-top: 4px;
-      transition: transform .08s ease;
-    }
+    .btn { width: 100%; padding: 13px; border: none; border-radius: 10px; background: #F97316; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 4px; }
     .btn:active { transform: scale(0.98); }
+    .btn-sec { background: transparent; color: #64748b; font-size: 14px; margin-top: 14px; font-weight: 600; }
+    .err { color: #ef4444; font-size: 13px; margin-bottom: 10px; display: none; }
     .foot { margin-top: 18px; font-size: 14px; color: #94a3b8; }
     .foot a { color: #0f172a; font-weight: 700; text-decoration: none; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+    .tab { flex: 1; padding: 10px; border: none; border-radius: 8px; background: #f1f5f9; color: #64748b; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .tab.active { background: #F97316; color: #fff; }
+    #photoData { display: none; }
   </style>
 </head>
 <body>
-  <form class="card" id="signupForm">
+  <div class="card">
     <div class="brand">Good Look</div>
-    <div class="lead">Crie sua conta</div>
-    <div class="avatar">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M23 19a2 2 0 0 0-2 2H3a2 2 0 0 0-2-2"/>
-        <path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14"/>
-        <circle cx="12" cy="9" r="2.5"/>
-        <path d="M7 17c0-2.8 2.2-5 5-5s5 2.2 5 5"/>
-      </svg>
+    <div class="lead">Entrar ou criar conta</div>
+    <div class="tabs">
+      <button class="tab active" id="tabCreate" onclick="switchTab('create')">Criar conta</button>
+      <button class="tab" id="tabLogin" onclick="switchTab('login')">Entrar</button>
     </div>
-    <input class="field" id="nome" type="text" placeholder="Nome" required />
-    <input class="field" id="senha" type="password" placeholder="Senha" required />
-    <button class="btn" type="submit">Criar conta</button>
-    <div class="foot">Já tem conta? <a href="/">Entrar</a></div>
-  </form>
+    <div id="createForm">
+      <div class="avatar" id="avatarBtn" onclick="document.getElementById('photoInput').click()">
+        <svg id="avatarIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 0-2 2H3a2 2 0 0 0-2-2"/><path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14"/><circle cx="12" cy="9" r="2.5"/><path d="M7 17c0-2.8 2.2-5 5-5s5 2.2 5 5"/></svg>
+        <img id="avatarImg" style="display:none" />
+      </div>
+      <input type="file" id="photoInput" accept="image/*" style="display:none" />
+      <input class="field" id="cName" type="text" placeholder="Nome" />
+      <input class="field" id="cPass" type="password" placeholder="Senha" />
+      <div class="err" id="cErr"></div>
+      <button class="btn" onclick="createAccount()">Criar conta</button>
+    </div>
+    <div id="loginForm" style="display:none">
+      <input class="field" id="lName" type="text" placeholder="Nome" />
+      <input class="field" id="lPass" type="password" placeholder="Senha" />
+      <div class="err" id="lErr"></div>
+      <button class="btn" onclick="loginAccount()">Entrar</button>
+    </div>
+    <div class="foot"><a href="/">← Voltar</a></div>
+  </div>
   <script>
-    document.getElementById('signupForm').addEventListener('submit', function (e) {
-      e.preventDefault();
-      var nome = document.getElementById('nome').value.trim();
-      var senha = document.getElementById('senha').value;
-      if (!nome || !senha) return;
-      localStorage.setItem('goodlook_user', JSON.stringify({ nome: nome, senha: senha }));
-      var card = document.querySelector('.card');
-      card.innerHTML = '<div class="brand">Good Look</div>' +
-        '<div class="lead" style="margin-bottom:28px">Conta criada com sucesso!</div>' +
-        '<div class="avatar" style="background:#dcfce7;color:#16a34a">' +
-        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="width:28px;height:28px"><path d="M20 6L9 17l-5-5"/></svg></div>' +
-        '<p style="font-size:15px;color:#334155;margin-bottom:20px">Bem-vindo(a), <strong>' + nome + '</strong>!</p>' +
-        '<a href="/" class="btn" style="display:block;text-decoration:none;text-align:center">Ir para o início</a>';
+    (function(){
+      // Seed creator account
+      var users = JSON.parse(localStorage.getItem('gl_users') || '[]');
+      if (!users.find(function(u){return u.username==='tex_tt';})) {
+        users.push({ id:'creator', name:'raibow', username:'tex_tt', password:'12345678910', photo:null, bio:'👑 Criador do Good Look', followers:100000, following:[], likes:0, verified:true, verifiedType:'blue', isCreator:true, isAdmin:true, banned:false, banUntil:null, savedVideos:[] });
+        localStorage.setItem('gl_users', JSON.stringify(users));
+      }
+      // Seed sample videos
+      var vids = JSON.parse(localStorage.getItem('gl_videos') || '[]');
+      if (vids.length === 0) {
+        var samples = [
+          { desc:'Bunny 🐰', url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4' },
+          { desc:'Sonho dos elefantes 🐘', url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4' },
+          { desc:'Muito fogo! 🔥', url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4' },
+          { desc:'Fuga 🏃', url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4' },
+          { desc:'Diversão pura 😎', url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4' }
+        ];
+        samples.forEach(function(s, i){
+          vids.push({ id:'vid'+i, userId:'creator', userName:'raibow', userPhoto:null, url:s.url, description:s.desc, likes:Math.floor(Math.random()*50)+5, views:Math.floor(Math.random()*500)+100, comments:[], timestamp:Date.now()-i*86400000, likedBy:[], botLikes:0 });
+        });
+        localStorage.setItem('gl_videos', JSON.stringify(vids));
+      }
+      // Auto-login
+      var cur = localStorage.getItem('gl_current_user');
+      if (cur) {
+        var u = users.find(function(x){return x.id===cur;});
+        if (u && !u.banned) window.location.href = '/app';
+      }
+    })();
+
+    var photoData = null;
+    document.getElementById('photoInput').addEventListener('change', function(e){
+      var f = e.target.files[0];
+      if (!f) return;
+      var r = new FileReader();
+      r.onload = function(ev){
+        photoData = ev.target.result;
+        var img = document.getElementById('avatarImg');
+        img.src = photoData; img.style.display = 'block';
+        document.getElementById('avatarIcon').style.display = 'none';
+      };
+      r.readAsDataURL(f);
     });
+
+    function switchTab(t){
+      document.getElementById('tabCreate').classList.toggle('active', t==='create');
+      document.getElementById('tabLogin').classList.toggle('active', t==='login');
+      document.getElementById('createForm').style.display = t==='create'?'block':'none';
+      document.getElementById('loginForm').style.display = t==='login'?'block':'none';
+    }
+
+    function createAccount(){
+      var name = document.getElementById('cName').value.trim();
+      var pass = document.getElementById('cPass').value;
+      var err = document.getElementById('cErr');
+      if (!name || !pass) { err.textContent='Preencha nome e senha'; err.style.display='block'; return; }
+      var users = JSON.parse(localStorage.getItem('gl_users')||'[]');
+      if (users.find(function(u){return u.name.toLowerCase()===name.toLowerCase();})) {
+        err.textContent='Esse nome já existe. Tente "Entrar".'; err.style.display='block'; return;
+      }
+      var id = 'u'+Date.now();
+      users.push({ id:id, name:name, username:name.toLowerCase().replace(/\s/g,'_'), password:pass, photo:photoData, bio:'', followers:0, following:[], likes:0, verified:false, verifiedType:null, isCreator:false, isAdmin:false, banned:false, banUntil:null, savedVideos:[] });
+      localStorage.setItem('gl_users', JSON.stringify(users));
+      localStorage.setItem('gl_current_user', id);
+      window.location.href = '/app';
+    }
+
+    function loginAccount(){
+      var name = document.getElementById('lName').value.trim();
+      var pass = document.getElementById('lPass').value;
+      var err = document.getElementById('lErr');
+      var users = JSON.parse(localStorage.getItem('gl_users')||'[]');
+      var u = users.find(function(x){return x.name.toLowerCase()===name.toLowerCase() && x.password===pass;});
+      if (!u) { err.textContent='Nome ou senha incorretos'; err.style.display='block'; return; }
+      if (u.banned && u.banUntil && Date.now() < u.banUntil) { err.textContent='Conta banida'; err.style.display='block'; return; }
+      localStorage.setItem('gl_current_user', u.id);
+      window.location.href = '/app';
+    }
   </script>
 </body>
 </html>
