@@ -1,7 +1,115 @@
-imdex.html
 <!DOCTYPE html>
-<html>
-  <body>
-    <h1>Bem-vindo ao meu site! 🚀</h1>
-  </body>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Good Look</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: linear-gradient(135deg, #FDF1E6 0%, #E0E6FF 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #1e293b;
+    }
+    .wrap {
+      text-align: center;
+      padding: 24px;
+      max-width: 440px;
+      width: 100%;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #fff;
+      border: 1px solid #e9e9ee;
+      border-radius: 999px;
+      padding: 8px 16px;
+      font-size: 13px;
+      color: #475569;
+      margin-bottom: 28px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+    .badge svg { width: 16px; height: 16px; }
+    h1 {
+      font-size: 40px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #0f172a;
+      margin-bottom: 14px;
+    }
+    p.sub {
+      font-size: 16px;
+      line-height: 1.5;
+      color: #64748b;
+      margin-bottom: 32px;
+    }
+    .btns { display: flex; flex-direction: column; gap: 14px; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px 22px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      transition: transform .08s ease, box-shadow .15s ease;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary {
+      background: #F97316;
+      color: #fff;
+      box-shadow: 0 6px 16px rgba(249,115,22,0.30);
+    }
+    .btn-secondary {
+      background: #fff;
+      color: #334155;
+      border: 1px solid #e9e9ee;
+    }
+    .btn svg { width: 18px; height: 18px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="badge">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="4"/>
+        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+      </svg>
+      <span id="greet">Boa noite</span> • Clima do sistema
+    </div>
+    <h1>Good Look</h1>
+    <p class="sub">O céu está limpo e a atmosfera é perfeita. Baixe o app e converse com a IA.</p>
+    <div class="btns">
+      <a class="btn btn-primary" href="https://www.mediafire.com/file/dbucb6003wfw6et/_Good_lookp_20296387.apk/file">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+        </svg>
+        Baixar app
+      </a>
+      <a class="btn btn-secondary" href="/home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14M13 6l6 6-6 6"/>
+        </svg>
+        Entrar
+      </a>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var h = new Date().getHours();
+      var g = h < 6 ? "Boa madrugada" : h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
+      document.getElementById("greet").textContent = g;
+    })();
+  </script>
+</body>
 </html>

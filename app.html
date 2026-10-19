@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Good Look</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+body{background:#000;color:#fff}
+#app{position:fixed;top:0;left:0;right:0;bottom:60px;overflow:hidden}
+#nav{position:fixed;bottom:0;left:0;right:0;height:60px;background:#111;display:flex;align-items:center;justify-content:space-around;z-index:999;border-top:1px solid #222}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;color:#666;font-size:10px;flex:1}
+.nav-item.active{color:#F97316}
+.nav-item svg{width:22px;height:22px}
+.nav-post{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#F97316,#ea580c);display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 2px 8px rgba(249,115,22,.4)}
+.nav-post svg{width:24px;height:24px}
+
+/* Home feed */
+.feed{height:100%;overflow-y:scroll;scroll-snap-type:y mandatory;background:#000}
+.feed::-webkit-scrollbar{display:none}
+.video-slide{height:100%;scroll-snap-align:start;scroll-snap-stop:always;position:relative;display:flex;align-items:center;justify-content:center;background:#000}
+.video-slide video{width:100%;height:100%;object-fit:contain}
+.video-overlay{position:absolute;bottom:80px;right:12px;display:flex;flex-direction:column;gap:18px;z-index:5}
+.video-info{position:absolute;bottom:80px;left:16px;right:80px;z-index:5}
+.video-info .uname{font-size:16px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:4px}
+.video-info .desc{font-size:14px;color:#ddd;line-height:1.4}
+.vbtn{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer}
+.vbtn svg{width:38px;height:38px;filter:drop-shadow(0 1px 3px rgba(0,0,0,.5))}
+.vbtn .count{font-size:12px;font-weight:600}
+.vbtn.liked svg{fill:#ff3b5c;stroke:#ff3b5c}
+.vbtn.saved svg{fill:#F97316;stroke:#F97316}
+.pause-icon{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:60px;opacity:0;pointer-events:none;z-index:6;transition:opacity .2s}
+.video-slide.paused .pause-icon{opacity:.7}
+.tap-area{position:absolute;top:0;left:0;right:0;bottom:0;z-index:3}
+
+/* Chat (IA + PVB) */
+.chat-view{height:100%;display:flex;flex-direction:column;background:#0a0a0a}
+.chat-header{padding:12px 16px;background:#111;display:flex;align-items:center;gap:12px;border-bottom:1px solid #222}
+.chat-header .back{cursor:pointer;color:#F97316;font-size:20px}
+.chat-header .title{font-weight:700;flex:1;display:flex;align-items:center;gap:4px}
+.chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
+.chat-messages::-webkit-scrollbar{display:none}
+.msg{max-width:80%;padding:10px 14px;border-radius:16px;font-size:14px;line-height:1.4;word-break:break-word}
+.msg.me{align-self:flex-end;background:#F97316;color:#fff}
+.msg.them{align-self:flex-start;background:#1e1e1e;color:#fff}
+.msg .name{font-size:11px;color:#888;margin-bottom:2px;display:flex;align-items:center;gap:3px}
+.msg img{max-width:200px;border-radius:12px;margin-top:6px}
+.chat-input{padding:10px;background:#111;display:flex;gap:8px;align-items:center;border-top:1px solid #222}
+.chat-input input{flex:1;background:#1e1e1e;border:none;border-radius:20px;padding:10px 16px;color:#fff;font-size:14px;outline:none}
+.chat-input button{width:38px;height:38px;border-radius:50%;border:none;background:#F97316;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.chat-input .photo-btn{background:#1e1e1e;color:#999}
+.chat-input svg{width:20px;height:20px}
+
+/* PVB tabs */
+.pvb-tabs{display:flex;background:#111;border-bottom:1px solid #222}
+.pvb-tab{flex:1;padding:12px;text-align:center;font-size:14px;font-weight:600;color:#666;cursor:pointer;border-bottom:2px solid transparent}
+.pvb-tab.active{color:#F97316;border-bottom-color:#F97316}
+.user-list{flex:1;overflow-y:auto}
+.user-row{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;border-bottom:1px solid #1a1a1a}
+.user-row:active{background:#1a1a1a}
+.user-row .ava{width:44px;height:44px;border-radius:50%;background:#333;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#666;font-size:18px}
+.user-row .ava img{width:100%;height:100%;object-fit:cover}
+.user-row .info{flex:1}
+.user-row .info .n{font-weight:600;font-size:14px;display:flex;align-items:center;gap:3px}
+.user-row .info .s{font-size:12px;color:#666}
+.user-row .acts{display:flex;gap:8px}
+.user-row .acts button{padding:6px 12px;border-radius:8px;border:none;font-size:12px;cursor:pointer}
+.user-row .acts .pbtn{background:#1e1e1e;color:#fff}
+.user-row .acts .cbtn{background:#F97316;color:#fff}
+
+/* Profile */
+.profile-view{height:100%;overflow-y:auto;background:#0a0a0a;padding-bottom:20px}
+.profile-view::-webkit-scrollbar{display:none}
+.prof-header{padding:20px 16px;text-align:center}
+.prof-ava{width:90px;height:90px;border-radius:50%;margin:0 auto 12px;background:#333;overflow:hidden;display:flex;align-items:center;justify-content:center;color:#666;font-size:36px}
+.prof-ava img{width:100%;height:100%;object-fit:cover}
+.prof-name{font-size:20px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:4px}
+.prof-stats{display:flex;justify-content:center;gap:24px;margin:16px 0}
+.prof-stat{text-align:center}
+.prof-stat .num{font-size:18px;font-weight:700}
+.prof-stat .lbl{font-size:12px;color:#888}
+.prof-bio{font-size:14px;color:#aaa;padding:0 20px;margin-bottom:16px}
+.prof-btns{display:flex;gap:10px;padding:0 16px;margin-bottom:20px}
+.prof-btns button{flex:1;padding:10px;border-radius:8px;border:none;font-size:14px;font-weight:600;cursor:pointer}
+.btn-edit{background:#1e1e1e;color:#fff}
+.btn-follow{background:#F97316;color:#fff}
+.btn-following{background:#1e1e1e;color:#fff}
+.prof-videos{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:0 2px}
+.prof-videos .pv{aspect-ratio:9/16;background:#111;cursor:pointer;position:relative;overflow:hidden}
+.prof-videos .pv video{width:100%;height:100%;object-fit:cover}
+.prof-videos .pv .vc{position:absolute;bottom:4px;left:6px;font-size:11px;color:#fff;text-shadow:0 1px 2px #000}
+.prof-videos .empty{grid-column:1/-1;text-align:center;color:#666;padding:40px;font-size:14px}
+
+/* Post */
+.post-view{height:100%;overflow-y:auto;background:#0a0a0a;padding:20px}
+.post-view::-webkit-scrollbar{display:none}
+.post-view h2{font-size:20px;margin-bottom:20px;text-align:center}
+.post-opts{display:flex;gap:12px;margin-bottom:20px}
+.post-opt{flex:1;padding:16px;border-radius:12px;background:#1e1e1e;text-align:center;cursor:pointer;border:2px solid transparent}
+.post-opt.active{border-color:#F97316}
+.post-opt svg{width:32px;height:32px;color:#F97316;margin-bottom:8px}
+.post-opt .t{font-size:13px;color:#ccc}
+.post-field{width:100%;background:#1e1e1e;border:1px solid #333;border-radius:10px;padding:12px;color:#fff;font-size:14px;margin-bottom:12px;outline:none}
+.post-field:focus{border-color:#F97316}
+.post-preview{width:100%;max-height:200px;border-radius:12px;margin-bottom:12px;object-fit:contain;background:#111}
+.post-btn{width:100%;padding:14px;border-radius:10px;border:none;background:#F97316;color:#fff;font-size:16px;font-weight:700;cursor:pointer}
+
+/* Panel */
+.panel-view{height:100%;overflow-y:auto;background:#0a0a0a;padding:16px}
+.panel-view::-webkit-scrollbar{display:none}
+.panel-view h2{font-size:18px;margin-bottom:16px;color:#F97316}
+.panel-section{background:#1e1e1e;border-radius:12px;padding:16px;margin-bottom:16px}
+.panel-section h3{font-size:15px;margin-bottom:12px;color:#F97316}
+.panel-search{width:100%;background:#111;border:1px solid #333;border-radius:8px;padding:10px;color:#fff;font-size:14px;margin-bottom:12px;outline:none}
+.panel-item{display:flex;align-items:center;gap:10px;padding:10px;border-bottom:1px solid #2a2a2a}
+.panel-item .pi-ava{width:36px;height:36px;border-radius:50%;background:#333;overflow:hidden}
+.panel-item .pi-ava img{width:100%;height:100%;object-fit:cover}
+.panel-item .pi-name{flex:1;font-size:14px;display:flex;align-items:center;gap:3px}
+.panel-item input{width:70px;background:#111;border:1px solid #333;border-radius:6px;padding:6px;color:#fff;font-size:13px;text-align:center}
+.panel-item button{padding:6px 10px;border-radius:6px;border:none;background:#F97316;color:#fff;font-size:12px;cursor:pointer}
+.panel-item .del{background:#ef4444}
+.panel-tabs{display:flex;gap:8px;margin-bottom:16px}
+.panel-tab{flex:1;padding:8px;border-radius:8px;background:#1e1e1e;text-align:center;font-size:13px;cursor:pointer;border:2px solid transparent}
+.panel-tab.active{border-color:#F97316}
+.ban-select{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.ban-opt{padding:6px 12px;border-radius:6px;background:#ef4444;color:#fff;font-size:12px;cursor:pointer;border:none}
+
+/* Verified badge */
+.vbadge{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;flex-shrink:0}
+.vbadge svg{width:16px;height:16px}
+
+/* Notifications */
+.notif{position:fixed;top:0;left:0;right:0;background:#F97316;padding:12px 16px;z-index:9999;font-size:13px;display:none;align-items:center;gap:8px;cursor:pointer}
+.notif.show{display:flex}
+
+/* YouTube-style home feed */
+.yt-feed{height:100%;overflow-y:auto;background:#0f0f0f;padding-bottom:10px}
+.yt-feed::-webkit-scrollbar{display:none}
+.yt-card{margin-bottom:8px}
+.yt-thumb{width:100%;aspect-ratio:16/9;background:#000;position:relative;overflow:hidden;cursor:pointer}
+.yt-thumb video{width:100%;height:100%;object-fit:cover;pointer-events:none}
+.yt-thumb .play-ov{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:54px;height:54px;border-radius:50%;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center}
+.yt-thumb .play-ov svg{width:26px;height:26px;color:#fff;margin-left:3px}
+.yt-thumb .dur{position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,.8);color:#fff;font-size:11px;padding:2px 5px;border-radius:3px}
+.yt-meta{display:flex;align-items:flex-start;gap:10px;padding:10px 14px}
+.yt-ava{width:36px;height:36px;border-radius:50%;background:#333;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#666;font-size:16px}
+.yt-ava img{width:100%;height:100%;object-fit:cover}
+.yt-info{flex:1;min-width:0}
+.yt-title{font-size:15px;font-weight:600;color:#fff;line-height:1.3;margin-bottom:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.yt-sub{font-size:13px;color:#aaa}
+.yt-sub .sep{margin:0 4px}
+.yt-menu{flex-shrink:0;cursor:pointer;color:#aaa;padding:4px}
+.yt-menu svg{width:20px;height:20px}
+
+/* Video detail / player view */
+.vd-view{height:100%;overflow-y:auto;background:#0f0f0f}
+.vd-view::-webkit-scrollbar{display:none}
+.vd-player{width:100%;aspect-ratio:16/9;background:#000;position:relative}
+.vd-player video{width:100%;height:100%;object-fit:contain}
+.vd-back{position:absolute;top:12px;left:12px;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:5}
+.vd-back svg{width:22px;height:22px;color:#fff}
+.vd-body{padding:12px 14px}
+.vd-title{font-size:17px;font-weight:700;color:#fff;line-height:1.3;margin-bottom:6px}
+.vd-stats{font-size:13px;color:#aaa;margin-bottom:12px}
+.vd-stats .more{color:#3ea6ff;cursor:pointer}
+.vd-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-bottom:12px;border-bottom:1px solid #222;margin-bottom:12px}
+.vd-channel{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+.vd-channel .yt-ava{width:40px;height:40px}
+.vd-chinfo{flex:1;min-width:0}
+.vd-chname{font-size:14px;font-weight:600;color:#fff;display:flex;align-items:center;gap:3px}
+.vd-chsub{font-size:12px;color:#aaa}
+.vd-btn{padding:8px 14px;border-radius:20px;border:none;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.vd-member{background:#fff;color:#000}
+.vd-bell{width:36px;height:36px;border-radius:50%;background:#1e1e1e;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.vd-bell svg{width:20px;height:20px;color:#fff}
+.vd-actbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.vd-act{display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:20px;background:#1e1e1e;border:none;cursor:pointer;color:#fff;font-size:13px;font-weight:600}
+.vd-act svg{width:20px;height:20px}
+.vd-act.liked svg{fill:#ff3b5c;stroke:#ff3b5c}
+.vd-actgrp{display:flex;align-items:center;background:#1e1e1e;border-radius:20px;overflow:hidden}
+.vd-actgrp .vd-act{background:transparent;border-radius:0}
+.vd-actgrp .vd-act+.vd-act{border-left:1px solid #333}
+.vd-cmt-head{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700;color:#fff;margin-bottom:14px}
+.vd-cmt-head .cnt{font-weight:400;color:#aaa;font-size:14px}
+.vd-cmt-preview{display:flex;gap:10px;margin-bottom:8px;cursor:pointer}
+.vd-cmt-preview .ca{width:32px;height:32px;border-radius:50%;background:#333;overflow:hidden;flex-shrink:0}
+.vd-cmt-preview .ca img{width:100%;height:100%;object-fit:cover}
+.vd-cmt-preview .ct{flex:1}
+.vd-cmt-preview .cn{font-size:13px;font-weight:600;color:#fff;display:flex;align-items:center;gap:3px}
+.vd-cmt-preview .cc{font-size:13px;color:#ccc}
+
+/* Comments */
+.comments-panel{position:fixed;bottom:0;left:0;right:0;height:60%;background:#1a1a1a;border-radius:16px 16px 0 0;z-index:100;display:none;flex-direction:column}
+.comments-panel.show{display:flex}
+.cp-header{padding:14px;text-align:center;border-bottom:1px solid #333;font-weight:600}
+.cp-close{position:absolute;top:14px;right:16px;cursor:pointer;color:#888;font-size:20px}
+.cp-list{flex:1;overflow-y:auto;padding:12px}
+.cp-list::-webkit-scrollbar{display:none}
+.cp-item{display:flex;gap:10px;margin-bottom:12px}
+.cp-item .ca{width:32px;height:32px;border-radius:50%;background:#333;overflow:hidden;flex-shrink:0}
+.cp-item .ca img{width:100%;height:100%;object-fit:cover}
+.cp-item .ct{flex:1}
+.cp-item .cn{font-size:13px;font-weight:600;display:flex;align-items:center;gap:3px}
+.cp-item .cc{font-size:13px;color:#ccc}
+.cp-input{padding:10px;display:flex;gap:8px;border-top:1px solid #333}
+.cp-input input{flex:1;background:#111;border:none;border-radius:20px;padding:8px 14px;color:#fff;font-size:14px;outline:none}
+.cp-input button{width:36px;height:36px;border-radius:50%;border:none;background:#F97316;color:#fff;cursor:pointer}
+
+/* Ban screen */
+.ban-screen{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;text-align:center;background:#0a0a0a}
+.ban-screen h2{color:#ef4444;font-size:22px;margin-bottom:12px}
+.ban-screen p{color:#aaa;font-size:15px;margin-bottom:24px}
+.ban-screen .btn{padding:12px 24px;border-radius:10px;background:#F97316;color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer}
+
+/* Edit profile */
+.edit-modal{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.8);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+.edit-modal.show{display:flex}
+.edit-card{background:#1a1a1a;border-radius:16px;padding:24px;width:100%;max-width:360px}
+.edit-card h3{text-align:center;margin-bottom:16px;color:#F97316}
+.edit-card .eava{width:80px;height:80px;border-radius:50%;margin:0 auto 16px;background:#333;overflow:hidden;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#666;font-size:32px}
+.edit-card .eava img{width:100%;height:100%;object-fit:cover}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="nav"></div>
+<div class="notif" id="notif" onclick="this.classList.remove('show')"></div>
+
+<script>
+// ==================== DATA LAYER ====================
+var DB = {
+  users: function(){ return JSON.parse(localStorage.getItem('gl_users')||'[]'); },
+  saveUsers: function(u){ localStorage.setItem('gl_users', JSON.stringify(u)); },
+  videos: function(){ return JSON.parse(localStorage.getItem('gl_videos')||'[]'); },
+  saveVideos: function(v){ localStorage.setItem('gl_videos', JSON.stringify(v)); },
+  pubMsgs: function(){ return JSON.parse(localStorage.getItem('gl_pubmsg')||'[]'); },
+  savePubMsgs: function(m){ localStorage.setItem('gl_pubmsg', JSON.stringify(m)); },
+  privMsgs: function(){ return JSON.parse(localStorage.getItem('gl_privmsg')||'[]'); },
+  savePrivMsgs: function(m){ localStorage.setItem('gl_privmsg', JSON.stringify(m)); },
+  aiHist: function(){ return JSON.parse(localStorage.getItem('gl_aihist')||'[]'); },
+  saveAiHist: function(h){ localStorage.setItem('gl_aihist', JSON.stringify(h)); }
+};
+
+function curUser(){ var id=localStorage.getItem('gl_current_user'); return DB.users().find(function(u){return u.id===id;}); }
+function getUser(id){ return DB.users().find(function(u){return u.id===id;}); }
+
+// ==================== HELPERS ====================
+function fmt(n){ if(n>=1e6) return (n/1e6).toFixed(1)+'M'; if(n>=1e3) return (n/1e3).toFixed(1)+'K'; return ''+n; }
+function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function verifiedBadge(type){
+  if(type==='blue') return '<span class="vbadge"><svg viewBox="0 0 24 24" fill="#2196F3"><path d="M12 1l2.4 2.4 3.4-.3 1 3.3 3 1.8-1.4 3.1 1.4 3.1-3 1.8-1 3.3-3.4-.3L12 22l-2.4-2.4-3.4.3-1-3.3-3-1.8 1.4-3.1L3.2 8.2l3-1.8 1-3.3 3.4.3z" fill="#2196F3"/><path d="M8.5 12l2.5 2.5 4.5-5" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
+  if(type==='orange') return '<span class="vbadge"><svg viewBox="0 0 24 24"><path d="M12 1l2.4 2.4 3.4-.3 1 3.3 3 1.8-1.4 3.1 1.4 3.1-3 1.8-1 3.3-3.4-.3L12 22l-2.4-2.4-3.4.3-1-3.3-3-1.8 1.4-3.1L3.2 8.2l3-1.8 1-3.3 3.4.3z" fill="#ED8B38"/><path d="M8.5 12l2.5 2.5 4.5-5" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
+  return '';
+}
+function userNameDisplay(u){ return '<span style="display:flex;align-items:center;gap:3px">'+escapeHtml(u.name)+(u.isCreator?'👑':'')+verifiedBadge(u.verifiedType)+'</span>'; }
+function avatarHtml(u, sz, cls){
+  var s=sz||44;
+  var c=cls?(' '+cls):'';
+  if(u && u.photo) return '<div class="'+c+'" style="width:'+s+'px;height:'+s+'px;border-radius:50%;overflow:hidden;flex-shrink:0"><img src="'+u.photo+'" style="width:100%;height:100%;object-fit:cover"></div>';
+  return '<div class="'+c+'" style="width:'+s+'px;height:'+s+'px;border-radius:50%;background:#333;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#666;font-size:'+(s/2.5)+'px">'+(u?escapeHtml(u.name[0]||'?'):'?')+'</div>';
+}
+
+// ==================== STATE ====================
+var view = 'home';
+var pvbMode = 'public';
+var pvbView = 'list';
+var pvbChatUser = null;
+var profileUserId = null;
+var panelTab = 'videos';
+var currentVideoId = null;
+var feedObserver = null;
+var botTimer = null;
+var vdVideoId = null;
+
+// ==================== NAV ====================
+var ICONS = {
+  home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l9-9 9 9M5 10v10h14V10"/></svg>',
+  pvb: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+  shorts: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 6.5L6.5 17.5"/><path d="M9 7l8.5-2.5L15 13z" fill="currentColor"/><path d="M15 17l-8.5 2.5L9 11z" fill="currentColor"/></svg>',
+  post: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
+  profile: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>'
+};
+
+function renderNav(){
+  var u = curUser();
+  var items = [
+    {key:'home', label:'Início', icon:ICONS.home},
+    {key:'shorts', label:'Shorts', icon:ICONS.shorts},
+    {key:'post', label:'Postar', icon:ICONS.post, circle:true},
+    {key:'pvb', label:'PVB', icon:ICONS.pvb},
+    {key:'profile', label:'Você', icon:ICONS.profile}
+  ];
+  var html = items.map(function(it){
+    var cls = 'nav-item' + (view===it.key ? ' active' : '');
+    if(it.circle) return '<div class="nav-item" onclick="navigate(\''+it.key+'\')"><div class="nav-post">'+it.icon+'</div><span>'+it.label+'</span></div>';
+    return '<div class="'+cls+'" onclick="navigate(\''+it.key+'\')">'+it.icon+'<span>'+it.label+'</span></div>';
+  }).join('');
+  document.getElementById('nav').innerHTML = html;
+}
+
+function navigate(v){
+  view = v;
+  if(v==='profile') profileUserId = curUser().id;
+  if(v==='pvb'){ pvbView='list'; }
+  render();
+}
+
+// ==================== RENDER ====================
+function render(){
+  var u = curUser();
+  if(!u){ window.location.href='/home'; return; }
+  // Check ban
+  if(u.banned && u.banUntil && Date.now()<u.banUntil){
+    document.getElementById('app').innerHTML = banScreenHtml(u);
+    document.getElementById('nav').style.display='none';
+    return;
+  }
+  if(u.banned && u.banUntil===-1){
+    document.getElementById('app').innerHTML = banScreenHtml(u);
+    document.getElementById('nav').style.display='none';
+    return;
+  }
+  document.getElementById('nav').style.display='flex';
+  renderNav();
+  switch(view){
+    case 'home': renderHome(); break;
+    case 'shorts': renderShorts(); break;
+    case 'pvb': renderPVB(); break;
+    case 'profile': renderProfile(); break;
+    case 'post': renderPost(); break;
+    case 'panel': renderPanel(); break;
+    case 'detail': renderVideoDetail(); break;
+  }
+}
+
+// ==================== HOME (YouTube-style feed) ====================
+function renderHome(){
+  var vids = DB.videos().filter(function(v){return v.type!=='short';});
+  if(vids.length===0){
+    document.getElementById('app').innerHTML = '<div style="height:100%;display:flex;align-items:center;justify-content:center;color:#666;font-size:16px;text-align:center;padding:20px">Nenhum vídeo ainda.<br>Use o botão "+" para publicar! 🎬</div>';
+    return;
+  }
+  var u = curUser();
+  var html = '<div class="yt-feed" id="ytFeed">';
+  vids.forEach(function(v){
+    var owner = getUser(v.userId) || {name:v.userName, photo:v.userPhoto, verifiedType:null, isCreator:false};
+    var timeAgo = timeAgoStr(v.timestamp);
+    html += '<div class="yt-card">'+
+      '<div class="yt-thumb" onclick="openVideoDetail(\''+v.id+'\')">'+
+        '<video src="'+v.url+'" muted playsinline preload="metadata"></video>'+
+        '<div class="play-ov"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>'+
+      '</div>'+
+      '<div class="yt-meta">'+
+        avatarHtml(owner,36,'yt-ava')+
+        '<div class="yt-info" onclick="openVideoDetail(\''+v.id+'\')">'+
+          '<div class="yt-title">'+escapeHtml(v.description||'')+'</div>'+
+          '<div class="yt-sub">'+userNameDisplay(owner)+'<span class="sep">·</span>'+fmt(v.views||0)+' visualizações<span class="sep">·</span>'+timeAgo+'</div>'+
+        '</div>'+
+        '<div class="yt-menu" onclick="showNotif(\'Opções em breve ⋯\')"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></div>'+
+      '</div>'+
+    '</div>';
+  });
+  html += '</div>';
+  document.getElementById('app').innerHTML = html;
+}
+
+function timeAgoStr(ts){
+  if(!ts) return 'agora';
+  var d = Math.floor((Date.now()-ts)/1000);
+  if(d<60) return 'agora';
+  if(d<3600) return 'há '+Math.floor(d/60)+' min';
+  if(d<86400) return 'há '+Math.floor(d/3600)+' h';
+  if(d<604800) return 'há '+Math.floor(d/86400)+' d';
+  return 'há '+Math.floor(d/604800)+' sem';
+}
+
+// ==================== VIDEO DETAIL (player) ====================
+function openVideoDetail(vid){
+  vdVideoId = vid;
+  view = 'detail';
+  var v = DB.videos().find(function(x){return x.id===vid;});
+  if(v){ v.views = (v.views||0)+1; DB.saveVideos(DB.videos()); }
+  render();
+}
+
+function renderVideoDetail(){
+  var v = DB.videos().find(function(x){return x.id===vdVideoId;});
+  if(!v){ view='home'; render(); return; }
+  var u = curUser();
+  var owner = getUser(v.userId) || {name:v.userName, photo:v.userPhoto, verifiedType:null, isCreator:false, followers:0};
+  var liked = v.likedBy && v.likedBy.indexOf(u.id)>=0;
+  var disliked = v.dislikedBy && v.dislikedBy.indexOf(u.id)>=0;
+  var saved = u.savedVideos && u.savedVideos.indexOf(v.id)>=0;
+  var isFollowing = u.following && u.following.indexOf(owner.id)>=0;
+  var previewCmt = v.comments && v.comments.length>0 ? v.comments[v.comments.length-1] : null;
+  var pcu = previewCmt ? (getUser(previewCmt.userId) || {name:previewCmt.userName, photo:null, verifiedType:null}) : null;
+
+  var html = '<div class="vd-view">'+
+    '<div class="vd-player">'+
+      '<video src="'+v.url+'" autoplay controls playsinline style="width:100%;height:100%;object-fit:contain"></video>'+
+      '<div class="vd-back" onclick="view=\'home\';render()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></div>'+
+    '</div>'+
+    '<div class="vd-body">'+
+      '<div class="vd-title">'+escapeHtml(v.description||'')+'</div>'+
+      '<div class="vd-stats">'+fmt(v.likes||0)+' curtidas · '+fmt(v.views||0)+' visualizações · '+timeAgoStr(v.timestamp)+' <span class="more">...mais</span></div>'+
+      '<div class="vd-actions">'+
+        '<div class="vd-channel">'+
+          avatarHtml(owner,40,'yt-va')+
+          '<div class="vd-chinfo"><div class="vd-chname">'+userNameDisplay(owner)+'</div><div class="vd-chsub">'+fmt(owner.followers||0)+' inscritos</div></div>'+
+        '</div>'+
+        (owner.id===u.id?'':
+          '<button class="vd-btn '+(isFollowing?'':'vd-member')+'" onclick="toggleFollowDetail(\''+owner.id+'\')">'+(isFollowing?'Inscrito ✓':'Inscrever-se')+'</button>'
+        )+
+        '<button class="vd-bell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/></svg></button>'+
+      '</div>'+
+      '<div class="vd-actbar">'+
+        '<div class="vd-actgrp">'+
+          '<button class="vd-act'+(liked?' liked':'')+'" onclick="likeVideoDetail(\''+v.id+'\')">'+
+            '<svg viewBox="0 0 24 24" fill="'+(liked?'#ff3b5c':'none')+'" stroke="'+(liked?'#ff3b5c':'#fff')+'" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.3a2 2 0 0 0 2-1.7l1.4-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>'+
+            '<span>'+fmt(v.likes||0)+'</span>'+
+          '</button>'+
+          '<button class="vd-act'+(disliked?' liked':'')+'" onclick="dislikeVideoDetail(\''+v.id+'\')">'+
+            '<svg viewBox="0 0 24 24" fill="'+(disliked?'#888':'none')+'" stroke="'+(disliked?'#888':'#fff')+'" stroke-width="2"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.7a2 2 0 0 0-2 1.7L2.3 13a2 2 0 0 0 2 2.3zM17 2h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3"/></svg>'+
+          '</button>'+
+        '</div>'+
+        '<button class="vd-act" onclick="openComments(\''+v.id+'\')">'+
+          '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>'+
+          '<span>'+(v.comments?v.comments.length:0)+'</span>'+
+        '</button>'+
+        '<button class="vd-act" onclick="shareVideo(\''+v.id+'\')">'+
+          '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v14"/></svg>'+
+          '<span>Compartilhar</span>'+
+        '</button>'+
+        '<button class="vd-act'+(saved?' liked':'')+'" onclick="saveVideoDetail(\''+v.id+'\')">'+
+          '<svg viewBox="0 0 24 24" fill="'+(saved?'#F97316':'none')+'" stroke="'+(saved?'#F97316':'#fff')+'" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>'+
+          '<span>Salvar</span>'+
+        '</button>'+
+      '</div>'+
+      '<div class="vd-cmt-head">Comentários <span class="cnt">'+(v.comments?v.comments.length:0)+'</span></div>'+
+      (previewCmt?
+        '<div class="vd-cmt-preview" onclick="openComments(\''+v.id+'\')">'+
+          '<div class="ca">'+(pcu.photo?'<img src="'+pcu.photo+'">':escapeHtml((pcu.name||'?')[0]))+'</div>'+
+          '<div class="ct"><div class="cn">'+userNameDisplay(pcu)+'</div><div class="cc">'+escapeHtml(previewCmt.text)+'</div></div>'+
+        '</div>'
+      :'<div style="color:#666;font-size:14px;margin-bottom:8px">Nenhum comentário ainda</div>')+
+    '</div>'+
+  '</div>';
+  document.getElementById('app').innerHTML = html;
+}
+
+function likeVideoDetail(vid){
+  var u = curUser();
+  var vids = DB.videos();
+  var v = vids.find(function(x){return x.id===vid;});
+  if(!v) return;
+  if(!v.likedBy) v.likedBy = [];
+  if(!v.dislikedBy) v.dislikedBy = [];
+  var idx = v.likedBy.indexOf(u.id);
+  if(idx>=0){ v.likedBy.splice(idx,1); v.likes = Math.max(0,(v.likes||0)-1); }
+  else {
+    v.likedBy.push(u.id); v.likes = (v.likes||0)+1;
+    var di = v.dislikedBy.indexOf(u.id); if(di>=0) v.dislikedBy.splice(di,1);
+  }
+  DB.saveVideos(vids);
+  renderVideoDetail();
+}
+function dislikeVideoDetail(vid){
+  var u = curUser();
+  var vids = DB.videos();
+  var v = vids.find(function(x){return x.id===vid;});
+  if(!v) return;
+  if(!v.dislikedBy) v.dislikedBy = [];
+  if(!v.likedBy) v.likedBy = [];
+  var idx = v.dislikedBy.indexOf(u.id);
+  if(idx>=0) v.dislikedBy.splice(idx,1);
+  else {
+    v.dislikedBy.push(u.id);
+    var li = v.likedBy.indexOf(u.id);
+    if(li>=0){ v.likedBy.splice(li,1); v.likes = Math.max(0,(v.likes||0)-1); }
+  }
+  DB.saveVideos(vids);
+  renderVideoDetail();
+}
+function saveVideoDetail(vid){
+  var users = DB.users();
+  var u = users.find(function(x){return x.id===localStorage.getItem('gl_current_user');});
+  if(!u.savedVideos) u.savedVideos = [];
+  var idx = u.savedVideos.indexOf(vid);
+  if(idx>=0) u.savedVideos.splice(idx,1);
+  else u.savedVideos.push(vid);
+  DB.saveUsers(users);
+  renderVideoDetail();
+}
+function toggleFollowDetail(uid){
+  var users = DB.users();
+  var cu = users.find(function(x){return x.id===localStorage.getItem('gl_current_user');});
+  var tu = users.find(function(x){return x.id===uid;});
+  if(!cu.following) cu.following = [];
+  var idx = cu.following.indexOf(uid);
+  if(idx>=0){ cu.following.splice(idx,1); tu.followers = Math.max(0,(tu.followers||0)-1); }
+  else { cu.following.push(uid); tu.followers = (tu.followers||0)+1; }
+  DB.saveUsers(users);
+  renderVideoDetail();
+}
+
+// ==================== SHORTS (full-screen feed) ====================
+function renderShorts(){
+  var vids = DB.videos().filter(function(v){return v.type==='short';});
+  if(vids.length===0){
+    document.getElementById('app').innerHTML = '<div style="height:100%;display:flex;align-items:center;justify-content:center;color:#666;font-size:16px;text-align:center;padding:20px">Nenhum short ainda.<br>Use o botão "+" para adicionar! ⚡</div>';
+    return;
+  }
+  var u = curUser();
+  var html = '<div class="feed" id="feed">';
+  vids.forEach(function(v){
+    var owner = getUser(v.userId) || {name:v.userName, photo:v.userPhoto, verifiedType:null, isCreator:false};
+    var liked = v.likedBy && v.likedBy.indexOf(u.id)>=0;
+    var saved = u.savedVideos && u.savedVideos.indexOf(v.id)>=0;
+    html += '<div class="video-slide" data-vid="'+v.id+'">'+
+      '<video src="'+v.url+'" loop playsinline preload="auto"></video>'+
+      '<div class="tap-area" onclick="togglePause(this)"></div>'+
+      '<div class="pause-icon">⏸</div>'+
+      '<div class="video-info">'+
+        '<div class="uname">'+userNameDisplay(owner)+'</div>'+
+        '<div class="desc">'+escapeHtml(v.description||'')+'</div>'+
+      '</div>'+
+      '<div class="video-overlay">'+
+        '<div class="vbtn'+(liked?' liked':'')+'" onclick="likeShort(\''+v.id+'\')">'+
+          '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>'+
+          '<span class="count">'+fmt(v.likes||0)+'</span>'+
+        '</div>'+
+        '<div class="vbtn" onclick="openComments(\''+v.id+'\')">'+
+          '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>'+
+          '<span class="count">'+(v.comments?v.comments.length:0)+'</span>'+
+        '</div>'+
+        '<div class="vbtn" onclick="shareVideo(\''+v.id+'\')">'+
+          '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v14"/></svg>'+
+          '<span class="count">Compartilhar</span>'+
+        '</div>'+
+        '<div class="vbtn'+(saved?' saved':'')+'" onclick="saveShort(\''+v.id+'\')">'+
+          '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>'+
+          '<span class="count">Salvar</span>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  });
+  html += '</div>';
+  document.getElementById('app').innerHTML = html;
+
+  if(feedObserver) feedObserver.disconnect();
+  var vids2 = document.querySelectorAll('.video-slide video');
+  feedObserver = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting && e.intersectionRatio>0.5){
+        vids2.forEach(function(v){ v.pause(); v.muted=true; });
+        var slide = e.target.closest('.video-slide');
+        slide.classList.remove('paused');
+        e.target.muted = false;
+        e.target.play().then(function(){
+          e.target.muted = false;
+        }).catch(function(){
+          e.target.muted = true;
+          e.target.play().catch(function(){});
+        });
+      } else {
+        e.target.pause();
+      }
+    });
+  }, {threshold:[0.5]});
+  vids2.forEach(function(v){ feedObserver.observe(v); });
+}
+
+function likeShort(vid){
+  var u = curUser();
+  var vids = DB.videos();
+  var v = vids.find(function(x){return x.id===vid;});
+  if(!v) return;
+  if(!v.likedBy) v.likedBy = [];
+  var idx = v.likedBy.indexOf(u.id);
+  if(idx>=0){ v.likedBy.splice(idx,1); v.likes = Math.max(0,(v.likes||0)-1); }
+  else { v.likedBy.push(u.id); v.likes = (v.likes||0)+1; }
+  DB.saveVideos(vids);
+  renderShorts();
+}
+
+function saveShort(vid){
+  var users = DB.users();
+  var u = users.find(function(x){return x.id===localStorage.getItem('gl_current_user');});
+  if(!u.savedVideos) u.savedVideos = [];
+  var idx = u.savedVideos.indexOf(vid);
+  if(idx>=0) u.savedVideos.splice(idx,1);
+  else u.savedVideos.push(vid);
+  DB.saveUsers(users);
+  renderShorts();
+}
+
+function togglePause(el){
+  var slide = el.closest('.video-slide');
+  var v = slide.querySelector('video');
+  if(v.paused){ v.play(); slide.classList.remove('paused'); }
+  else { v.pause(); slide.classList.add('paused'); }
+}
+
+function shareVideo(vid){
+  if(navigator.share){ navigator.share({title:'Good Look', text:'Vejam este vídeo!', url:location.href}).catch(function(){}); }
+  else { showNotif('Link copiado! 📋'); }
+}
+
+// ==================== COMMENTS ====================
+function openComments(vid){
+  currentVideoId = vid;
+  var v = DB.videos().find(function(x){return x.id===vid;});
+  var html = '<div class="comments-panel show" id="cp">'+
+    '<div class="cp-header">'+(v?v.comments.length:0)+' comentários<span class="cp-close" onclick="closeComments()">×</span></div>'+
+    '<div class="cp-list" id="cpList">'+
+      (v&&v.comments?v.comments.map(function(c){
+        var cu = getUser(c.userId) || {name:c.userName, photo:null, verifiedType:null};
+        return '<div class="cp-item"><div class="ca">'+(cu.photo?'<img src="'+cu.photo+'">':escapeHtml((cu.name||'?')[0]))+'</div><div class="ct"><div class="cn">'+userNameDisplay(cu)+'</div><div class="cc">'+escapeHtml(c.text)+'</div></div></div>';
+      }).join(''):'<div style="text-align:center;color:#666;padding:20px">Nenhum comentário ainda</div>')+
+    '</div>'+
+    '<div class="cp-input"><input id="cpText" placeholder="Comentar..." onkeydown="if(event.key===\'Enter\')addComment()"><button onclick="addComment()">➤</button></div>'+
+  '</div>';
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function closeComments(){
+  var cp = document.getElementById('cp');
+  if(cp) cp.remove();
+}
+
+function addComment(){
+  var text = document.getElementById('cpText').value.trim();
+  if(!text) return;
+  var u = curUser();
+  var vids = DB.videos();
+  var v = vids.find(function(x){return x.id===currentVideoId;});
+  if(!v) return;
+  if(!v.comments) v.comments = [];
+  v.comments.push({userId:u.id, userName:u.name, text:text, ts:Date.now()});
+  DB.saveVideos(vids);
+  closeComments();
+  openComments(currentVideoId);
+}
+
+// ==================== IA CHAT ====================
+function renderIA(){
+  var hist = DB.aiHist();
+  var html = '<div class="chat-view">'+
+    '<div class="chat-header"><div class="title">🤖 Good Look IA</div></div>'+
+    '<div class="chat-messages" id="aiMsgs">'+
+      (hist.length===0?'<div class="msg them">Oi! 😊 Eu sou a Good Look IA! 🤖 Pode me mandar mensagens, fotos e eu respondo! 📸✨</div>':'')+
+      hist.map(function(m){
+        if(m.role==='user'){
+          return '<div class="msg me">'+(m.image?'<img src="'+m.image+'">':'')+escapeHtml(m.text||'')+'</div>';
+        }
+        return '<div class="msg them">'+escapeHtml(m.text)+'</div>';
+      }).join('')+
+    '</div>'+
+    '<div class="chat-input">'+
+      '<button class="photo-btn" onclick="document.getElementById(\'aiPhoto\').click()">📷</button>'+
+      '<input type="file" id="aiPhoto" accept="image/*" style="display:none">'+
+      '<input id="aiText" placeholder="Mensagem..." onkeydown="if(event.key===\'Enter\')sendAIMsg()">'+
+      '<button onclick="sendAIMsg()">➤</button>'+
+    '</div>'+
+  '</div>';
+  document.getElementById('app').innerHTML = html;
+  document.getElementById('aiPhoto').addEventListener('change', function(e){
+    var f = e.target.files[0]; if(!f) return;
+    var r = new FileReader();
+    r.onload = function(ev){ sendAIMsg(ev.target.result); };
+    r.readAsDataURL(f);
+  });
+  scrollChat('aiMsgs');
+}
+
+function sendAIMsg(img){
+  var input = document.getElementById('aiText');
+  var text = input ? input.value.trim() : '';
+  if(!text && !img) return;
+  var hist = DB.aiHist();
+  hist.push({role:'user', text:text, image:img, ts:Date.now()});
+  DB.saveAiHist(hist);
+
+  // Generate AI response with emojis
+  var resp = aiResponse(text, img);
+  setTimeout(function(){
+    var h = DB.aiHist();
+    h.push({role:'ai', text:resp, ts:Date.now()});
+    DB.saveAiHist(h);
+    renderIA();
+    // Speak
+    try {
+      var sp = new SpeechSynthesisUtterance(resp.replace(/[\u{1F000}-\u{1FFFF}\u2600-\u27BF]/gu, ''));
+      sp.lang = 'pt-BR';
+      sp.rate = 1.1;
+      speechSynthesis.cancel();
+      speechSynthesis.speak(sp);
+    } catch(e){}
+  }, 600);
+  renderIA();
+}
+
+function aiResponse(text, img){
+  text = (text||'').toLowerCase();
+  if(img){
+    return 'Que foto legal! 📸 Eu consegui ver a sua imagem! 😊 Parece muito interessante! 🔍✨';
+  }
+  if(text.match(/oi|olá|ola|e ai|eai/)) return 'Oi! 😊 Que bom falar com você! 🤖 Como posso ajudar? ✨';
+  if(text.match(/tudo bem|como vai|como estas|td bem/)) return 'Tudo ótimo! 😄 E com você? 💖 Espero que esteja bem! 🌟';
+  if(text.match(/nome|quem e você|quem e vc|o que voce e/)) return 'Eu sou a Good Look IA! 🤖✨ Sua assistente virtual! 😊';
+  if(text.match(/ajuda|socorro|help/)) return 'Claro! 😊 Posso conversar, ver fotos 📸, responder perguntas... É só pedir! 🤖✨';
+  if(text.match(/amor/)) return 'Amor é lindo! 💖😍 Espero que você tenha muito amor na vida! 🌹✨';
+  if(text.match(/triste|mal|ruim|chato/)) return 'Poxa... 😢 Não fique assim! 🤗 As coisas vão melhorar! 💪✨';
+  if(text.match(/feliz|bom|ótimo|otimo|legal/)) return 'Que maravilha! 😄🎉 Fico feliz por você! 💖✨';
+  if(text.match(/vídeo|video/)) return 'Vídeos são incríveis! 🎬 Você pode postar na Home! 📱✨';
+  if(text.match(/obrigad|valeu|vlw/)) return 'De nada! 😊🤖 Estou aqui sempre que precisar! 💖';
+  if(text.match(/tchau|adeus|ate logo|flw/)) return 'Tchau! 👋😊 Volte logo! Vou sentir sua falta! 🤖💖';
+  if(text.match(/comida|fome|almoço|almoco/)) return 'Hmm... 🍕🍔 Que fome! Que tal uma delícia? 😋✨';
+  if(text.match(/música|musica|cantar/)) return 'Música é vida! 🎵🎶 Qual seu estilo favorito? 🎤✨';
+  var responses = [
+    'Entendi! 🤔 Deixe me pensar... 💭 '+text.charAt(0).toUpperCase()+text.slice(1)+' é interessante! 😊✨',
+    'Poxa, que legal! 😄 Você disse: "'+text+'" 🤖 Vou lembrar disso! 💭',
+    'Hmm... 🤔 Boa pergunta! 😊 Eu acho que sim! ✨🤖',
+    'Que curioso! 😮💡 Me conta mais sobre isso! 🤖✨',
+    'Adorei conversar com você! 😊💖 Você é muito legal! 🤖✨'
+  ];
+  return responses[Math.floor(Math.random()*responses.length)];
+}
+
+// ==================== PVB ====================
+function renderPVB(){
+  if(pvbView==='list'){
+    renderPVBList();
+  } else if(pvbView==='public'){
+    renderPVBPublic();
+  } else if(pvbView==='private'){
+    renderPVBPrivate();
+  }
+}
+
+function renderPVBList(){
+  var users = DB.users().filter(function(u){return u.id!==curUser().id;});
+  var html = '<div class="chat-view">'+
+    '<div class="chat-header"><div class="title">💬 PVB</div></div>'+
+    '<div class="pvb-tabs">'+
+      '<div class="pvb-tab active" onclick="pvbMode=\'public\';pvbView=\'public\';render()">Chat Público</div>'+
+      '<div class="pvb-tab" onclick="pvbMode=\'private\';pvbView=\'list\';render()">Chat Privado</div>'+
+    '</div>'+
+    '<div class="user-list">'+
+      (users.length===0?'<div style="text-align:center;color:#666;padding:20px">Nenhum usuário online ainda</div>':
+      users.map(function(u){
+        return '<div class="user-row" onclick="startPrivateChat(\''+u.id+'\')">'+
+          avatarHtml(u)+
+          '<div class="info"><div class="n">'+userNameDisplay(u)+'</div><div class="s">'+(u.bio||'Sem bio')+'</div></div>'+
+          '<div class="acts"><button class="pbtn" onclick="event.stopPropagation();viewProfile(\''+u.id+'\')">Perfil</button><button class="cbtn" onclick="event.stopPropagation();startPrivateChat(\''+u.id+'\')">Conversar</button></div>'+
+        '</div>';
+      }).join(''))+
+    '</div>'+
+  '</div>';
+  document.getElementById('app').innerHTML = html;
+}
+
+function renderPVBPublic(){
+  var msgs = DB.pubMsgs();
+  var u = curUser();
+  var html = '<div class="chat-view">'+
+    '<div class="chat-header"><div class="back" onclick="pvbView=\'list\';render()">←</div><div class="title">💬 Chat Público</div></div>'+
+    '<div class="chat-messages" id="pubMsgs">'+
+      (msgs.length===0?'<div class="msg them">Bem-vindo ao chat público! 👋💬</div>':'')+
+      msgs.map(function(m){
+        var mu = getUser(m.userId) || {name:m.userName, photo:null, verifiedType:null, isCreator:false};
+        return '<div class="msg '+(m.userId===u.id?'me':'them')+'">'+
+          (m.userId!==u.id?'<div class="name">'+userNameDisplay(mu)+'</div>':'')+
+          (m.image?'<img src="'+m.image+'">':'')+
+          escapeHtml(m.text)+
+        '</div>';
+      }).join('')+
+    '</div>'+
+    '<div class="chat-input">'+
+      '<button class="photo-btn" onclick="document.getElementById(\'pubPhoto\').click()">📷</button>'+
+      '<input type="file" id="pubPhoto" accept="image/*" style="display:none">'+
+      '<input id="pubText" placeholder="Mensagem..." onkeydown="if(event.key===\'Enter\')sendPubMsg()">'+
+      '<button onclick="sendPubMsg()">➤</button>'+
+    '</div>'+
+  '</div>';
+  document.getElementById('app').innerHTML = html;
+  document.getElementById('pubPhoto').addEventListener('change', function(e){
+    var f = e.target.files[0]; if(!f) return;
+    var r = new FileReader();
+    r.onload = function(ev){ sendPubMsg(ev.target.result); };
+    r.readAsDataURL(f);
+  });
+  scrollChat('pubMsgs');
+}
+
+function sendPubMsg(img){
+  var input = document.getElementById('pubText');
+  var text = input ? input.value.trim() : '';
+  if(!text && !img) return;
+  var u = curUser();
+  var msgs = DB.pubMsgs();
+  msgs.push({userId:u.id, userName:u.name, text:text, image:img, ts:Date.now()});
+  DB.savePubMsgs(msgs);
+  renderPVBPublic();
+}
+
+function startPrivateChat(uid){
+  pvbChatUser = uid;
+  pvbView = 'private';
+  renderPVBPrivate();
+}
+
+function renderPVBPrivate(){
+  var partner = getUser(pvbChatUser);
+  if(!partner){ pvbView='list'; renderPVBList(); return; }
+  var u = curUser();
+  var msgs = DB.privMsgs().filter(function(m){
+    return (m.fromId===u.id && m.toId===partner.id) || (m.fromId===partner.id && m.toId===u.id);
+  });
+  var html = '<div class="chat-view">'+
+    '<div class="chat-header"><div class="back" onclick="pvbView=\'list\';render()">←</div><div class="title">'+userNameDisplay(partner)+'</div><div style="cursor:pointer;color:#F97316;font-size:13px" onclick="viewProfile(\''+partner.id+'\')">Perfil</div></div>'+
+    '<div class="chat-messages" id="privMsgs">'+
+      (msgs.length===0?'<div class="msg them">Início da conversa privada! 🔒💬</div>':'')+
+      msgs.map(function(m){
+        return '<div class="msg '+(m.fromId===u.id?'me':'them')+'">'+
+          (m.image?'<img src="'+m.image+'">':'')+
+          escapeHtml(m.text)+
+        '</div>';
+      }).join('')+
+    '</div>'+
+    '<div class="chat-input">'+
+      '<button class="photo-btn" onclick="document.getElementById(\'privPhoto\').click()">📷</button>'+
+      '<input type="file" id="privPhoto" accept="image/*" style="display:none">'+
+      '<input id="privText" placeholder="Mensagem..." onkeydown="if(event.key===\'Enter\')sendPrivMsg()">'+
+      '<button onclick="sendPrivMsg()">➤</button>'+
+    '</div>'+
+  '</div>';
+  document.getElementById('app').innerHTML = html;
+  document.getElementById('privPhoto').addEventListener('change', function(e){
+    var f = e.target.files[0]; if(!f) return;
+    var r = new FileReader();
+    r.onload = function(ev){ sendPrivMsg(ev.target.result); };
+    r.readAsDataURL(f);
+  });
+  scrollChat('privMsgs');
+}
+
+function sendPrivMsg(img){
+  var input = document.getElementById('privText');
+  var text = input ? input.value.trim() : '';
+  if(!text && !img) return;
+  var u = curUser();
+  var msgs = DB.privMsgs();
+  msgs.push({fromId:u.id, toId:pvbChatUser, text:text, image:img, ts:Date.now()});
+  DB.savePrivMsgs(msgs);
+  renderPVBPrivate();
+}
+
+// ==================== PROFILE ====================
+function viewProfile(uid){
+  profileUserId = uid;
+  view = 'profile';
+  render();
+}
+
+function renderProfile(){
+  var u = getUser(profileUserId) || curUser();
+  var isMe = u.id === curUser().id;
+  var myVids = DB.videos().filter(function(v){return v.userId===u.id;});
+  var totalLikes = myVids.reduce(function(s,v){return s+(v.likes||0);},0);
+  var cu = curUser();
+  var isFollowing = cu.following && cu.following.indexOf(u.id)>=0;
+
+  var html = '<div class="profile-view">'+
+    '<div class="prof-header">'+
+      '<div class="prof-ava">'+(u.photo?'<img src="'+u.photo+'">':escapeHtml((u.name||'?')[0]))+'</div>'+
+      '<div class="prof-name">'+userNameDisplay(u)+'</div>'+
+      '<div class="prof-stats">'+
+        '<div class="prof-stat"><div class="num">'+fmt(u.followers||0)+'</div><div class="lbl">Seguidores</div></div>'+
+        '<div class="prof-stat"><div class="num">'+fmt((u.following||[]).length)+'</div><div class="lbl">Seguindo</div></div>'+
+        '<div class="prof-stat"><div class="num">'+fmt(totalLikes)+'</div><div class="lbl">Curtidas</div></div>'+
+      '</div>'+
+      '<div class="prof-bio">'+(u.bio?escapeHtml(u.bio):'Sem bio')+'</div>'+
+      '<div class="prof-btns">'+
+        (isMe?
+          '<button class="btn-edit" onclick="editProfile()">Editar perfil</button>'+
+          (u.isCreator?'<button class="btn-follow" onclick="view=\'panel\';render()">Painel</button>':'')+
+          '<button class="btn-edit" onclick="logout()">Sair</button>'
+        :
+          '<button class="'+(isFollowing?'btn-following':'btn-follow')+'" onclick="toggleFollow(\''+u.id+'\')">'+(isFollowing?'Seguindo ✓':'Seguir')+'</button>'
+        )+
+      '</div>'+
+    '</div>'+
+    '<div class="prof-videos">'+
+      (myVids.length===0?'<div class="empty">Nenhum vídeo postado ainda 🎬</div>':
+      myVids.map(function(v){
+        return '<div class="pv" onclick="playProfileVideo(\''+v.id+'\')">'+
+          '<video src="'+v.url+'" muted></video>'+
+          '<div class="vc">❤ '+fmt(v.likes||0)+' · ▶ '+fmt(v.views||0)+'</div>'+
+        '</div>';
+      }).join(''))+
+    '</div>'+
+  '</div>';
+  document.getElementById('app').innerHTML = html;
+}
+
+function toggleFollow(uid){
+  var users = DB.users();
+  var cu = users.find(function(x){return x.id===localStorage.getItem('gl_current_user');});
+  var tu = users.find(function(x){return x.id===uid;});
+  if(!cu.following) cu.following = [];
+  var idx = cu.following.indexOf(uid);
+  if(idx>=0){ cu.following.splice(idx,1); tu.followers = Math.max(0,(tu.followers||0)-1); }
+  else { cu.following.push(uid); tu.followers = (tu.followers||0)+1; }
+  DB.saveUsers(users);
+  renderProfile();
+}
+
+function playProfileVideo(vid){
+  var v = DB.videos().find(function(x){return x.id===vid;});
+  if(!v) return;
+  v.views = (v.views||0)+1;
+  DB.saveVideos(DB.videos());
+  var html = '<div style="position:fixed;top:0;left:0;right:0;bottom:0;background:#000;z-index:500;display:flex;align-items:center;justify-content:center" id="pvModal">'+
+    '<video src="'+v.url+'" autoplay controls style="width:100%;height:100%;object-fit:contain"></video>'+
+    '<div style="position:absolute;top:16px;right:16px;font-size:28px;cursor:pointer;color:#fff;z-index:501" onclick="document.getElementById(\'pvModal\').remove()">×</div>'+
+    '<div style="position:absolute;bottom:80px;left:16px;right:16px;z-index:501">'+
+      '<div style="font-weight:700;margin-bottom:4px">'+escapeHtml(v.description||'')+'</div>'+
+      '<div>❤ '+fmt(v.likes||0)+' · ▶ '+fmt(v.views||0)+' · 💬 '+(v.comments?v.comments.length:0)+'</div>'+
+    '</div>'+
+  '</div>';
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function editProfile(){
+  var u = curUser();
+  var html = '<div class="edit-modal show" id="editModal">'+
+    '<div class="edit-card">'+
+      '<h3>Editar Perfil</h3>'+
+      '<div class="eava" id="eAva" onclick="document.getElementById(\'ePhoto\').click()">'+(u.photo?'<img src="'+u.photo+'">':escapeHtml((u.name||'?')[0]))+'</div>'+
+      '<input type="file" id="ePhoto" accept="image/*" style="display:none">'+
+      '<input class="post-field" id="eName" placeholder="Nome" value="'+escapeHtml(u.name)+'">'+
+      '<input class="post-field" id="eBio" placeholder="Bio" value="'+escapeHtml(u.bio||'')+'">'+
+      '<button class="post-btn" onclick="saveProfile()">Salvar</button>'+
+      '<button class="post-btn" style="background:#333;margin-top:8px" onclick="document.getElementById(\'editModal\').remove()">Cancelar</button>'+
+    '</div>'+
+  '</div>';
+  document.body.insertAdjacentHTML('beforeend', html);
+  var newPhoto = null;
+  document.getElementById('ePhoto').addEventListener('change', function(e){
+    var f = e.target.files[0]; if(!f) return;
+    var r = new FileReader();
+    r.onload = function(ev){ newPhoto = ev.target.result; document.getElementById('eAva').innerHTML = '<img src="'+newPhoto+'">'; };
+    r.readAsDataURL(f);
+  });
+  window._newPhoto = function(){ return newPhoto; };
+}
+
+function saveProfile(){
+  var users = DB.users();
+  var u = users.find(function(x){return x.id===localStorage.getItem('gl_current_user');});
+  u.name = document.getElementById('eName').value.trim() || u.name;
+  u.bio = document.getElementById('eBio').value.trim();
+  var np = window._newPhoto && window._newPhoto();
+  if(np) u.photo = np;
+  DB.saveUsers(users);
+  document.getElementById('editModal').remove();
+  renderProfile();
+}
+
+function logout(){
+  localStorage.removeItem('gl_current_user');
+  window.location.href = '/';
+}
+
+// ==================== POST ====================
+var postMode = 'link';
+var postFileUrl = null;
+
+function renderPost(){
+  var isShort = postMode==='shorts';
+  var html = '<div class="post-view">'+
+    '<h2>'+(isShort?'Postar Short ⚡':'Postar Vídeo 🎬')+'</h2>'+
+    '<div class="post-opts">'+
+      '<div class="post-opt '+(postMode==='link'?'active':'')+'" onclick="postMode=\'link\';renderPost()">'+
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>'+
+        '<div class="t">Pública por link</div>'+
+      '</div>'+
+      '<div class="post-opt '+(postMode==='video'?'active':'')+'" onclick="postMode=\'video\';renderPost()">'+
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>'+
+        '<div class="t">Vídeo</div>'+
+      '</div>'+
+      '<div class="post-opt '+(postMode==='shorts'?'active':'')+'" onclick="postMode=\'shorts\';renderPost()">'+
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 6.5L6.5 17.5"/><path d="M9 7l8.5-2.5L15 13z" fill="currentColor"/><path d="M15 17l-8.5 2.5L9 11z" fill="currentColor"/></svg>'+
+        '<div class="t">Shorts</div>'+
+      '</div>'+
+    '</div>'+
+    (postMode==='link'?
+      '<input class="post-field" id="postUrl" placeholder="Cole o link do vídeo (URL)">'+
+      '<div id="postPreview"></div>'
+    :
+      '<input type="file" id="postFile" accept="video/*" style="display:none">'+
+      '<button class="post-btn" style="background:#1e1e1e;margin-bottom:12px" onclick="document.getElementById(\'postFile\').click()">Escolher '+(isShort?'short':'vídeo')+' da galeria</button>'+
+      '<div id="postPreview"></div>'
+    )+
+    '<input class="post-field" id="postDesc" placeholder="Descrição">'+
+    '<button class="post-btn" onclick="publishVideo()">Publicar 🚀</button>'+
+  '</div>';
+  document.getElementById('app').innerHTML = html;
+
+  if(postMode!=='link'){
+    document.getElementById('postFile').addEventListener('change', function(e){
+      var f = e.target.files[0]; if(!f) return;
+      postFileUrl = URL.createObjectURL(f);
+      document.getElementById('postPreview').innerHTML = '<video class="post-preview" src="'+postFileUrl+'" controls muted></video>';
+    });
+  }
+}
+
+function publishVideo(){
+  var u = curUser();
+  var url, desc;
+  var type = postMode==='shorts' ? 'short' : 'video';
+  if(postMode==='link'){
+    url = document.getElementById('postUrl').value.trim();
+    if(!url){ showNotif('Cole o link do vídeo! 🔗'); return; }
+  } else {
+    url = postFileUrl;
+    if(!url){ showNotif('Escolha um '+(type==='short'?'short':'vídeo')+' primeiro! 📹'); return; }
+  }
+  desc = document.getElementById('postDesc').value.trim() || 'Sem descrição';
+  var vids = DB.videos();
+  var vid = { id:'vid'+Date.now(), userId:u.id, userName:u.name, userPhoto:u.photo, url:url, description:desc, type:type, likes:0, views:0, comments:[], timestamp:Date.now(), likedBy:[], dislikedBy:[], botLikes:0 };
+  vids.unshift(vid);
+  DB.saveVideos(vids);
+  postFileUrl = null;
+  showNotif(type==='short'?'Short publicado! ⚡🎉':'Vídeo publicado! 🎉');
+  setTimeout(function(){ view=(type==='short'?'shorts':'home'); render(); }, 800);
+}
+
+// ==================== PANEL (Creator) ====================
+function renderPanel(){
+  var u = curUser();
+  if(!u.isCreator){ showNotif('Acesso negado'); view='home'; render(); return; }
+
+  var html = '<div class="panel-view">'+
+    '<h2>👑 Painel do Criador</h2>'+
+    '<div class="panel-tabs">'+
+      '<div class="panel-tab '+(panelTab==='videos'?'active':'')+'" onclick="panelTab=\'videos\';renderPanel()">Vídeos</div>'+
+      '<div class="panel-tab '+(panelTab==='people'?'active':'')+'" onclick="panelTab=\'people\';renderPanel()">Pessoas</div>'+
+      '<div class="panel-tab '+(panelTab==='ban'?'active':'')+'" onclick="panelTab=\'ban\';renderPanel()">Banimentos</div>'+
+    '</div>';
+
+  if(panelTab==='videos'){
+    var vids = DB.videos();
+    html += '<div class="panel-section"><h3>Gerenciar Vídeos</h3>'+
+      '<input class="panel-search" id="vidSearch" placeholder="Buscar vídeo..." oninput="filterVids()">'+
+      '<div id="vidList">'+
+      vids.map(function(v){
+        var owner = getUser(v.userId) || {name:v.userName};
+        return '<div class="panel-item" data-name="'+escapeHtml((v.description||'').toLowerCase())+'">'+
+          '<video src="'+v.url+'" muted style="width:40px;height:40px;border-radius:8px;object-fit:cover"></video>'+
+          '<div class="pi-name">'+escapeHtml(v.description||'')+' <span style="color:#666;font-size:11px">('+escapeHtml(owner.name)+')</span></div>'+
+          '<input type="number" value="'+(v.likes||0)+'" placeholder="Curtidas" onchange="setVideoStat(\''+v.id+'\',\'likes\',this.value)">'+
+          '<input type="number" value="'+(v.views||0)+'" placeholder="Views" onchange="setVideoStat(\''+v.id+'\',\'views\',this.value)">'+
+          '<button class="del" onclick="deleteVideo(\''+v.id+'\')">Excluir</button>'+
+        '</div>';
+      }).join('')+
+      '</div></div>'+
+      '<div class="panel-section"><h3>Comentário Falso</h3>'+
+      '<input class="post-field" id="fakeVidId" placeholder="ID do vídeo">'+
+      '<input class="post-field" id="fakeName" placeholder="Nome do comentarista">'+
+      '<input class="post-field" id="fakeText" placeholder="Comentário">'+
+      '<button class="post-btn" onclick="addFakeComment()">Adicionar</button>'+
+    '</div>';
+  }
+
+  if(panelTab==='people'){
+    var users = DB.users();
+    html += '<div class="panel-section"><h3>Gerenciar Seguidores</h3>'+
+      users.map(function(u2){
+        return '<div class="panel-item">'+
+          avatarHtml(u2,36)+
+          '<div class="pi-name">'+userNameDisplay(u2)+'</div>'+
+          '<input type="number" value="'+(u2.followers||0)+'" placeholder="Seguidores" onchange="setUserStat(\''+u2.id+'\',\'followers\',this.value)">'+
+          '<input type="number" value="'+(u2.likes||0)+'" placeholder="Curtidas" onchange="setUserStat(\''+u2.id+'\',\'likes\',this.value)">'+
+        '</div>';
+      }).join('')+
+    '</div>';
+  }
+
+  if(panelTab==='ban'){
+    var users = DB.users().filter(function(u2){return !u2.isCreator;});
+    html += '<div class="panel-section"><h3>Banir Usuários</h3>'+
+      users.map(function(u2){
+        return '<div class="panel-item">'+
+          avatarHtml(u2,36)+
+          '<div class="pi-name">'+userNameDisplay(u2)+(u2.banned?' 🚫':'')+'</div>'+
+          '<div class="ban-select">'+
+            '<button class="ban-opt" onclick="banUser(\''+u2.id+'\',1)">1min</button>'+
+            '<button class="ban-opt" onclick="banUser(\''+u2.id+'\',3600000)">1H</button>'+
+            '<button class="ban-opt" onclick="banUser(\''+u2.id+'\',18000000)">5H</button>'+
+            '<button class="ban-opt" onclick="banUser(\''+u2.id+'\',43200000)">12H</button>'+
+            '<button class="ban-opt" onclick="banUser(\''+u2.id+'\',86400000)">24H</button>'+
+            '<button class="ban-opt" onclick="banUser(\''+u2.id+'\',-1)">Permanente</button>'+
+            (u2.banned?'<button class="ban-opt" style="background:#22c55e" onclick="banUser(\''+u2.id+'\',0)">Desbanir</button>':'')+
+          '</div>'+
+        '</div>';
+      }).join('')+
+    '</div>';
+  }
+
+  html += '</div>';
+  document.getElementById('app').innerHTML = html;
+}
+
+function setVideoStat(vid, type, val){
+  var vids = DB.videos();
+  var v = vids.find(function(x){return x.id===vid;});
+  if(v){ v[type] = parseInt(val)||0; DB.saveVideos(vids); }
+}
+
+function setUserStat(uid, type, val){
+  var users = DB.users();
+  var u = users.find(function(x){return x.id===uid;});
+  if(u){ u[type] = parseInt(val)||0; DB.saveUsers(users); }
+}
+
+function deleteVideo(vid){
+  var vids = DB.videos().filter(function(v){return v.id!==vid;});
+  DB.saveVideos(vids);
+  renderPanel();
+}
+
+function addFakeComment(){
+  var vidId = document.getElementById('fakeVidId').value.trim();
+  var name = document.getElementById('fakeName').value.trim();
+  var text = document.getElementById('fakeText').value.trim();
+  if(!vidId||!name||!text) return;
+  var vids = DB.videos();
+  var v = vids.find(function(x){return x.id===vidId;});
+  if(!v){ showNotif('Vídeo não encontrado'); return; }
+  if(!v.comments) v.comments = [];
+  v.comments.push({userId:'bot_'+name, userName:name, text:text, ts:Date.now()});
+  DB.saveVideos(vids);
+  showNotif('Comentário adicionado! 💬');
+}
+
+function banUser(uid, duration){
+  var users = DB.users();
+  var u = users.find(function(x){return x.id===uid;});
+  if(!u) return;
+  if(duration===0){ u.banned=false; u.banUntil=null; }
+  else { u.banned=true; u.banUntil = duration===-1 ? -1 : Date.now()+duration; }
+  DB.saveUsers(users);
+  renderPanel();
+}
+
+function filterVids(){
+  var q = (document.getElementById('vidSearch').value||'').toLowerCase();
+  document.querySelectorAll('#vidList .panel-item').forEach(function(el){
+    el.style.display = el.dataset.name.indexOf(q)>=0 ? '' : 'none';
+  });
+}
+
+// ==================== BAN SCREEN ====================
+function banScreenHtml(u){
+  var until = u.banUntil===-1 ? 'permanentemente' : 'até '+new Date(u.banUntil).toLocaleString('pt-BR');
+  return '<div class="ban-screen">'+
+    '<h2>⚠️ Você foi banido</h2>'+
+    '<p>Você foi banido '+until+' por bagunça.</p>'+
+    '<p style="font-size:13px;color:#666;margin-bottom:16px">Se achar que é um erro, fale conosco:</p>'+
+    '<button class="btn" onclick="contactSupport()">Fale conosco 💬</button>'+
+  '</div>';
+}
+
+function contactSupport(){
+  var creator = DB.users().find(function(u){return u.isCreator;});
+  if(creator){ startPrivateChat(creator.id); }
+  // Remove ban screen and show chat
+  document.querySelector('.ban-screen').style.display = 'none';
+  document.getElementById('nav').style.display = 'flex';
+  pvbView = 'private';
+  render();
+}
+
+// ==================== NOTIFICATIONS ====================
+function showNotif(msg){
+  var n = document.getElementById('notif');
+  n.textContent = msg;
+  n.classList.add('show');
+  setTimeout(function(){ n.classList.remove('show'); }, 3000);
+}
+
+// ==================== SCROLL HELPER ====================
+function scrollChat(id){
+  setTimeout(function(){
+    var el = document.getElementById(id);
+    if(el) el.scrollTop = el.scrollHeight;
+  }, 100);
+}
+
+// ==================== BOTS ====================
+var botNames = ['Lucas','Maria','Pedro','Ana','João','Carla','Bruno','Julia','Rafael','Camila','Felipe','Beatriz','Gustavo','Larissa','Diego','Marina','Thiago','Fernanda','Rodrigo','Patrícia'];
+var botComments = ['Muito bom! 😍','Que legal! 🔥','Adorei! ❤️','KKKKK 😂','Top demais! 👏','Sensacional! 🎉','Incrível! ✨','Amei isso! 💖','Hahaha muito bom','Show! 🎬','Mano que vídeo 😂','Que conteúdo bom!','Parabéns! 👏','Sensacional 🔥','Top! 👍'];
+
+function startBots(){
+  if(botTimer) clearInterval(botTimer);
+  botTimer = setInterval(function(){
+    var vids = DB.videos();
+    if(vids.length===0) return;
+    // Like 1-2 random videos
+    var n = 1 + Math.floor(Math.random()*2);
+    var changed = false;
+    for(var i=0; i<n; i++){
+      var v = vids[Math.floor(Math.random()*vids.length)];
+      v.likes = (v.likes||0) + 1;
+      v.botLikes = (v.botLikes||0) + 1;
+      changed = true;
+    }
+    // Occasionally add a comment
+    if(Math.random() < 0.3){
+      var v2 = vids[Math.floor(Math.random()*vids.length)];
+      if(!v2.comments) v2.comments = [];
+      var bn = botNames[Math.floor(Math.random()*botNames.length)];
+      var bc = botComments[Math.floor(Math.random()*botComments.length)];
+      v2.comments.push({userId:'bot_'+bn, userName:bn, text:bc, ts:Date.now()});
+      changed = true;
+    }
+    if(changed){
+      DB.saveVideos(vids);
+      // If on home, update counts without full re-render
+      if(view==='shorts'){
+        var slides = document.querySelectorAll('.video-slide');
+        slides.forEach(function(s){
+          var vid = s.dataset.vid;
+          var vd = vids.find(function(x){return x.id===vid;});
+          if(vd){
+            var cnt = s.querySelector('.vbtn .count');
+            if(cnt) cnt.textContent = fmt(vd.likes||0);
+          }
+        });
+      }
+    }
+  }, 3000);
+}
+
+// ==================== STORAGE SYNC ====================
+window.addEventListener('storage', function(e){
+  if(e.key==='gl_pubmsg' && view==='pvb' && pvbView==='public') renderPVBPublic();
+  if(e.key==='gl_privmsg' && view==='pvb' && pvbView==='private') renderPVBPrivate();
+  if(e.key==='gl_videos' && view==='home') renderHome();
+  if(e.key==='gl_videos' && view==='shorts') renderShorts();
+});
+
+// ==================== INIT ====================
+(function(){
+  // Ensure creator account exists
+  var users = DB.users();
+  if(!users.find(function(u){return u.username==='tex_tt';})){
+    users.push({id:'creator',name:'raibow',username:'tex_tt',password:'12345678910',photo:null,bio:'👑 Criador do Good Look',followers:100000,following:[],likes:0,verified:true,verifiedType:'blue',isCreator:true,isAdmin:true,banned:false,banUntil:null,savedVideos:[]});
+    DB.saveUsers(users);
+  }
+  // Seed videos if empty
+  var vids = DB.videos();
+  if(vids.length===0){
+    var vSamples = [
+      {desc:'PEGUEI O OVO DIVINO MAIS RARO DO HALLOWEEN! 🎃🥚',url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'},
+      {desc:'TOP GLOBAL no jogo mais difícil! 🏆',url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4'},
+      {desc:'DEMON SLAYER — melhor momento do anime! ⚔️🔥',url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4'}
+    ];
+    vSamples.forEach(function(s,i){
+      vids.push({id:'v'+i,userId:'creator',userName:'raibow',userPhoto:null,url:s.url,description:s.desc,type:'video',likes:Math.floor(Math.random()*500)+100,views:Math.floor(Math.random()*15000)+1000,comments:[],timestamp:Date.now()-(i+1)*43200000,likedBy:[],dislikedBy:[],botLikes:0});
+    });
+    var sSamples = [
+      {desc:'Bunny 🐰',url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'},
+      {desc:'Muito fogo! 🔥',url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4'},
+      {desc:'Diversão pura 😎',url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4'}
+    ];
+    sSamples.forEach(function(s,i){
+      vids.push({id:'s'+i,userId:'creator',userName:'raibow',userPhoto:null,url:s.url,description:s.desc,type:'short',likes:Math.floor(Math.random()*50)+5,views:Math.floor(Math.random()*500)+100,comments:[],timestamp:Date.now()-i*3600000,likedBy:[],dislikedBy:[],botLikes:0});
+    });
+    DB.saveVideos(vids);
+  }
+
+  if(!curUser()){ window.location.href='/home'; return; }
+  startBots();
+  render();
+})();
+</script>
+</body>
+</html>
