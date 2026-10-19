@@ -67,7 +67,7 @@
   </style>
 </head>
 <body>
-  <form class="card" onsubmit="return false;">
+  <form class="card" id="signupForm">
     <div class="brand">Good Look</div>
     <div class="lead">Crie sua conta</div>
     <div class="avatar">
@@ -78,10 +78,26 @@
         <path d="M7 17c0-2.8 2.2-5 5-5s5 2.2 5 5"/>
       </svg>
     </div>
-    <input class="field" type="text" placeholder="Nome" />
-    <input class="field" type="password" placeholder="Senha" />
+    <input class="field" id="nome" type="text" placeholder="Nome" required />
+    <input class="field" id="senha" type="password" placeholder="Senha" required />
     <button class="btn" type="submit">Criar conta</button>
     <div class="foot">Já tem conta? <a href="/">Entrar</a></div>
   </form>
+  <script>
+    document.getElementById('signupForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var nome = document.getElementById('nome').value.trim();
+      var senha = document.getElementById('senha').value;
+      if (!nome || !senha) return;
+      localStorage.setItem('goodlook_user', JSON.stringify({ nome: nome, senha: senha }));
+      var card = document.querySelector('.card');
+      card.innerHTML = '<div class="brand">Good Look</div>' +
+        '<div class="lead" style="margin-bottom:28px">Conta criada com sucesso!</div>' +
+        '<div class="avatar" style="background:#dcfce7;color:#16a34a">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="width:28px;height:28px"><path d="M20 6L9 17l-5-5"/></svg></div>' +
+        '<p style="font-size:15px;color:#334155;margin-bottom:20px">Bem-vindo(a), <strong>' + nome + '</strong>!</p>' +
+        '<a href="/" class="btn" style="display:block;text-decoration:none;text-align:center">Ir para o início</a>';
+    });
+  </script>
 </body>
 </html>
