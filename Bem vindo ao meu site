@@ -1,7 +1,98 @@
-imdex.html
 <!DOCTYPE html>
-<html>
-  <body>
-    <h1>Bem-vindo ao meu site! 🚀</h1>
-  </body>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Good Look</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 1.5rem;
+    background: linear-gradient(135deg, #fef3e7 0%, #e5eaff 100%);
+  }
+  .hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 9999px;
+    background: #ffffff;
+    padding: 0.375rem 1rem;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.875rem;
+    color: #666677;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+    margin-bottom: 1.5rem;
+  }
+  .pill svg { width: 1rem; height: 1rem; color: #f97316; }
+  .pill .dot { color: #d1d5db; }
+  h1 {
+    font-size: 3rem;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    color: #1a1a2e;
+  }
+  @media (min-width: 640px) { h1 { font-size: 3.75rem; } }
+  .subtitle {
+    margin-top: 1.5rem;
+    max-width: 20rem;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #666677;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 9999px;
+    padding: 0.75rem 2rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: opacity 0.15s, background 0.15s;
+  }
+  .btn svg { width: 1rem; height: 1rem; }
+  .btn-primary {
+    margin-top: 1.5rem;
+    background: #f97316;
+    color: #ffffff;
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+  }
+  .btn-primary:hover { opacity: 0.9; }
+  .btn-secondary {
+    margin-top: 0.75rem;
+    background: #ffffff;
+    color: #1a1a2e;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.07);
+  }
+  .btn-secondary:hover { background: #f5f5f7; }
+</style>
+</head>
+<body>
+  <main class="hero">
+    <span class="pill">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="M20 12h2"/><path d="m19.07 4.93-1.41 1.41"/><path d="M15.947 12.65a4 4 0 0 0-5.925-4.128"/><path d="M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6Z"/></svg>
+      Boa noite <span class="dot">•</span> Clima do sistema
+    </span>
+    <h1>Good Look</h1>
+    <p class="subtitle">O céu está limpo e a atmosfera é perfeita. Baixe o app e converse com a IA.</p>
+    <a href="https://www.mediafire.com/file/dbucb6003wfw6et/_Good_lookp_20296387.apk/file" target="_blank" rel="noopener" class="btn btn-primary">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg>
+      Baixar app
+    </a>
+    <a href="/home" class="btn btn-secondary">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10 17 5-5-5-5"/><path d="M15 12H3"/><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/></svg>
+      Entrar
+    </a>
+  </main>
+</body>
 </html>
