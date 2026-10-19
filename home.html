@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Good Look — Criar conta</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: linear-gradient(135deg, #fef3e5 0%, #e5eaff 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #1e293b;
+    }
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(15,23,42,0.08);
+      padding: 32px 28px;
+      width: 100%;
+      max-width: 360px;
+      text-align: center;
+    }
+    .brand { font-size: 24px; font-weight: 800; color: #0f172a; margin-bottom: 4px; }
+    .lead { font-size: 14px; color: #94a3b8; margin-bottom: 22px; }
+    .avatar {
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      background: #f1f5f9;
+      margin: 0 auto 22px;
+      display: flex; align-items: center; justify-content: center;
+      color: #cbd5e1;
+    }
+    .avatar svg { width: 28px; height: 28px; }
+    .field {
+      width: 100%;
+      padding: 13px 14px;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      font-size: 15px;
+      color: #334155;
+      margin-bottom: 12px;
+      outline: none;
+      transition: border-color .15s ease;
+    }
+    .field:focus { border-color: #F97316; }
+    .btn {
+      width: 100%;
+      padding: 13px;
+      border: none;
+      border-radius: 10px;
+      background: #F97316;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 4px;
+      transition: transform .08s ease;
+    }
+    .btn:active { transform: scale(0.98); }
+    .foot { margin-top: 18px; font-size: 14px; color: #94a3b8; }
+    .foot a { color: #0f172a; font-weight: 700; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <form class="card" onsubmit="return false;">
+    <div class="brand">Good Look</div>
+    <div class="lead">Crie sua conta</div>
+    <div class="avatar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M23 19a2 2 0 0 0-2 2H3a2 2 0 0 0-2-2"/>
+        <path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14"/>
+        <circle cx="12" cy="9" r="2.5"/>
+        <path d="M7 17c0-2.8 2.2-5 5-5s5 2.2 5 5"/>
+      </svg>
+    </div>
+    <input class="field" type="text" placeholder="Nome" />
+    <input class="field" type="password" placeholder="Senha" />
+    <button class="btn" type="submit">Criar conta</button>
+    <div class="foot">Já tem conta? <a href="/">Entrar</a></div>
+  </form>
+</body>
+</html>
