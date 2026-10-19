@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Activity Feed - Meu Site</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background: #f5f5f7;
+        color: #1d1d1f;
+        min-height: 100vh;
+      }
+      nav {
+        background: #fff;
+        border-bottom: 1px solid #e2e2e5;
+        padding: 16px 24px;
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+      nav .logo {
+        font-size: 18px;
+        font-weight: 700;
+        text-decoration: none;
+        color: #1d1d1f;
+      }
+      nav a.nav-link {
+        font-size: 15px;
+        text-decoration: none;
+        color: #6e6e73;
+        font-weight: 500;
+      }
+      nav a.nav-link:hover {
+        color: #1d1d1f;
+      }
+      nav a.nav-link.active {
+        color: #0071e3;
+      }
+      .container {
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 32px 20px;
+      }
+      h1 {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 4px;
+      }
+      .subtitle {
+        color: #6e6e73;
+        font-size: 15px;
+        margin-bottom: 28px;
+      }
+      .feed {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .activity-item {
+        background: #fff;
+        border-radius: 14px;
+        padding: 16px 18px;
+        display: flex;
+        gap: 14px;
+        align-items: flex-start;
+        border: 1px solid #ececee;
+        transition: box-shadow 0.15s ease;
+      }
+      .activity-item:hover {
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+      }
+      .icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        flex-shrink: 0;
+      }
+      .icon.create { background: #e8f7ef; }
+      .icon.update { background: #fff4e6; }
+      .icon.delete { background: #fde8e8; }
+      .icon.login  { background: #e6f0ff; }
+      .icon.comment{ background: #f0eaff; }
+      .content {
+        flex: 1;
+        min-width: 0;
+      }
+      .actor {
+        font-weight: 600;
+        font-size: 15px;
+      }
+      .action {
+        font-size: 14px;
+        color: #424245;
+        margin-top: 2px;
+      }
+      .meta {
+        font-size: 12px;
+        color: #aeaeb2;
+        margin-top: 6px;
+      }
+      .empty {
+        text-align: center;
+        padding: 60px 20px;
+        color: #aeaeb2;
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <a href="/" class="logo">🚀 Meu Site</a>
+      <a href="/" class="nav-link">Início</a>
+      <a href="/activity.html" class="nav-link active">Atividades</a>
+    </nav>
+    <div class="container">
+      <h1>Activity Feed</h1>
+      <p class="subtitle">As ações mais recentes no aplicativo, em ordem cronológica.</p>
+      <div class="feed" id="feed"></div>
+    </div>
+    <script>
+      const activities = [
+        { type: "create",  actor: "Ana Souza",    action: "criou uma nova tarefa \"Revisar design da homepage\"", time: "há 5 min" },
+        { type: "comment", actor: "Bruno Lima",   action: "comentou em \"Configuração do servidor\"", time: "há 22 min" },
+        { type: "update",  actor: "Carla Dias",   action: "atualizou o status de \"Login de usuários\" para Em Progresso", time: "há 1 hora" },
+        { type: "login",   actor: "Diego Martins", action: "entrou no aplicativo", time: "há 2 horas" },
+        { type: "delete",  actor: "Eva Ferreira", action: "removeu o arquivo \"rascunho-v2.txt\"", time: "há 3 horas" },
+        { type: "create",  actor: "Felipe Costa",  action: "criou o projeto \"Aplicativo Mobile\"", time: "há 5 horas" },
+        { type: "update",  actor: "Ana Souza",    action: "atualizou a descrição de \"Revisar design da homepage\"", time: "há 8 horas" },
+        { type: "login",   actor: "Bruno Lima",   action: "entrou no aplicativo", time: "ontem" },
+        { type: "comment", actor: "Carla Dias",   action: "comentou em \"Aplicativo Mobile\"", time: "ontem" },
+        { type: "create",  actor: "Diego Martins", action: "criou uma nova tarefa \"Integrar API de pagamentos\"", time: "há 2 dias" },
+      ];
+
+      const icons = {
+        create: "✏️",
+        update: "🔄",
+        delete: "🗑️",
+        login: "🔑",
+        comment: "💬",
+      };
+
+      const feed = document.getElementById("feed");
+
+      if (activities.length === 0) {
+        feed.innerHTML = '<div class="empty">Nenhuma atividade ainda.</div>';
+      } else {
+        feed.innerHTML = activities.map(function (a) {
+          return (
+            '<div class="activity-item">' +
+              '<div class="icon ' + a.type + '">' + icons[a.type] + "</div>" +
+              '<div class="content">' +
+                '<div class="actor">' + a.actor + "</div>" +
+                '<div class="action">' + a.action + "</div>" +
+                '<div class="meta">' + a.time + "</div>" +
+              "</div>" +
+            "</div>"
+          );
+        }).join("");
+      }
+    </script>
+  </body>
+</html>
