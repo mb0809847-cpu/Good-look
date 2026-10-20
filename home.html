@@ -71,27 +71,10 @@
         creator.password = '12345678910';
         localStorage.setItem('gl_users', JSON.stringify(users));
       }
-      // Seed sample videos
-      var vids = JSON.parse(localStorage.getItem('gl_videos') || '[]');
-      if (vids.length === 0) {
-        var vSamples = [
-          { desc:'PEGUEI O OVO DIVINO MAIS RARO DO HALLOWEEN! 🎃🥚', url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4' },
-          { desc:'TOP GLOBAL no jogo mais difícil! 🏆', url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4' },
-          { desc:'DEMON SLAYER — melhor momento do anime! ⚔️🔥', url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4' }
-        ];
-        vSamples.forEach(function(s, i){
-          vids.push({ id:'v'+i, userId:'creator', userName:'tex_tt', userPhoto:null, url:s.url, description:s.desc, type:'video', likes:Math.floor(Math.random()*500)+100, views:Math.floor(Math.random()*15000)+1000, comments:[], timestamp:Date.now()-(i+1)*43200000, likedBy:[], dislikedBy:[], botLikes:0 });
-        });
-        var sSamples = [
-          { desc:'Bunny 🐰', url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4' },
-          { desc:'Muito fogo! 🔥', url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4' },
-          { desc:'Diversão pura 😎', url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4' }
-        ];
-        sSamples.forEach(function(s, i){
-          vids.push({ id:'s'+i, userId:'creator', userName:'tex_tt', userPhoto:null, url:s.url, description:s.desc, type:'short', likes:Math.floor(Math.random()*50)+5, views:Math.floor(Math.random()*500)+100, comments:[], timestamp:Date.now()-i*3600000, likedBy:[], dislikedBy:[], botLikes:0 });
-        });
-        localStorage.setItem('gl_videos', JSON.stringify(vids));
-      }
+      // Os vídeos de exemplo saíram do ar: quem publica na Home e no Shorts é a
+      // comunidade de bots, montada no app.html.
+      var vids = JSON.parse(localStorage.getItem('gl_videos') || '[]').filter(function(v){ return ['v0','v1','v2','s0','s1','s2'].indexOf(v.id)<0; });
+      localStorage.setItem('gl_videos', JSON.stringify(vids));
       // Auto-login
       var cur = localStorage.getItem('gl_current_user');
       if (cur) {
@@ -144,7 +127,15 @@
       var users = JSON.parse(localStorage.getItem('gl_users')||'[]');
       var u = users.find(function(x){return x.name.toLowerCase()===name.toLowerCase() && x.password===pass;});
       if (!u) { err.textContent='Nome ou senha incorretos'; err.style.display='block'; return; }
-      if (u.banned && u.banUntil && Date.now() < u.banUntil) { err.textContent='Conta banida'; err.style.display='block'; return; }
+      if (u.banned && u.banUntil && Date.now() < u.banUntil) {
+        var rest = u.banUntil === -1 ? 'banido permanentemente' : (function(){
+          var ms = u.banUntil - Date.now(), h = Math.floor(ms/3600000), m = Math.floor((ms%3600000)/60000);
+          return 'libera em ' + (h>0?h+'h ':'') + m + 'min';
+        })();
+        err.textContent = 'Você foi banido: ' + (u.banReason || 'palavras ofensivas') + ' (' + rest + ')';
+        err.style.display = 'block';
+        return;
+      }
       localStorage.setItem('gl_current_user', u.id);
       window.location.href = 'app.html';
     }

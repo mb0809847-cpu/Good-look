@@ -380,10 +380,21 @@ function renderNav(){
 }
 
 function navigate(v){
+  // Tocar duas vezes no mesmo item do rodapé atualiza a tela.
+  if(view===v){ atualizarView(); return; }
   view = v;
   if(v==='profile') profileUserId = curUser().id;
   if(v==='pvb'){ pvbView='list'; }
   render();
+}
+
+function atualizarView(){
+  if(view==='home'){
+    var publicados = DB.videos().filter(function(x){ return x.botPost; }).length;
+    sincronizarPostsBot(publicados+1, true); // atualizar = chega post novo dos bots
+  }
+  render();
+  showNotif('Atualizado 🔄');
 }
 
 // ==================== RENDER ====================
@@ -463,7 +474,8 @@ function preloadNeighbour(el){
 
 // ==================== HOME (feed de vídeos) ====================
 function renderHome(){
-  var vids = DB.videos().filter(function(v){return v.type!=='short';});
+  // Mais novo primeiro: é assim que o post novo dos bots aparece no topo.
+  var vids = DB.videos().filter(function(v){return v.type!=='short';}).sort(function(a,b){ return (b.timestamp||0)-(a.timestamp||0); });
   if(vids.length===0 && !DB.live()){
     document.getElementById('app').innerHTML = '<div style="height:100%;display:flex;align-items:center;justify-content:center;color:#666;font-size:16px;text-align:center;padding:20px">Nenhum vídeo ainda.<br>Use o botão "+" para publicar! 🎬</div>';
     return;
@@ -494,7 +506,6 @@ function renderHome(){
       '<div class="hthumb" onclick="openVideoDetail(\''+v.id+'\')">'+
         '<video data-src="'+v.url+'" data-thumb="1" data-dur="1" muted playsinline preload="none"></video>'+
         '<div class="scrim"></div>'+
-        '<div class="play-ov"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>'+
         '<div class="htitle">'+escapeHtml(v.description||'')+'</div>'+
         '<div class="vdur"></div>'+
       '</div>'+
@@ -657,15 +668,15 @@ function toggleFollowDetail(uid){
 // ==================== SHORTS (full-screen feed) ====================
 function renderShorts(){
   var vids = DB.videos().filter(function(v){return v.type==='short';});
-  var liveNow = DB.live();
-  if(vids.length===0 && !liveNow){
+  var lives = livesOnAir();
+  if(vids.length===0 && lives.length===0){
     document.getElementById('app').innerHTML = '<div style="height:100%;display:flex;align-items:center;justify-content:center;color:#666;font-size:16px;text-align:center;padding:20px">Nenhum short ainda.<br>Use o botão "+" para adicionar! ⚡</div>';
     return;
   }
   var u = curUser();
   var html = '<div class="feed" id="feed">';
   // Quem está ao vivo aparece no primeiro slide do Shorts.
-  var liveTop = livesOnAir()[0];
+  var liveTop = lives[0];
   if(liveTop){
     var lo = getUser(liveTop.userId) || {name:liveTop.userName, photo:liveTop.userPhoto, verifiedType:null, isCreator:false};
     html += '<div class="live-slide">'+
@@ -941,6 +952,7 @@ function addComment(){
   var inp = document.getElementById('cpText');
   var text = inp ? inp.value.trim() : '';
   if(!text) return;
+  if(checarPalavroes(text)) return;
   var u = curUser();
   var r = loadVideoWithIds(currentVideoId);
   if(!r.v) return;
@@ -1108,6 +1120,7 @@ function sendPubMsg(img){
   var input = document.getElementById('pubText');
   var text = input ? input.value.trim() : '';
   if(!text && !img) return;
+  if(checarPalavroes(text)) return;
   var u = curUser();
   var msgs = DB.pubMsgs();
   msgs.push({userId:u.id, userName:u.name, text:text, image:img, ts:Date.now()});
@@ -1161,6 +1174,7 @@ function sendPrivMsg(img){
   var input = document.getElementById('privText');
   var text = input ? input.value.trim() : '';
   if(!text && !img) return;
+  if(checarPalavroes(text)) return;
   var u = curUser();
   var msgs = DB.privMsgs();
   msgs.push({fromId:u.id, toId:pvbChatUser, text:text, image:img, ts:Date.now()});
@@ -1190,7 +1204,7 @@ function renderProfile(){
   // com o administrador; para quem está visitando aparece "Esta conta foi banida".
   if(banned){
     html += isMe
-      ? '<div class="banbar" onclick="openAdminChat()"><div class="tx">Você foi banido. Veja detalhes...<small>'+banUntilLabel(target)+' · toque para conversar com o administrador</small></div><div class="go">›</div></div>'
+      ? '<div class="banbar" onclick="openAdminChat()"><div class="tx">Você foi banido.<small>Motivo: '+escapeHtml(target.banReason||'palavras ofensivas')+'<br>'+banUntilLabel(target)+' · toque para conversar com o administrador</small></div><div class="go">›</div></div>'
       : '<div class="banbar"><div class="tx">Esta conta foi banida</div></div>';
   }
 
@@ -1928,9 +1942,121 @@ function scrollChat(id){
 var botNames = ['Lucas','Maria','Pedro','Ana','João','Carla','Bruno','Julia','Rafael','Camila','Felipe','Beatriz','Gustavo','Larissa','Diego','Marina','Thiago','Fernanda','Rodrigo','Patrícia'];
 var botComments = ['Muito bom! 😍','Que legal! 🔥','Adorei! ❤️','KKKKK 😂','Top demais! 👏','Sensacional! 🎉','Incrível! ✨','Amei isso! 💖','Hahaha muito bom','Show! 🎬','Mano que vídeo 😂','Que conteúdo bom!','Parabéns! 👏','Sensacional 🔥','Top! 👍'];
 
+// Os bots são os usuários do app: eles postam (anime, jogos, comédia e IA), têm
+// perfil, ganham seguidores, curtem e comentam. São iguais para quem abrir o app,
+// porque o app é estático: o feed é montado aqui, sempre na mesma ordem.
+var SAMPLES = ['videos/bunny.mp4','videos/jellyfish.mp4','videos/sintel.mp4','videos/flower.mp4','videos/friday.mp4','videos/onda.mp4'];
+
+var BOT_PERFIS = [
+  {name:'Ana',     user:'ana',     bio:'🌸 Só anime e mangá por aqui. Novidade toda semana!', followers:18400, verified:true,  vt:'blue'},
+  {name:'Bruno',   user:'bruno',   bio:'🎮 Gameplay todo dia. Top global no ranqueado!',      followers:32700, verified:true,  vt:'blue'},
+  {name:'Camila',  user:'camila',  bio:'😂 Humor, pegadinha e zoeira sem fim.',              followers:12900, verified:false, vt:null},
+  {name:'Diego',   user:'diego',   bio:'🤖 Faço vídeo com IA. Prompt é a nova arte.',         followers:9800,  verified:true,  vt:'gold'},
+  {name:'Julia',   user:'julia',   bio:'⚔️ Anime, teoria e edit. Demon Slayer até morrer.',    followers:45200, verified:true,  vt:'blue'},
+  {name:'Rafael',  user:'rafael',  bio:'🕹️ Games retrô e lançamento. Senta e joga.',          followers:7600,  verified:false, vt:null},
+  {name:'Larissa', user:'larissa', bio:'💅 Vida real, comédia e conselho aleatório.',         followers:21300, verified:false, vt:null},
+  {name:'Thiago',  user:'thiago',  bio:'🎬 IA, edição e efeito. O futuro chegou.',            followers:15600, verified:true,  vt:'blue'}
+];
+
+// Os 8 primeiros dão um post para cada bot (o perfil deles nunca fica vazio).
+var BOT_POSTS = [
+  {bot:'julia',   desc:'Top 5 aberturas de anime que marcaram época 🌸⚔️', tipo:'video', m:2, likes:8420, views:91200},
+  {bot:'bruno',   desc:'TOP GLOBAL no jogo mais difícil! 🏆',               tipo:'video', m:0, likes:5210, views:74500},
+  {bot:'camila',  desc:'Quando o WiFi cai no meio do vídeo 😂',             tipo:'video', m:4, likes:3980, views:52300},
+  {bot:'thiago',  desc:'Fiz um vídeo inteiro com IA 🤖✨',                   tipo:'video', m:1, likes:2760, views:39800},
+  {bot:'ana',     desc:'Esse final de anime me destruiu 😭',                tipo:'short', m:3, likes:6140, views:66100},
+  {bot:'rafael',  desc:'Meu melhor clutch na ranqueada 🔥',                 tipo:'video', m:5, likes:3390, views:44700},
+  {bot:'larissa', desc:'POV: você acorda atrasado pra aula 🤡',             tipo:'video', m:4, likes:8120, views:103400},
+  {bot:'diego',   desc:'A IA desenhou meu sonho e deu isso 😳',             tipo:'video', m:1, likes:980,  views:12200},
+  {bot:'julia',   desc:'Anime edit que ficou insano ⚡',                     tipo:'short', m:2, likes:1420, views:18700},
+  {bot:'camila',  desc:'Pegadinha com IA 😂',                               tipo:'short', m:3, likes:1730, views:21400},
+  {bot:'bruno',   desc:'Clutch de 15 segundos no ranqueado 🔥',             tipo:'short', m:0, likes:2260, views:31200},
+  {bot:'ana',     desc:'Teoria: quem é o verdadeiro vilão do anime 👀',     tipo:'video', m:2, likes:7310, views:84900},
+  {bot:'diego',   desc:'Criei um anime inteiro com IA 🤯',                  tipo:'video', m:5, likes:4120, views:57600},
+  {bot:'larissa', desc:'Ninguém merece segunda-feira 😂',                   tipo:'video', m:3, likes:9460, views:118300}
+];
+
+function semearBots(){
+  var users = DB.users();
+  var mudou = false;
+  BOT_PERFIS.forEach(function(b){
+    if(!users.find(function(u){ return u.username===b.user; })){
+      users.push({id:'bot_'+b.user, name:b.name, username:b.user, password:'bot_'+b.user, photo:null, bio:b.bio,
+        followers:b.followers, following:[], likes:0, verified:b.verified, verifiedType:b.vt,
+        isCreator:false, isAdmin:false, banned:false, banUntil:null, savedVideos:[]});
+      mudou = true;
+    }
+  });
+  if(mudou) DB.saveUsers(users);
+  sincronizarPostsBot(8, false);
+}
+
+// Garante que os primeiros "n" posts dos bots estão no feed.
+function sincronizarPostsBot(alvo, novo){
+  var vids = DB.videos();
+  var tem = vids.filter(function(v){ return v.botPost; }).length;
+  var mudou = false;
+  for(var i=tem; i<alvo && i<BOT_POSTS.length; i++){
+    vids.push(criarPostBot(i, novo));
+    mudou = true;
+  }
+  if(mudou) DB.saveVideos(vids);
+  return mudou;
+}
+
+function criarPostBot(i, novo){
+  var b = BOT_POSTS[i];
+  var bot = DB.users().find(function(u){ return u.username===b.bot; });
+  return {id:'bp'+(i+1), userId:bot.id, userName:bot.name, userPhoto:null, url:SAMPLES[b.m], description:b.desc,
+    type:b.tipo, likes:b.likes, views:b.views, comments:[], timestamp:(novo?Date.now():Date.now()-(i+1)*11*60000),
+    likedBy:[], dislikedBy:[], botLikes:0, botPost:true};
+}
+
+// ==================== PALAVRÕES ====================
+// Juntando 10 palavrões (no chat público, no privado ou nos comentários) a conta
+// toma ban automático de 24h, e o motivo fica registrado no perfil dela.
+var PALAVROES = ['porra','desgraça','disgraça','vagabundo','vagabunda','filho da puta','filha da puta','caralho','puta que pariu','vai tomar no cu'];
+var LIMITE_PALAVROES = 10;
+
+function contarPalavroes(text){
+  var t = (text||'').toLowerCase();
+  var n = 0;
+  PALAVROES.forEach(function(p){
+    var i = t.indexOf(p);
+    while(i>=0){ n++; i = t.indexOf(p, i+p.length); }
+  });
+  return n;
+}
+
+// Roda antes de enviar a mensagem. Devolve true quando a conta acabou de ser banida.
+function checarPalavroes(text){
+  var u = curUser();
+  var n = contarPalavroes(text);
+  if(!u || !n) return false;
+  var users = DB.users();
+  var x = users.find(function(y){ return y.id===u.id; });
+  if(!x) return false;
+  x.palavroes = (x.palavroes||0) + n;
+  if(x.palavroes >= LIMITE_PALAVROES){
+    x.banned = true;
+    x.banUntil = Date.now() + 24*3600000;
+    x.banReason = 'Palavrões repetidos ('+x.palavroes+'x): '+text.slice(0,40);
+    DB.saveUsers(users);
+    showNotif('Você foi banido por 24h 🚫 Motivo: palavras ofensivas');
+    view = 'profile'; profileUserId = x.id;
+    render();
+    return true;
+  }
+  DB.saveUsers(users);
+  showNotif('Palavrão contado ('+x.palavroes+'/'+LIMITE_PALAVROES+') — em 10 você toma ban de 24h 🚫');
+  return false;
+}
+
+var botTick = 0;
 function startBots(){
   if(botTimer) clearInterval(botTimer);
   botTimer = setInterval(function(){
+    botTick++;
     var vids = DB.videos();
     if(vids.length===0) return;
     // Like 1-2 random videos
@@ -1966,6 +2092,17 @@ function startBots(){
         });
       }
     }
+    // De vez em quando os bots crescem: ganham seguidores e soltam post novo.
+    if(botTick % 5 === 0){
+      var bu = DB.users(), mudouU = false;
+      BOT_PERFIS.forEach(function(b){
+        var x = bu.find(function(u){ return u.username===b.user; });
+        if(x && Math.random() < 0.4){ x.followers = (x.followers||0) + 1 + Math.floor(Math.random()*40); mudouU = true; }
+      });
+      if(mudouU) DB.saveUsers(bu);
+      var pub = DB.videos().filter(function(x){ return x.botPost; }).length;
+      sincronizarPostsBot(pub+1, true);
+    }
   }, 3000);
 }
 
@@ -1990,40 +2127,12 @@ window.addEventListener('storage', function(e){
     creator.password = '12345678910';
     DB.saveUsers(users);
   }
-  // Sample clips ship with the site: the external bucket used before now answers
-  // 403, which left every seeded video showing a black player.
-  var SAMPLES = ['/videos/bunny.mp4','/videos/jellyfish.mp4','/videos/sintel.mp4','/videos/flower.mp4','/videos/friday.mp4','/videos/onda.mp4'];
-  var SEED_INDEX = {v0:0,v1:1,v2:2,s0:3,s1:4,s2:5};
-
-  // Point sample videos already saved in this browser at the local files.
-  var vids = DB.videos();
-  var resaved = false;
-  vids.forEach(function(v){
-    var si = SEED_INDEX[v.id];
-    if(si!==undefined && v.url && v.url.indexOf('gtv-videos-bucket')>=0){ v.url = SAMPLES[si]; resaved = true; }
-  });
-  if(resaved) DB.saveVideos(vids);
-
-  // Seed videos if empty
-  if(vids.length===0){
-    var vSamples = [
-      {desc:'PEGUEI O OVO DIVINO MAIS RARO DO HALLOWEEN! 🎃🥚',url:SAMPLES[0]},
-      {desc:'TOP GLOBAL no jogo mais difícil! 🏆',url:SAMPLES[1]},
-      {desc:'DEMON SLAYER — melhor momento do anime! ⚔️🔥',url:SAMPLES[2]}
-    ];
-    vSamples.forEach(function(s,i){
-      vids.push({id:'v'+i,userId:'creator',userName:'tex_tt',userPhoto:null,url:s.url,description:s.desc,type:'video',likes:Math.floor(Math.random()*500)+100,views:Math.floor(Math.random()*15000)+1000,comments:[],timestamp:Date.now()-(i+1)*43200000,likedBy:[],dislikedBy:[],botLikes:0});
-    });
-    var sSamples = [
-      {desc:'Flor desabrochando 🌸',url:SAMPLES[3]},
-      {desc:'Boa sexta! 🎉',url:SAMPLES[4]},
-      {desc:'Clima de verão ☀️',url:SAMPLES[5]}
-    ];
-    sSamples.forEach(function(s,i){
-      vids.push({id:'s'+i,userId:'creator',userName:'tex_tt',userPhoto:null,url:s.url,description:s.desc,type:'short',likes:Math.floor(Math.random()*50)+5,views:Math.floor(Math.random()*500)+100,comments:[],timestamp:Date.now()-i*3600000,likedBy:[],dislikedBy:[],botLikes:0});
-    });
-    DB.saveVideos(vids);
-  }
+  // Os clipes ficam na pasta do site (caminho relativo: funciona no Netlify, no
+  // GitHub Pages e no APK). Os vídeos de exemplo antigos saem do ar: quem publica
+  // na Home e no Shorts agora é a comunidade de bots.
+  var vids = DB.videos().filter(function(v){ return ['v0','v1','v2','s0','s1','s2'].indexOf(v.id)<0; });
+  DB.saveVideos(vids);
+  semearBots();
 
   if(!curUser()){ window.location.href='home.html'; return; }
   // Se a página foi recarregada durante uma live, a bolinha volta com ela.
