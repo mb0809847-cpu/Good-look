@@ -69,35 +69,60 @@ body{background:#000;color:#fff}
 .user-row .acts .pbtn{background:#1e1e1e;color:#fff}
 .user-row .acts .cbtn{background:#F97316;color:#fff}
 
-/* Profile */
-.profile-view{height:100%;overflow-y:auto;background:#0a0a0a;padding-bottom:20px}
-.profile-view::-webkit-scrollbar{display:none}
-.prof-header{padding:20px 16px;text-align:center}
-.prof-ava{width:90px;height:90px;border-radius:50%;margin:0 auto 12px;background:#333;overflow:hidden;display:flex;align-items:center;justify-content:center;color:#666;font-size:36px}
-.prof-ava img{width:100%;height:100%;object-fit:cover}
-.prof-name{font-size:20px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:4px}
-.prof-stats{display:flex;justify-content:center;gap:24px;margin:16px 0}
-.prof-stat{text-align:center}
-.prof-stat .num{font-size:18px;font-weight:700}
-.prof-stat .lbl{font-size:12px;color:#888}
-.prof-bio{font-size:14px;color:#aaa;padding:0 20px;margin-bottom:16px}
-.prof-btns{display:flex;gap:10px;padding:0 16px;margin-bottom:20px}
-.prof-btns button{flex:1;padding:10px;border-radius:8px;border:none;font-size:14px;font-weight:600;cursor:pointer}
-.btn-edit{background:#1e1e1e;color:#fff}
-.btn-follow{background:#F97316;color:#fff}
-.btn-following{background:#1e1e1e;color:#fff}
-.prof-videos{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:0 2px}
-.prof-videos .pv{aspect-ratio:9/16;background:#111;cursor:pointer;position:relative;overflow:hidden}
-.prof-videos .pv video{width:100%;height:100%;object-fit:cover}
-.prof-videos .pv .vc{position:absolute;bottom:4px;left:6px;font-size:11px;color:#fff;text-shadow:0 1px 2px #000}
-.prof-videos .empty{grid-column:1/-1;text-align:center;color:#666;padding:40px;font-size:14px}
+/* Profile (visual claro, conforme a referência enviada) */
+.pf-view{height:100%;overflow-y:auto;background:#f4f4f5;color:#18181b;padding-bottom:24px}
+.pf-view::-webkit-scrollbar{display:none}
+.banbar{display:flex;align-items:center;gap:10px;background:#e11900;color:#fff;padding:15px 16px}
+.banbar .tx{flex:1;font-size:14px;font-weight:700;line-height:1.3}
+.banbar .tx small{display:block;font-size:11.5px;font-weight:500;opacity:.92;margin-top:2px}
+.banbar .go{font-size:22px;line-height:1;font-weight:700}
+.pf-head{background:#fff;padding:18px 16px 16px;border-bottom:1px solid #e7e7ea}
+.pf-top{display:flex;align-items:center;gap:14px}
+.pf-ava{width:82px;height:82px;border-radius:50%;background:#e6e6e9;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#71717a;font-size:30px}
+.pf-ava img{width:100%;height:100%;object-fit:cover}
+.pf-stats{display:flex;flex:1;justify-content:space-around;text-align:center}
+.pf-stat .num{font-size:16px;font-weight:800;color:#111}
+.pf-stat .lbl{font-size:11px;color:#71717a;margin-top:2px}
+.pf-name{display:flex;align-items:center;gap:6px;font-size:17px;font-weight:800;color:#111;margin-top:14px}
+.pf-user{font-size:12.5px;color:#71717a;margin-top:3px}
+.pf-bio{font-size:13.5px;color:#3f3f46;margin-top:10px;line-height:1.45}
+.pf-rows{background:#fff;margin-top:10px;border-top:1px solid #e7e7ea;border-bottom:1px solid #e7e7ea}
+.pf-row{display:flex;align-items:center;gap:12px;padding:14px 16px;font-size:14px;font-weight:600;color:#18181b;border-bottom:1px solid #f1f1f3;cursor:pointer}
+.pf-row:last-child{border-bottom:none}
+.pf-row .ic{width:34px;height:34px;border-radius:10px;background:#f4f4f5;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.pf-row .ar{margin-left:auto;color:#a1a1aa;font-size:18px}
+.pf-btns{display:flex;gap:10px;padding:14px 16px 0}
+.pf-btns button{flex:1;padding:12px;border-radius:12px;border:none;font-size:14px;font-weight:700;cursor:pointer}
+.pf-btn-light{background:#ececef;color:#3f3f46}
+.pf-btn-dark{background:#111;color:#fff}
+.pf-out{display:block;width:calc(100% - 32px);margin:16px auto 0;padding:15px;border-radius:12px;border:1px solid #efc4bd;background:#fff;color:#e11900;font-size:14.5px;font-weight:700;text-align:center;cursor:pointer}
+.pf-note{margin:14px 16px 0;padding:14px;border-radius:12px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;font-size:13px;line-height:1.45}
+.pf-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;background:#fff;padding:3px}
+.pf-cell{position:relative;aspect-ratio:9/16;background:#e6e6e9;overflow:hidden;cursor:pointer}
+.pf-cell video{width:100%;height:100%;object-fit:cover;display:block}
+.pf-cell .vc{position:absolute;left:6px;bottom:5px;font-size:11px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.85)}
+.pf-empty{padding:34px 20px;text-align:center;color:#71717a;font-size:14px}
+
+/* Folha de opções (comentários) */
+.sheet-bg{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:300;display:flex;align-items:flex-end}
+.sheet{width:100%;max-height:80%;overflow-y:auto;background:#1c1c1c;border-radius:18px 18px 0 0;padding-bottom:8px;animation:sheetUp .18s ease}
+@keyframes sheetUp{from{transform:translateY(26px);opacity:.65}to{transform:none;opacity:1}}
+.sheet .sh-title{padding:12px 18px;font-size:12px;color:#8a8a8a;text-align:center}
+.sheet .sh-item{display:flex;align-items:center;gap:12px;padding:15px 18px;font-size:15px;font-weight:600;color:#fff;cursor:pointer;border-top:1px solid #262626}
+.sheet .sh-item.danger{color:#ef4444}
+.sheet .sh-cancel{text-align:center;padding:15px;font-size:15px;color:#8a8a8a;font-weight:600;cursor:pointer;border-top:1px solid #262626}
+.cp-pin{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:#F97316;background:rgba(249,115,22,.14);border-radius:20px;padding:2px 7px;margin-left:4px}
+.cp-rep{font-size:12.5px;color:#F97316;font-weight:700;margin-bottom:2px}
+.cp-repbar{display:flex;align-items:center;gap:6px;padding:9px 14px;background:#111;border-top:1px solid #262626;font-size:12.5px;color:#ccc}
+.cp-repbar b{color:#F97316}
+.cp-repbar .x{margin-left:auto;cursor:pointer;color:#888;font-size:16px}
 
 /* Post */
 .post-view{height:100%;overflow-y:auto;background:#0a0a0a;padding:20px}
 .post-view::-webkit-scrollbar{display:none}
 .post-view h2{font-size:20px;margin-bottom:20px;text-align:center}
-.post-opts{display:flex;gap:12px;margin-bottom:20px}
-.post-opt{flex:1;padding:16px;border-radius:12px;background:#1e1e1e;text-align:center;cursor:pointer;border:2px solid transparent}
+.post-opts{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:20px}
+.post-opt{flex:1 1 44%;padding:16px;border-radius:12px;background:#1e1e1e;text-align:center;cursor:pointer;border:2px solid transparent}
 .post-opt.active{border-color:#F97316}
 .post-opt svg{width:32px;height:32px;color:#F97316;margin-bottom:8px}
 .post-opt .t{font-size:13px;color:#ccc}
@@ -134,24 +159,60 @@ body{background:#000;color:#fff}
 .notif{position:fixed;top:0;left:0;right:0;background:#F97316;padding:12px 16px;z-index:9999;font-size:13px;display:none;align-items:center;gap:8px;cursor:pointer}
 .notif.show{display:flex}
 
-/* YouTube-style home feed */
-.yt-feed{height:100%;overflow-y:auto;background:#0f0f0f;padding-bottom:10px}
-.yt-feed::-webkit-scrollbar{display:none}
-.yt-card{margin-bottom:8px}
-.yt-thumb{width:100%;aspect-ratio:16/9;background:#000;position:relative;overflow:hidden;cursor:pointer}
-.yt-thumb video{width:100%;height:100%;object-fit:cover;pointer-events:none}
-.yt-thumb .play-ov{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:54px;height:54px;border-radius:50%;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center}
-.yt-thumb .play-ov svg{width:26px;height:26px;color:#fff;margin-left:3px}
-.yt-thumb .dur{position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,.8);color:#fff;font-size:11px;padding:2px 5px;border-radius:3px}
-.yt-meta{display:flex;align-items:flex-start;gap:10px;padding:10px 14px}
+/* Live (transmissão) */
+.live-pill{display:inline-flex;align-items:center;gap:6px;background:#e11900;color:#fff;font-size:12px;font-weight:800;border-radius:20px;padding:5px 11px;letter-spacing:.5px}
+.live-pill .dot{width:8px;height:8px;border-radius:50%;background:#fff;animation:livePulse 1.1s infinite}
+@keyframes livePulse{0%,100%{opacity:1}50%{opacity:.25}}
+.live-card{border-color:#e11900}
+.live-cover{position:relative;aspect-ratio:16/9;background:linear-gradient(160deg,#1d0a0a,#000 70%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;padding:0 16px}
+.live-ctitle{font-size:15px;font-weight:800;color:#fff;text-align:center;line-height:1.3}
+.live-cmeta{font-size:11.5px;color:#9a9a9a;display:flex;align-items:center;gap:4px}
+.live-watch{padding:9px 16px;border-radius:20px;border:none;background:#e11900;color:#fff;font-size:12.5px;font-weight:800;cursor:pointer;flex-shrink:0}
+.live-slide{height:100%;scroll-snap-align:start;scroll-snap-stop:always;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:linear-gradient(160deg,#1d0a0a,#000 70%);padding:0 24px}
+.live-slide .lt{font-size:18px;font-weight:800;color:#fff;text-align:center;line-height:1.35}
+.live-slide .ls{font-size:13px;color:#9a9a9a;display:flex;align-items:center;gap:5px}
+.live-slide .lw{margin-top:4px;padding:12px 22px;border-radius:26px;border:none;background:#fff;color:#111;font-size:14px;font-weight:800;cursor:pointer}
+.live-view{height:100%;display:flex;flex-direction:column;background:#0b0b0b;padding:18px 16px}
+.live-top{display:flex;align-items:center;gap:10px}
+.live-time{font-size:13px;font-weight:700;color:#ddd;font-variant-numeric:tabular-nums}
+.live-stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:#141414;border-radius:16px;margin:14px 0}
+.live-cam{font-size:52px}
+.live-note{color:#8b8b8b;font-size:13px;text-align:center;padding:0 20px;line-height:1.45}
+.live-title{font-size:17px;font-weight:800;color:#fff}
+.live-sub{font-size:12.5px;color:#8b8b8b;margin-top:4px;display:flex;align-items:center;gap:5px}
+.live-end{width:100%;padding:15px;border-radius:12px;border:none;background:#e11900;color:#fff;font-size:15px;font-weight:800;cursor:pointer;margin-top:12px}
+.live-bubble{position:fixed;right:14px;bottom:78px;z-index:400;display:flex;align-items:center;gap:8px;background:#e11900;color:#fff;font-size:13.5px;font-weight:800;border-radius:30px;padding:11px 14px;box-shadow:0 8px 22px rgba(0,0,0,.55);cursor:pointer;animation:bubbleIn .22s ease}
+.live-bubble .dot{width:9px;height:9px;border-radius:50%;background:#fff;animation:livePulse 1.1s infinite}
+.live-bubble .lt{font-variant-numeric:tabular-nums;opacity:.9}
+.live-bubble .x{color:#ffd9d4;font-size:13px;margin-left:2px}
+.live-bubble .x.encerrar{background:rgba(255,255,255,.2);border-radius:14px;padding:4px 9px;font-size:12px;color:#fff}
+@keyframes bubbleIn{from{transform:translateY(12px);opacity:.6}to{transform:none;opacity:1}}
+
+/* Home feed (cards) */
+.home-wrap{height:100%;overflow-y:auto;background:#0b0b0b;padding-bottom:16px}
+.home-wrap::-webkit-scrollbar{display:none}
+.home-head{display:flex;align-items:center;justify-content:space-between;padding:18px 16px 4px}
+.home-head .t{font-size:19px;font-weight:800;color:#fff;letter-spacing:-.2px}
+.home-head .t b{color:#F97316}
+.home-head .cnt{font-size:11px;font-weight:700;color:#F97316;background:rgba(249,115,22,.13);border:1px solid rgba(249,115,22,.32);padding:5px 10px;border-radius:20px}
+.hcard{margin:12px 12px 0;border-radius:18px;background:#151515;overflow:hidden;border:1px solid #202020;box-shadow:0 8px 20px rgba(0,0,0,.45)}
+.hthumb{position:relative;width:100%;aspect-ratio:16/9;background:#0f0f0f;cursor:pointer;overflow:hidden}
+.hthumb video{width:100%;height:100%;object-fit:cover;pointer-events:none;display:block}
+.hthumb .scrim{position:absolute;left:0;right:0;bottom:0;height:75%;background:linear-gradient(to top,rgba(0,0,0,.88),rgba(0,0,0,.35) 55%,transparent);pointer-events:none}
+.hthumb .htitle{position:absolute;left:12px;right:80px;bottom:11px;color:#fff;font-size:14.5px;font-weight:700;line-height:1.32;text-shadow:0 1px 6px rgba(0,0,0,.85);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* Duração do vídeo fica na capa */
+/* Duração: 30s -> "30" · 30min -> "30:00" · 1h -> "1:00:00" */
+.vdur{position:absolute;right:10px;bottom:10px;font-size:11.5px;font-weight:800;color:#fff;background:rgba(0,0,0,.75);border-radius:6px;padding:3px 7px;letter-spacing:.4px;z-index:2}
+.hthumb .play-ov{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:50px;height:50px;border-radius:50%;background:rgba(249,115,22,.92);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,.5)}
+.hthumb .play-ov svg{width:24px;height:24px;color:#fff;margin-left:3px}
+.hbody{display:flex;align-items:center;gap:10px;padding:10px 12px 12px}
+.hbody .hinfo{flex:1;min-width:0}
+.hbody .hname{font-size:13px;font-weight:700;color:#fff}
+.hbody .hsub{font-size:11.5px;color:#8b8b8b;margin-top:3px}
 .yt-ava{width:36px;height:36px;border-radius:50%;background:#333;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#666;font-size:16px}
 .yt-ava img{width:100%;height:100%;object-fit:cover}
-.yt-info{flex:1;min-width:0}
-.yt-title{font-size:15px;font-weight:600;color:#fff;line-height:1.3;margin-bottom:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.yt-sub{font-size:13px;color:#aaa}
-.yt-sub .sep{margin:0 4px}
-.yt-menu{flex-shrink:0;cursor:pointer;color:#aaa;padding:4px}
-.yt-menu svg{width:20px;height:20px}
+.yt-va{width:40px;height:40px;border-radius:50%;background:#333;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#666;font-size:16px}
+.yt-va img{width:100%;height:100%;object-fit:cover}
 
 /* Video detail / player view */
 .vd-view{height:100%;overflow-y:auto;background:#0f0f0f}
@@ -207,11 +268,7 @@ body{background:#000;color:#fff}
 .cp-input input{flex:1;background:#111;border:none;border-radius:20px;padding:8px 14px;color:#fff;font-size:14px;outline:none}
 .cp-input button{width:36px;height:36px;border-radius:50%;border:none;background:#F97316;color:#fff;cursor:pointer}
 
-/* Ban screen */
-.ban-screen{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;text-align:center;background:#0a0a0a}
-.ban-screen h2{color:#ef4444;font-size:22px;margin-bottom:12px}
-.ban-screen p{color:#aaa;font-size:15px;margin-bottom:24px}
-.ban-screen .btn{padding:12px 24px;border-radius:10px;background:#F97316;color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer}
+/* Aviso de banimento aparece na tela de perfil (ver .banbar) */
 
 /* Edit profile */
 .edit-modal{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.8);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
@@ -239,7 +296,9 @@ var DB = {
   privMsgs: function(){ return JSON.parse(localStorage.getItem('gl_privmsg')||'[]'); },
   savePrivMsgs: function(m){ localStorage.setItem('gl_privmsg', JSON.stringify(m)); },
   aiHist: function(){ return JSON.parse(localStorage.getItem('gl_aihist')||'[]'); },
-  saveAiHist: function(h){ localStorage.setItem('gl_aihist', JSON.stringify(h)); }
+  saveAiHist: function(h){ localStorage.setItem('gl_aihist', JSON.stringify(h)); },
+  live: function(){ return JSON.parse(localStorage.getItem('gl_live')||'null'); },
+  saveLive: function(l){ if(l) localStorage.setItem('gl_live', JSON.stringify(l)); else localStorage.removeItem('gl_live'); }
 };
 
 function curUser(){ var id=localStorage.getItem('gl_current_user'); return DB.users().find(function(u){return u.id===id;}); }
@@ -247,6 +306,16 @@ function getUser(id){ return DB.users().find(function(u){return u.id===id;}); }
 
 // ==================== HELPERS ====================
 function fmt(n){ if(n>=1e6) return (n/1e6).toFixed(1)+'M'; if(n>=1e3) return (n/1e3).toFixed(1)+'K'; return ''+n; }
+function pad2(n){ return (n<10?'0':'')+n; }
+// Duração mostrada na capa: 30s -> "30" · 30min -> "30:00" · 1h -> "1:00:00"
+function fmtDur(sec){
+  if(!sec || !isFinite(sec) || sec<=0) return '';
+  sec = Math.floor(sec);
+  var h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60), s = sec%60;
+  if(h>0) return h+':'+pad2(m)+':'+pad2(s);
+  if(m>0) return m+':'+pad2(s);
+  return ''+s;
+}
 function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function verifiedBadge(type){
   if(type==='blue') return '<span class="vbadge"><svg viewBox="0 0 24 24" fill="#2196F3"><path d="M12 1l2.4 2.4 3.4-.3 1 3.3 3 1.8-1.4 3.1 1.4 3.1-3 1.8-1 3.3-3.4-.3L12 22l-2.4-2.4-3.4.3-1-3.3-3-1.8 1.4-3.1L3.2 8.2l3-1.8 1-3.3 3.4.3z" fill="#2196F3"/><path d="M8.5 12l2.5 2.5 4.5-5" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
@@ -310,16 +379,10 @@ function navigate(v){
 function render(){
   var u = curUser();
   if(!u){ window.location.href='/home'; return; }
-  // Check ban
-  if(u.banned && u.banUntil && Date.now()<u.banUntil){
-    document.getElementById('app').innerHTML = banScreenHtml(u);
-    document.getElementById('nav').style.display='none';
-    return;
-  }
-  if(u.banned && u.banUntil===-1){
-    document.getElementById('app').innerHTML = banScreenHtml(u);
-    document.getElementById('nav').style.display='none';
-    return;
+  // Banido não posta, não conversa e não assiste vídeo: cai sempre no próprio perfil.
+  if(isBanned(u) && !bannedViewAllowed(u)){
+    view = 'profile';
+    profileUserId = u.id;
   }
   document.getElementById('nav').style.display='flex';
   renderNav();
@@ -331,38 +394,110 @@ function render(){
     case 'post': renderPost(); break;
     case 'panel': renderPanel(); break;
     case 'detail': renderVideoDetail(); break;
+    case 'live': renderLive(); break;
+  }
+  paintBubble();
+}
+
+// ==================== CARREGAMENTO DOS VÍDEOS ====================
+// Cada vídeo só é baixado quando chega perto da tela e, nas miniaturas, buscamos
+// apenas 1 quadro (#t=0.5) em vez do arquivo inteiro — assim a Home abre rápido
+// mesmo em conexão lenta.
+function niceNetwork(){
+  try {
+    var c = navigator.connection;
+    if(!c) return true;
+    if(c.saveData) return false;
+    return !/(^|-)2g/.test(c.effectiveType||'');
+  } catch(e){ return true; }
+}
+
+function attachLazyVideo(el){
+  var src = el.getAttribute('data-src');
+  if(!src || el.getAttribute('src')) return;
+  el.setAttribute('preload','metadata');
+  el.setAttribute('src', src + (el.dataset.thumb==='1' ? '#t=0.5' : ''));
+  // Assim que o navegador sabe a duração, ela aparece na capa.
+  if(el.dataset.dur==='1'){
+    el.addEventListener('loadedmetadata', function(){
+      var box = el.parentElement;
+      var badge = box ? box.querySelector('.vdur') : null;
+      if(badge && !badge.textContent) badge.textContent = fmtDur(el.duration);
+    });
   }
 }
 
-// ==================== HOME (YouTube-style feed) ====================
+function lazyLoadEls(els){
+  var list = [].slice.call(els || []);
+  if(list.length===0) return;
+  if(!window.IntersectionObserver){ list.forEach(attachLazyVideo); return; }
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){ io.unobserve(e.target); attachLazyVideo(e.target); }
+    });
+  }, {rootMargin:(niceNetwork()?'420px 0px':'140px 0px')});
+  list.forEach(function(el){ io.observe(el); });
+}
+
+// Deixa o próximo short já carregando (troca instantânea) — só em rede boa.
+function preloadNeighbour(el){
+  var slides = document.querySelectorAll('.video-slide video');
+  var i = [].indexOf.call(slides, el);
+  var next = slides[i+1];
+  if(next && !next.getAttribute('src') && next.dataset.src){
+    next.setAttribute('preload','auto');
+    next.setAttribute('src', next.dataset.src);
+  }
+}
+
+// ==================== HOME (feed de vídeos) ====================
 function renderHome(){
   var vids = DB.videos().filter(function(v){return v.type!=='short';});
-  if(vids.length===0){
+  if(vids.length===0 && !DB.live()){
     document.getElementById('app').innerHTML = '<div style="height:100%;display:flex;align-items:center;justify-content:center;color:#666;font-size:16px;text-align:center;padding:20px">Nenhum vídeo ainda.<br>Use o botão "+" para publicar! 🎬</div>';
     return;
   }
-  var u = curUser();
-  var html = '<div class="yt-feed" id="ytFeed">';
+  var html = '<div class="home-wrap" id="homeFeed">'+
+    '<div class="home-head"><div class="t">Good<b>Look</b> · Vídeos</div><div class="cnt">'+vids.length+' vídeos</div></div>';
+  // Live no ar aparece em cima da Home também.
+  var l = DB.live();
+  if(l){
+    var lo = getUser(l.userId) || {name:l.userName, photo:l.userPhoto, verifiedType:null, isCreator:false};
+    html += '<div class="hcard live-card">'+
+      '<div class="live-cover" onclick="openLiveView()">'+
+        '<span class="live-pill"><span class="dot"></span>AO VIVO</span>'+
+        '<div class="live-ctitle">'+escapeHtml(l.title)+'</div>'+
+        '<div class="live-cmeta">'+userNameDisplay(lo)+' · <span id="liveCardTime">'+liveElapsed(l.startedAt)+'</span> no ar</div>'+
+      '</div>'+
+      '<div class="hbody">'+
+        avatarHtml(lo,40,'yt-ava')+
+        '<div class="hinfo"><div class="hname">'+userNameDisplay(lo)+'</div><div class="hsub">'+l.viewers+' assistindo agora</div></div>'+
+        '<button class="live-watch" onclick="openLiveView()">'+(l.userId===curUser().id?'Ver minha live':'Assistir')+'</button>'+
+      '</div>'+
+    '</div>';
+  }
   vids.forEach(function(v){
     var owner = getUser(v.userId) || {name:v.userName, photo:v.userPhoto, verifiedType:null, isCreator:false};
-    var timeAgo = timeAgoStr(v.timestamp);
-    html += '<div class="yt-card">'+
-      '<div class="yt-thumb" onclick="openVideoDetail(\''+v.id+'\')">'+
-        '<video src="'+v.url+'" muted playsinline preload="metadata"></video>'+
+    html += '<div class="hcard">'+
+      '<div class="hthumb" onclick="openVideoDetail(\''+v.id+'\')">'+
+        '<video data-src="'+v.url+'" data-thumb="1" data-dur="1" muted playsinline preload="none"></video>'+
+        '<div class="scrim"></div>'+
         '<div class="play-ov"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>'+
+        '<div class="htitle">'+escapeHtml(v.description||'')+'</div>'+
+        '<div class="vdur"></div>'+
       '</div>'+
-      '<div class="yt-meta">'+
-        avatarHtml(owner,36,'yt-ava')+
-        '<div class="yt-info" onclick="openVideoDetail(\''+v.id+'\')">'+
-          '<div class="yt-title">'+escapeHtml(v.description||'')+'</div>'+
-          '<div class="yt-sub">'+userNameDisplay(owner)+'<span class="sep">·</span>'+fmt(v.views||0)+' visualizações<span class="sep">·</span>'+timeAgo+'</div>'+
+      '<div class="hbody">'+
+        avatarHtml(owner,40,'yt-ava')+
+        '<div class="hinfo">'+
+          '<div class="hname">'+userNameDisplay(owner)+'</div>'+
+          '<div class="hsub">'+fmt(v.views||0)+' visualizações · '+timeAgoStr(v.timestamp)+'</div>'+
         '</div>'+
-        '<div class="yt-menu" onclick="showNotif(\'Opções em breve ⋯\')"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></div>'+
       '</div>'+
     '</div>';
   });
   html += '</div>';
   document.getElementById('app').innerHTML = html;
+  lazyLoadEls(document.querySelectorAll('#homeFeed video'));
 }
 
 function timeAgoStr(ts){
@@ -377,6 +512,7 @@ function timeAgoStr(ts){
 
 // ==================== VIDEO DETAIL (player) ====================
 function openVideoDetail(vid){
+  if(blockedAction()) return;
   vdVideoId = vid;
   view = 'detail';
   var v = DB.videos().find(function(x){return x.id===vid;});
@@ -437,7 +573,7 @@ function renderVideoDetail(){
           '<span>Salvar</span>'+
         '</button>'+
       '</div>'+
-      '<div class="vd-cmt-head">Comentários <span class="cnt">'+(v.comments?v.comments.length:0)+'</span></div>'+
+      '<div class="vd-cmt-head" onclick="openComments(\''+v.id+'\')" style="cursor:pointer">Comentários <span class="cnt">'+(v.comments?v.comments.length:0)+'</span><span style="margin-left:auto;color:#3ea6ff;font-size:13px;font-weight:600">Ver todos ›</span></div>'+
       (previewCmt?
         '<div class="vd-cmt-preview" onclick="openComments(\''+v.id+'\')">'+
           '<div class="ca">'+(pcu.photo?'<img src="'+pcu.photo+'">':escapeHtml((pcu.name||'?')[0]))+'</div>'+
@@ -507,18 +643,29 @@ function toggleFollowDetail(uid){
 // ==================== SHORTS (full-screen feed) ====================
 function renderShorts(){
   var vids = DB.videos().filter(function(v){return v.type==='short';});
-  if(vids.length===0){
+  var liveNow = DB.live();
+  if(vids.length===0 && !liveNow){
     document.getElementById('app').innerHTML = '<div style="height:100%;display:flex;align-items:center;justify-content:center;color:#666;font-size:16px;text-align:center;padding:20px">Nenhum short ainda.<br>Use o botão "+" para adicionar! ⚡</div>';
     return;
   }
   var u = curUser();
   var html = '<div class="feed" id="feed">';
+  // Quem está ao vivo aparece no primeiro slide do Shorts.
+  if(liveNow){
+    var lo = getUser(liveNow.userId) || {name:liveNow.userName, photo:liveNow.userPhoto, verifiedType:null, isCreator:false};
+    html += '<div class="live-slide">'+
+      '<span class="live-pill"><span class="dot"></span>AO VIVO</span>'+
+      '<div class="lt">'+escapeHtml(liveNow.title)+'</div>'+
+      '<div class="ls">'+userNameDisplay(lo)+' · <span id="liveCardTime">'+liveElapsed(liveNow.startedAt)+'</span> no ar</div>'+
+      '<button class="lw" onclick="openLiveView()">'+(liveNow.userId===u.id?'Voltar para a minha live':'Assistir agora')+'</button>'+
+    '</div>';
+  }
   vids.forEach(function(v){
     var owner = getUser(v.userId) || {name:v.userName, photo:v.userPhoto, verifiedType:null, isCreator:false};
     var liked = v.likedBy && v.likedBy.indexOf(u.id)>=0;
     var saved = u.savedVideos && u.savedVideos.indexOf(v.id)>=0;
     html += '<div class="video-slide" data-vid="'+v.id+'">'+
-      '<video src="'+v.url+'" loop playsinline preload="auto"></video>'+
+      '<video data-src="'+v.url+'" loop playsinline muted preload="none"></video>'+
       '<div class="tap-area" onclick="togglePause(this)"></div>'+
       '<div class="pause-icon">⏸</div>'+
       '<div class="video-info">'+
@@ -552,19 +699,23 @@ function renderShorts(){
   var vids2 = document.querySelectorAll('.video-slide video');
   feedObserver = new IntersectionObserver(function(entries){
     entries.forEach(function(e){
+      var el = e.target;
       if(e.isIntersecting && e.intersectionRatio>0.5){
         vids2.forEach(function(v){ v.pause(); v.muted=true; });
-        var slide = e.target.closest('.video-slide');
+        // Baixa só o short que está na tela; o próximo só carrega em rede boa.
+        attachLazyVideo(el);
+        if(niceNetwork()) preloadNeighbour(el);
+        var slide = el.closest('.video-slide');
         slide.classList.remove('paused');
-        e.target.muted = false;
-        e.target.play().then(function(){
-          e.target.muted = false;
+        el.muted = false;
+        el.play().then(function(){
+          el.muted = false;
         }).catch(function(){
-          e.target.muted = true;
-          e.target.play().catch(function(){});
+          el.muted = true;
+          el.play().catch(function(){});
         });
       } else {
-        e.target.pause();
+        el.pause();
       }
     });
   }, {threshold:[0.5]});
@@ -608,39 +759,183 @@ function shareVideo(vid){
 }
 
 // ==================== COMMENTS ====================
-function openComments(vid){
-  currentVideoId = vid;
-  var v = DB.videos().find(function(x){return x.id===vid;});
-  var html = '<div class="comments-panel show" id="cp">'+
-    '<div class="cp-header">'+(v?v.comments.length:0)+' comentários<span class="cp-close" onclick="closeComments()">×</span></div>'+
-    '<div class="cp-list" id="cpList">'+
-      (v&&v.comments?v.comments.map(function(c){
-        var cu = getUser(c.userId) || {name:c.userName, photo:null, verifiedType:null};
-        return '<div class="cp-item"><div class="ca">'+(cu.photo?'<img src="'+cu.photo+'">':escapeHtml((cu.name||'?')[0]))+'</div><div class="ct"><div class="cn">'+userNameDisplay(cu)+'</div><div class="cc">'+escapeHtml(c.text)+'</div></div></div>';
-      }).join(''):'<div style="text-align:center;color:#666;padding:20px">Nenhum comentário ainda</div>')+
+var cpReplyTo = null;
+
+function isBlockedByMe(uid){
+  var u = curUser();
+  return !!(u && u.blocked && u.blocked.indexOf(uid)>=0);
+}
+
+// Comentários visíveis para mim: os de quem eu bloqueei somem, o fixado fica no topo.
+function visibleComments(v){
+  return (v.comments||[])
+    .filter(function(c){ return !isBlockedByMe(c.userId); })
+    .sort(function(a,b){
+      if(!!b.pinned !== !!a.pinned) return b.pinned ? 1 : -1;
+      return (a.ts||0)-(b.ts||0);
+    });
+}
+
+// Garante um id para cada comentário (para fixar/excluir/bloquear com segurança).
+function loadVideoWithIds(vid){
+  var vids = DB.videos();
+  var v = vids.find(function(x){return x.id===vid;});
+  if(!v) return {vids:vids, v:null};
+  var changed = false;
+  (v.comments||[]).forEach(function(c,i){
+    if(!c.id){ c.id = 'c'+(c.ts||Date.now())+'_'+i; changed = true; }
+  });
+  if(changed) DB.saveVideos(vids);
+  return {vids:vids, v:v};
+}
+
+function commentsListHtml(v){
+  var list = visibleComments(v);
+  if(list.length===0) return '<div style="text-align:center;color:#666;padding:20px">Nenhum comentário ainda</div>';
+  return list.map(function(c){
+    var cu = getUser(c.userId) || {name:c.userName, photo:null, verifiedType:null, isCreator:false};
+    return '<div class="cp-item">'+
+      '<div class="ca" onclick="commentOptions(\''+v.id+'\',\''+c.id+'\')" style="cursor:pointer">'+(cu.photo?'<img src="'+cu.photo+'">':escapeHtml((cu.name||'?')[0]))+'</div>'+
+      '<div class="ct">'+
+        '<div class="cn" onclick="commentOptions(\''+v.id+'\',\''+c.id+'\')" style="cursor:pointer">'+userNameDisplay(cu)+(c.pinned?'<span class="cp-pin">📌 Fixado</span>':'')+'</div>'+
+        (c.replyTo?'<div class="cp-rep">↳ '+escapeHtml(c.replyTo.userName)+'</div>':'')+
+        '<div class="cc" onclick="startReply(\''+v.id+'\',\''+c.id+'\')" style="cursor:pointer">'+escapeHtml(c.text)+'</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+function commentsPanelHtml(v){
+  return '<div class="comments-panel show" id="cp">'+
+    '<div class="cp-header">'+(v?(v.comments||[]).length:0)+' comentários'+
+      (v && v.userId===curUser().id?'<div style="font-size:11px;color:#888;font-weight:400;margin-top:3px">Toque em quem comentou para fixar, excluir ou bloquear</div>':'')+
+      '<span class="cp-close" onclick="closeComments()">×</span>'+
     '</div>'+
-    '<div class="cp-input"><input id="cpText" placeholder="Comentar..." onkeydown="if(event.key===\'Enter\')addComment()"><button onclick="addComment()">➤</button></div>'+
+    '<div class="cp-list" id="cpList">'+(v?commentsListHtml(v):'')+'</div>'+
+    (cpReplyTo?'<div class="cp-repbar">Respondendo <b>@'+escapeHtml(cpReplyTo.userName)+'</b><span class="x" onclick="cancelReply()">✕</span></div>':'')+
+    '<div class="cp-input"><input id="cpText" placeholder="'+(cpReplyTo?('Responder @'+cpReplyTo.userName+'...'):'Comentar...')+'" onkeydown="if(event.key===\'Enter\')addComment()"><button onclick="addComment()">➤</button></div>'+
   '</div>';
-  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function openComments(vid){
+  if(blockedAction()) return;
+  currentVideoId = vid;
+  cpReplyTo = null;
+  var r = loadVideoWithIds(vid);
+  document.body.insertAdjacentHTML('beforeend', commentsPanelHtml(r.v));
+}
+
+function refreshComments(){
+  var cp = document.getElementById('cp');
+  if(!cp) return;
+  var r = loadVideoWithIds(currentVideoId);
+  cp.outerHTML = commentsPanelHtml(r.v);
+  var inp = document.getElementById('cpText');
+  if(inp) inp.focus();
 }
 
 function closeComments(){
   var cp = document.getElementById('cp');
   if(cp) cp.remove();
+  cpReplyTo = null;
+}
+
+function findComment(vid, cid){
+  var r = loadVideoWithIds(vid);
+  if(!r.v) return null;
+  var c = (r.v.comments||[]).find(function(x){return x.id===cid;});
+  return c ? {v:r.v, comment:c} : null;
+}
+
+// Toque em quem comentou: dono do vídeo vê fixar/excluir/bloquear, os outros só bloqueiam.
+function commentOptions(vid, cid){
+  var f = findComment(vid, cid);
+  if(!f) return;
+  var u = curUser();
+  if(f.comment.userId===u.id){ showNotif('Esse comentário é seu 🙂'); return; }
+  var isOwner = f.v.userId===u.id;
+  var html = '<div class="sheet-bg" id="cmtSheet" onclick="if(event.target.id===\'cmtSheet\')closeSheet()">'+
+    '<div class="sheet">'+
+      '<div class="sh-title">Comentário de '+escapeHtml(f.comment.userName)+'</div>'+
+      (isOwner?
+        '<div class="sh-item" onclick="pinComment(\''+vid+'\',\''+cid+'\')">📌 '+(f.comment.pinned?'Desafixar':'Fixar no topo')+'</div>'+
+        '<div class="sh-item danger" onclick="deleteComment(\''+vid+'\',\''+cid+'\')">🗑 Excluir comentário</div>'
+      :'')+
+      '<div class="sh-item danger" onclick="blockCommenter(\''+vid+'\',\''+cid+'\')">🚫 Bloquear '+escapeHtml(f.comment.userName)+'</div>'+
+      '<div class="sh-cancel" onclick="closeSheet()">Cancelar</div>'+
+    '</div>'+
+  '</div>';
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function closeSheet(){
+  var s = document.getElementById('cmtSheet');
+  if(s) s.remove();
+}
+
+function pinComment(vid, cid){
+  var r = loadVideoWithIds(vid);
+  if(!r.v) return;
+  (r.v.comments||[]).forEach(function(c){ if(c.id!==cid) c.pinned = false; });
+  var t = (r.v.comments||[]).find(function(c){return c.id===cid;});
+  if(t) t.pinned = !t.pinned;
+  DB.saveVideos(r.vids);
+  closeSheet();
+  refreshComments();
+  if(t) showNotif(t.pinned?'Comentário fixado no topo 📌':'Comentário desafixado');
+}
+
+function deleteComment(vid, cid){
+  var r = loadVideoWithIds(vid);
+  if(!r.v) return;
+  r.v.comments = (r.v.comments||[]).filter(function(c){return c.id!==cid;});
+  DB.saveVideos(r.vids);
+  closeSheet();
+  refreshComments();
+  showNotif('Comentário excluído 🗑');
+}
+
+function blockCommenter(vid, cid){
+  var f = findComment(vid, cid);
+  if(!f) return;
+  var users = DB.users();
+  var me = users.find(function(x){return x.id===localStorage.getItem('gl_current_user');});
+  if(!me.blocked) me.blocked = [];
+  if(me.blocked.indexOf(f.comment.userId)<0) me.blocked.push(f.comment.userId);
+  DB.saveUsers(users);
+  closeSheet();
+  refreshComments();
+  showNotif(f.comment.userName+' foi bloqueado 🚫');
+}
+
+// Responder um comentário
+function startReply(vid, cid){
+  var f = findComment(vid, cid);
+  if(!f) return;
+  cpReplyTo = {userId:f.comment.userId, userName:f.comment.userName};
+  refreshComments();
+}
+
+function cancelReply(){
+  cpReplyTo = null;
+  refreshComments();
 }
 
 function addComment(){
-  var text = document.getElementById('cpText').value.trim();
+  if(blockedAction()) return;
+  var inp = document.getElementById('cpText');
+  var text = inp ? inp.value.trim() : '';
   if(!text) return;
   var u = curUser();
-  var vids = DB.videos();
-  var v = vids.find(function(x){return x.id===currentVideoId;});
-  if(!v) return;
-  if(!v.comments) v.comments = [];
-  v.comments.push({userId:u.id, userName:u.name, text:text, ts:Date.now()});
-  DB.saveVideos(vids);
-  closeComments();
-  openComments(currentVideoId);
+  var r = loadVideoWithIds(currentVideoId);
+  if(!r.v) return;
+  if(!r.v.comments) r.v.comments = [];
+  var c = {id:'c'+Date.now(), userId:u.id, userName:u.name, text:text, ts:Date.now()};
+  if(cpReplyTo) c.replyTo = {userId:cpReplyTo.userId, userName:cpReplyTo.userName};
+  r.v.comments.push(c);
+  DB.saveVideos(r.vids);
+  cpReplyTo = null;
+  refreshComments();
 }
 
 // ==================== IA CHAT ====================
@@ -820,6 +1115,7 @@ function renderPVBPrivate(){
   });
   var html = '<div class="chat-view">'+
     '<div class="chat-header"><div class="back" onclick="pvbView=\'list\';render()">←</div><div class="title">'+userNameDisplay(partner)+'</div><div style="cursor:pointer;color:#F97316;font-size:13px" onclick="viewProfile(\''+partner.id+'\')">Perfil</div></div>'+
+    (isBanned(u) && partner.id===adminId()?'<div class="cp-repbar">🙏 Peça desculpas para ser liberado<b style="cursor:pointer;margin-left:auto" onclick="sendApology()">Pedir desculpas</b></div>':'')+
     '<div class="chat-messages" id="privMsgs">'+
       (msgs.length===0?'<div class="msg them">Início da conversa privada! 🔒💬</div>':'')+
       msgs.map(function(m){
@@ -865,44 +1161,106 @@ function viewProfile(uid){
 }
 
 function renderProfile(){
-  var u = getUser(profileUserId) || curUser();
-  var isMe = u.id === curUser().id;
-  var myVids = DB.videos().filter(function(v){return v.userId===u.id;});
-  var totalLikes = myVids.reduce(function(s,v){return s+(v.likes||0);},0);
+  var target = getUser(profileUserId) || curUser();
   var cu = curUser();
-  var isFollowing = cu.following && cu.following.indexOf(u.id)>=0;
+  var isMe = target.id === cu.id;
+  var vids = DB.videos().filter(function(v){return v.userId===target.id;});
+  var totalLikes = vids.reduce(function(s,v){return s+(v.likes||0);},0);
+  var isFollowing = cu.following && cu.following.indexOf(target.id)>=0;
+  var banned = isBanned(target);
 
-  var html = '<div class="profile-view">'+
-    '<div class="prof-header">'+
-      '<div class="prof-ava">'+(u.photo?'<img src="'+u.photo+'">':escapeHtml((u.name||'?')[0]))+'</div>'+
-      '<div class="prof-name">'+userNameDisplay(u)+'</div>'+
-      '<div class="prof-stats">'+
-        '<div class="prof-stat"><div class="num">'+fmt(u.followers||0)+'</div><div class="lbl">Seguidores</div></div>'+
-        '<div class="prof-stat"><div class="num">'+fmt((u.following||[]).length)+'</div><div class="lbl">Seguindo</div></div>'+
-        '<div class="prof-stat"><div class="num">'+fmt(totalLikes)+'</div><div class="lbl">Curtidas</div></div>'+
+  var html = '<div class="pf-view">';
+
+  // Aviso vermelho: para o dono da conta o texto é "Sua conta foi banida" e abre a conversa
+  // com o administrador; para quem está visitando aparece "Esta conta foi banida".
+  if(banned){
+    html += isMe
+      ? '<div class="banbar" onclick="openAdminChat()"><div class="tx">Você foi banido. Veja detalhes...<small>'+banUntilLabel(target)+' · toque para conversar com o administrador</small></div><div class="go">›</div></div>'
+      : '<div class="banbar"><div class="tx">Esta conta foi banida</div></div>';
+  }
+
+  html += '<div class="pf-head">'+
+      '<div class="pf-top">'+
+        '<div class="pf-ava">'+(target.photo?'<img src="'+target.photo+'">':escapeHtml((target.name||'?')[0]))+'</div>'+
+        '<div class="pf-stats">'+
+          '<div class="pf-stat"><div class="num">'+fmt(target.followers||0)+'</div><div class="lbl">Seguidores</div></div>'+
+          '<div class="pf-stat"><div class="num">'+fmt((target.following||[]).length)+'</div><div class="lbl">Seguindo</div></div>'+
+          '<div class="pf-stat"><div class="num">'+fmt(totalLikes)+'</div><div class="lbl">Curtidas</div></div>'+
+        '</div>'+
       '</div>'+
-      '<div class="prof-bio">'+(u.bio?escapeHtml(u.bio):'Sem bio')+'</div>'+
-      '<div class="prof-btns">'+
+      '<div class="pf-name">'+userNameDisplay(target)+(isMe?'<span style="font-size:13px;color:#71717a;cursor:pointer" onclick="editProfile()">✏️</span>':'')+'</div>'+
+      '<div class="pf-user">@'+escapeHtml((target.username||target.name||'').toLowerCase())+'</div>'+
+      '<div class="pf-bio">'+(target.bio?escapeHtml(target.bio):'Sem bio')+'</div>'+
+      '<div class="pf-btns">'+
         (isMe?
-          '<button class="btn-edit" onclick="editProfile()">Editar perfil</button>'+
-          (u.isCreator?'<button class="btn-follow" onclick="view=\'panel\';render()">Painel</button>':'')+
-          '<button class="btn-edit" onclick="logout()">Sair</button>'
+          '<button class="pf-btn-light" onclick="editProfile()">Editar perfil</button>'+
+          (!banned && target.isCreator?'<button class="pf-btn-dark" onclick="view=\'panel\';render()">Painel</button>':'')+
+          (!banned && !target.isCreator?'<button class="pf-btn-dark" onclick="view=\'post\';render()">Postar vídeo</button>':'')
         :
-          '<button class="'+(isFollowing?'btn-following':'btn-follow')+'" onclick="toggleFollow(\''+u.id+'\')">'+(isFollowing?'Seguindo ✓':'Seguir')+'</button>'
+          '<button class="'+(isFollowing?'pf-btn-light':'pf-btn-dark')+'" onclick="toggleFollow(\''+target.id+'\')">'+(isFollowing?'Adicionar amigos ✓':'Adicionar amigos')+'</button>'+
+          '<button class="pf-btn-light" onclick="shareProfile(\''+target.id+'\')" style="flex:0 0 52px">🔗</button>'
         )+
       '</div>'+
-    '</div>'+
-    '<div class="prof-videos">'+
-      (myVids.length===0?'<div class="empty">Nenhum vídeo postado ainda 🎬</div>':
-      myVids.map(function(v){
-        return '<div class="pv" onclick="playProfileVideo(\''+v.id+'\')">'+
-          '<video src="'+v.url+'" muted></video>'+
-          '<div class="vc">❤ '+fmt(v.likes||0)+' · ▶ '+fmt(v.views||0)+'</div>'+
-        '</div>';
-      }).join(''))+
+    '</div>';
+
+  // No meio da tela, o botão para sair da conta
+  if(isMe) html += '<button class="pf-out" onclick="logout()">Sair dessa conta</button>';
+
+  var rows = '';
+  if(isMe && !banned && target.isCreator) rows += '<div class="pf-row" onclick="view=\'panel\';render()"><div class="ic">⚡</div>Central do Criador<div class="ar">›</div></div>';
+  if(isMe && !banned && (cu.savedVideos||[]).length>0) rows += '<div class="pf-row" onclick="openSaved()"><div class="ic">🔖</div>Vídeos salvos ('+(cu.savedVideos||[]).length+')<div class="ar">›</div></div>';
+  if(!isMe) rows += '<div class="pf-row" onclick="startPrivateChat(\''+target.id+'\')"><div class="ic">💬</div>Conversar com '+escapeHtml(target.name)+'<div class="ar">›</div></div>';
+  if(rows) html += '<div class="pf-rows">'+rows+'</div>';
+
+  if(banned){
+    html += '<div class="pf-note">🚫 '+(isMe?'Sua conta está banida: você não pode postar, conversar nem assistir vídeos até o banimento acabar.':'Este perfil está banido e os vídeos ficaram indisponíveis.')+'</div>';
+  } else {
+    html += vids.length
+      ? '<div class="pf-grid">'+vids.map(function(v){
+          return '<div class="pf-cell" onclick="playProfileVideo(\''+v.id+'\')">'+
+            '<video data-src="'+v.url+'" data-thumb="1" data-dur="1" muted playsinline preload="none"></video>'+
+            '<div class="vc">▶ '+fmt(v.views||0)+'</div>'+
+            '<div class="vdur"></div>'+
+          '</div>';
+        }).join('')+'</div>'
+      : '<div class="pf-empty">Nenhum vídeo postado ainda 🎬</div>';
+  }
+  html += '</div>';
+  document.getElementById('app').innerHTML = html;
+  lazyLoadEls(document.querySelectorAll('.pf-view video'));
+}
+
+function openSaved(){
+  var u = curUser();
+  var ids = u.savedVideos || [];
+  var vids = DB.videos().filter(function(v){return ids.indexOf(v.id)>=0;});
+  var html = '<div class="sheet-bg" id="savedModal" onclick="if(event.target.id===\'savedModal\')closeSaved()">'+
+    '<div class="sheet">'+
+      '<div class="sh-title">🔖 Vídeos salvos</div>'+
+      (vids.length===0
+        ? '<div class="pf-empty">Você ainda não salvou nenhum vídeo</div>'
+        : '<div class="pf-grid">'+vids.map(function(v){
+            return '<div class="pf-cell" onclick="closeSaved();playProfileVideo(\''+v.id+'\')">'+
+              '<video data-src="'+v.url+'" data-thumb="1" data-dur="1" muted playsinline preload="none"></video>'+
+              '<div class="vdur"></div>'+
+            '</div>';
+          }).join('')+'</div>')+
+      '<div class="sh-cancel" onclick="closeSaved()">Fechar</div>'+
     '</div>'+
   '</div>';
-  document.getElementById('app').innerHTML = html;
+  document.body.insertAdjacentHTML('beforeend', html);
+  lazyLoadEls(document.querySelectorAll('#savedModal video'));
+}
+
+function closeSaved(){
+  var m = document.getElementById('savedModal');
+  if(m) m.remove();
+}
+
+function shareProfile(uid){
+  var u = getUser(uid) || {};
+  if(navigator.share){ navigator.share({title:u.name||'Good Look', text:'Veja o perfil de '+(u.name||'')+' no Good Look!', url:location.href}).catch(function(){}); }
+  else showNotif('Link do perfil copiado! 📋');
 }
 
 function toggleFollow(uid){
@@ -980,8 +1338,9 @@ var postFileUrl = null;
 
 function renderPost(){
   var isShort = postMode==='shorts';
+  var isLive = postMode==='live';
   var html = '<div class="post-view">'+
-    '<h2>'+(isShort?'Postar Short ⚡':'Postar Vídeo 🎬')+'</h2>'+
+    '<h2>'+(isLive?'Fazer Live 🔴':isShort?'Postar Short ⚡':'Postar Vídeo 🎬')+'</h2>'+
     '<div class="post-opts">'+
       '<div class="post-opt '+(postMode==='link'?'active':'')+'" onclick="postMode=\'link\';renderPost()">'+
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>'+
@@ -995,7 +1354,16 @@ function renderPost(){
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 6.5L6.5 17.5"/><path d="M9 7l8.5-2.5L15 13z" fill="currentColor"/><path d="M15 17l-8.5 2.5L9 11z" fill="currentColor"/></svg>'+
         '<div class="t">Shorts</div>'+
       '</div>'+
+      '<div class="post-opt '+(isLive?'active':'')+'" onclick="postMode=\'live\';renderPost()">'+
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M6.5 7.5a7.5 7.5 0 0 0 0 9M17.5 7.5a7.5 7.5 0 0 1 0 9"/></svg>'+
+        '<div class="t">Live</div>'+
+      '</div>'+
     '</div>'+
+    (isLive?
+      '<input class="post-field" id="liveTitle" placeholder="Título da sua live">'+
+      '<div class="pf-note">🔴 Toque em <b>Ativar sobreposição</b> e depois na bolinha flutuante <b>Começar agora</b>. A bolinha fica na tela enquanto você navega — para encerrar, aperte nela e em <b>Encerrar</b>.</div>'+
+      '<button class="post-btn" style="background:#e11900;margin-top:12px" onclick="activateOverlay()">Ativar sobreposição 📱</button>'
+    :
     (postMode==='link'?
       '<input class="post-field" id="postUrl" placeholder="Cole o link do vídeo (URL)">'+
       '<div id="postPreview"></div>'
@@ -1005,11 +1373,12 @@ function renderPost(){
       '<div id="postPreview"></div>'
     )+
     '<input class="post-field" id="postDesc" placeholder="Descrição">'+
-    '<button class="post-btn" onclick="publishVideo()">Publicar 🚀</button>'+
+    '<button class="post-btn" onclick="publishVideo()">Publicar 🚀</button>'
+    )+
   '</div>';
   document.getElementById('app').innerHTML = html;
 
-  if(postMode!=='link'){
+  if(postMode==='video' || postMode==='shorts'){
     document.getElementById('postFile').addEventListener('change', function(e){
       var f = e.target.files[0]; if(!f) return;
       postFileUrl = URL.createObjectURL(f);
@@ -1019,6 +1388,7 @@ function renderPost(){
 }
 
 function publishVideo(){
+  if(blockedAction()) return;
   var u = curUser();
   var url, desc;
   var type = postMode==='shorts' ? 'short' : 'video';
@@ -1092,22 +1462,32 @@ function renderPanel(){
 
   if(panelTab==='ban'){
     var users = DB.users().filter(function(u2){return !u2.isCreator;});
-    html += '<div class="panel-section"><h3>Banir Usuários</h3>'+
+    html += '<div class="panel-section"><h3>Banir pessoas</h3>'+
+      (users.length===0?'<div style="color:#888;font-size:14px">Nenhuma pessoa para gerenciar ainda</div>':
       users.map(function(u2){
-        return '<div class="panel-item">'+
-          avatarHtml(u2,36)+
-          '<div class="pi-name">'+userNameDisplay(u2)+(u2.banned?' 🚫':'')+'</div>'+
+        var banned = isBanned(u2);
+        return '<div class="panel-item" style="display:block">'+
+          '<div style="display:flex;align-items:center;gap:10px">'+
+            avatarHtml(u2,36)+
+            '<div class="pi-name" style="flex:1">'+userNameDisplay(u2)+
+              '<span style="font-size:11px;color:#888;font-weight:400">'+(banned?'🚫 ':'✅ ')+banUntilLabel(u2)+'</span>'+
+            '</div>'+
+            (banned?'<button class="ban-opt" style="background:#22c55e" onclick="banUser(\''+u2.id+'\',0)">Tirar banimento</button>':'')+
+          '</div>'+
           '<div class="ban-select">'+
-            '<button class="ban-opt" onclick="banUser(\''+u2.id+'\',1)">1min</button>'+
+            '<input type="number" min="0" id="bh_'+u2.id+'" placeholder="horas" style="width:74px;background:#111;border:1px solid #333;border-radius:6px;padding:6px;color:#fff;font-size:13px">'+
+            '<input type="number" min="0" id="bd_'+u2.id+'" placeholder="dias" style="width:74px;background:#111;border:1px solid #333;border-radius:6px;padding:6px;color:#fff;font-size:13px">'+
+            '<button class="ban-opt" onclick="banUserCustom(\''+u2.id+'\')">Banir</button>'+
+          '</div>'+
+          '<div class="ban-select">'+
             '<button class="ban-opt" onclick="banUser(\''+u2.id+'\',3600000)">1H</button>'+
-            '<button class="ban-opt" onclick="banUser(\''+u2.id+'\',18000000)">5H</button>'+
             '<button class="ban-opt" onclick="banUser(\''+u2.id+'\',43200000)">12H</button>'+
             '<button class="ban-opt" onclick="banUser(\''+u2.id+'\',86400000)">24H</button>'+
+            '<button class="ban-opt" onclick="banUser(\''+u2.id+'\',604800000)">7 dias</button>'+
             '<button class="ban-opt" onclick="banUser(\''+u2.id+'\',-1)">Permanente</button>'+
-            (u2.banned?'<button class="ban-opt" style="background:#22c55e" onclick="banUser(\''+u2.id+'\',0)">Desbanir</button>':'')+
           '</div>'+
         '</div>';
-      }).join('')+
+      }).join(''))+
     '</div>';
   }
 
@@ -1130,6 +1510,7 @@ function setUserStat(uid, type, val){
 function deleteVideo(vid){
   var vids = DB.videos().filter(function(v){return v.id!==vid;});
   DB.saveVideos(vids);
+  showNotif('Vídeo excluído 🗑 — não aparece mais no feed');
   renderPanel();
 }
 
@@ -1151,10 +1532,24 @@ function banUser(uid, duration){
   var users = DB.users();
   var u = users.find(function(x){return x.id===uid;});
   if(!u) return;
-  if(duration===0){ u.banned=false; u.banUntil=null; }
-  else { u.banned=true; u.banUntil = duration===-1 ? -1 : Date.now()+duration; }
+  if(duration===0){ u.banned=false; u.banUntil=null; showNotif(u.name+' está livre de novo ✅'); }
+  else {
+    u.banned = true;
+    u.banUntil = duration===-1 ? -1 : Date.now()+duration;
+    showNotif(u.name+' foi banido 🚫');
+  }
   DB.saveUsers(users);
   renderPanel();
+}
+
+// Banir pelo tempo que eu quiser: horas e/ou dias.
+function banUserCustom(uid){
+  var hEl = document.getElementById('bh_'+uid);
+  var dEl = document.getElementById('bd_'+uid);
+  var h = parseInt(hEl && hEl.value) || 0;
+  var d = parseInt(dEl && dEl.value) || 0;
+  if(h<=0 && d<=0){ showNotif('Digite as horas ou os dias do banimento ⏱'); return; }
+  banUser(uid, (h*3600000) + (d*86400000));
 }
 
 function filterVids(){
@@ -1164,25 +1559,175 @@ function filterVids(){
   });
 }
 
-// ==================== BAN SCREEN ====================
-function banScreenHtml(u){
-  var until = u.banUntil===-1 ? 'permanentemente' : 'até '+new Date(u.banUntil).toLocaleString('pt-BR');
-  return '<div class="ban-screen">'+
-    '<h2>⚠️ Você foi banido</h2>'+
-    '<p>Você foi banido '+until+' por bagunça.</p>'+
-    '<p style="font-size:13px;color:#666;margin-bottom:16px">Se achar que é um erro, fale conosco:</p>'+
-    '<button class="btn" onclick="contactSupport()">Fale conosco 💬</button>'+
-  '</div>';
+// ==================== BANIMENTO ====================
+function adminId(){
+  var c = DB.users().find(function(u){return u.isCreator;});
+  return c ? c.id : null;
 }
 
-function contactSupport(){
-  var creator = DB.users().find(function(u){return u.isCreator;});
-  if(creator){ startPrivateChat(creator.id); }
-  // Remove ban screen and show chat
-  document.querySelector('.ban-screen').style.display = 'none';
-  document.getElementById('nav').style.display = 'flex';
-  pvbView = 'private';
+// Banido = banimento permanente (-1) ou ainda no prazo. Quando o prazo acaba, libera sozinho.
+function isBanned(u){
+  u = u || curUser();
+  if(!u || !u.banned) return false;
+  if(u.banUntil===-1) return true;
+  if(u.banUntil && Date.now() < u.banUntil) return true;
+  var users = DB.users();
+  var x = users.find(function(y){return y.id===u.id;});
+  if(x){ x.banned = false; x.banUntil = null; DB.saveUsers(users); }
+  return false;
+}
+
+function banUntilLabel(u){
+  if(!isBanned(u)) return 'liberado';
+  if(u.banUntil===-1) return 'banido permanentemente';
+  var ms = u.banUntil - Date.now();
+  var h = Math.floor(ms/3600000), m = Math.floor((ms%3600000)/60000);
+  return 'banido · '+(h>0?h+'h ':'')+m+'min restantes';
+}
+
+// O banido só pode ver o próprio perfil e a conversa com o administrador.
+function bannedViewAllowed(u){
+  if(view==='profile' && profileUserId===u.id) return true;
+  return view==='pvb' && pvbView==='private' && pvbChatUser===adminId();
+}
+
+// Bloqueia qualquer ação de quem está banido (postar, comentar, conversar, assistir).
+function blockedAction(){
+  var u = curUser();
+  if(!isBanned(u)) return false;
+  showNotif('Sua conta está banida 🚫');
+  view = 'profile';
+  profileUserId = u.id;
   render();
+  return true;
+}
+
+// "Veja detalhes" do aviso vermelho: abre direto a conversa privada com o administrador.
+function openAdminChat(){
+  var id = adminId();
+  if(!id){ showNotif('Não encontrei o administrador 😕'); return; }
+  pvbView = 'private';
+  pvbChatUser = id;
+  view = 'pvb';
+  render();
+}
+
+// ==================== LIVE ====================
+// Processo: Postar -> Live -> ativar a sobreposição. No APK a sobreposição fica
+// por cima dos outros apps; aqui ela aparece como uma bolinha flutuante dentro do
+// Good Look, com "Começar agora". Ao começar, a live aparece na Home e no Shorts
+// e a bolinha passa a mostrar "AO VIVO" com o tempo no ar e o "Encerrar".
+var overlayOn = false;
+var liveTitle = null;
+var liveTimer = null;
+
+function openLiveView(){ view='live'; render(); }
+
+// Tempo no ar da live (m:ss ou h:mm:ss).
+function liveElapsed(ts){
+  var s = Math.max(0, Math.floor((Date.now()-(ts||Date.now()))/1000));
+  var h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
+  return h>0 ? h+':'+pad2(m)+':'+pad2(sec) : m+':'+pad2(sec);
+}
+
+function tickLive(){
+  var l = DB.live();
+  if(!l) return;
+  var t = liveElapsed(l.startedAt);
+  ['liveTime','bubbleTime','liveCardTime'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.textContent = t;
+  });
+}
+function startLiveTick(){ if(liveTimer) clearInterval(liveTimer); liveTimer = setInterval(tickLive, 1000); }
+function stopLiveTick(){ if(liveTimer){ clearInterval(liveTimer); liveTimer = null; } }
+
+// A bolinha flutuante só existe depois de ativar a sobreposição.
+function paintBubble(){
+  var l = DB.live();
+  var b = document.getElementById('liveBubble');
+  if(!overlayOn || (view==='live' && l)){ if(b) b.remove(); return; }
+  if(!b){
+    b = document.createElement('div');
+    b.id = 'liveBubble';
+    b.className = 'live-bubble';
+    document.body.appendChild(b);
+  }
+  if(l){
+    b.innerHTML = '<span class="dot"></span>AO VIVO <span class="lt" id="bubbleTime">'+liveElapsed(l.startedAt)+'</span>'+
+      '<span class="x encerrar" onclick="event.stopPropagation();endLive()">Encerrar</span>';
+    b.onclick = function(){ openLiveView(); };
+  } else {
+    b.innerHTML = '<span class="dot"></span>Começar agora'+
+      '<span class="x" onclick="event.stopPropagation();closeBubble()">✕</span>';
+    b.onclick = function(){ startLive(); };
+  }
+}
+
+function closeBubble(){ overlayOn = false; var b = document.getElementById('liveBubble'); if(b) b.remove(); }
+
+// "Ativar sobreposição" no Postar: guarda o título e mostra a bolinha.
+function activateOverlay(){
+  if(blockedAction()) return;
+  var t = document.getElementById('liveTitle');
+  liveTitle = (t && t.value.trim()) || ('Live de '+curUser().name);
+  overlayOn = true;
+  paintBubble();
+  showNotif('Sobreposição ativada — toque na bolinha para começar 🔴');
+}
+
+function startLive(){
+  if(blockedAction()) return;
+  var u = curUser();
+  DB.saveLive({id:'live'+Date.now(), userId:u.id, userName:u.name, userPhoto:u.photo, title:liveTitle||('Live de '+u.name), startedAt:Date.now(), viewers:1});
+  overlayOn = true;
+  startLiveTick();
+  view = 'live';
+  render();
+  showNotif('Você está ao vivo 🔴 Já apareceu na Home e no Shorts');
+}
+
+// Encerrar: apertando na bolinha em "Encerrar" (ou no botão da tela da live).
+function endLive(){
+  stopLiveTick();
+  DB.saveLive(null);
+  overlayOn = false;
+  var b = document.getElementById('liveBubble');
+  if(b) b.remove();
+  view = 'home';
+  render();
+  showNotif('Live encerrada 🔴');
+}
+
+// Tela da transmissão ao vivo.
+function renderLive(){
+  var l = DB.live();
+  var u = curUser();
+  if(!l){ view='home'; render(); return; }
+  var owner = getUser(l.userId) || {name:l.userName, photo:l.userPhoto, verifiedType:null, isCreator:false};
+  var mine = l.userId===u.id;
+  var html = '<div class="live-view">'+
+    '<div class="live-top"><span class="live-pill"><span class="dot"></span>AO VIVO</span><span class="live-time" id="liveTime">'+liveElapsed(l.startedAt)+'</span></div>'+
+    '<div class="live-stage">'+
+      '<div class="live-cam">📱</div>'+
+      '<div class="live-note">'+(mine?'Você está transmitindo do Good Look. No APK a sobreposição fica por cima dos outros apps.':'Transmissão de '+escapeHtml(owner.name)+', ao vivo agora.')+'</div>'+
+    '</div>'+
+    '<div class="live-title">'+escapeHtml(l.title)+'</div>'+
+    '<div class="live-sub">'+userNameDisplay(owner)+' · '+l.viewers+' assistindo</div>'+
+    (mine?'<button class="live-end" onclick="endLive()">Encerrar live</button>':'<button class="live-end" style="background:#F97316" onclick="view=\'shorts\';render()">Sair</button>')+
+  '</div>';
+  document.getElementById('app').innerHTML = html;
+}
+
+// No chat com o administrador, quem está banido tem o pedido de desculpas na mão.
+function sendApology(){
+  var u = curUser();
+  var id = adminId();
+  if(!u || !id) return;
+  var msgs = DB.privMsgs();
+  msgs.push({fromId:u.id, toId:id, text:'Desculpe, admin 🙏 Prometo não fazer isso de novo.', ts:Date.now()});
+  DB.savePrivMsgs(msgs);
+  renderPVBPrivate();
 }
 
 // ==================== NOTIFICATIONS ====================
@@ -1267,21 +1812,34 @@ window.addEventListener('storage', function(e){
     creator.password = '12345678910';
     DB.saveUsers(users);
   }
-  // Seed videos if empty
+  // Sample clips ship with the site: the external bucket used before now answers
+  // 403, which left every seeded video showing a black player.
+  var SAMPLES = ['/videos/bunny.mp4','/videos/jellyfish.mp4','/videos/sintel.mp4','/videos/flower.mp4','/videos/friday.mp4','/videos/onda.mp4'];
+  var SEED_INDEX = {v0:0,v1:1,v2:2,s0:3,s1:4,s2:5};
+
+  // Point sample videos already saved in this browser at the local files.
   var vids = DB.videos();
+  var resaved = false;
+  vids.forEach(function(v){
+    var si = SEED_INDEX[v.id];
+    if(si!==undefined && v.url && v.url.indexOf('gtv-videos-bucket')>=0){ v.url = SAMPLES[si]; resaved = true; }
+  });
+  if(resaved) DB.saveVideos(vids);
+
+  // Seed videos if empty
   if(vids.length===0){
     var vSamples = [
-      {desc:'PEGUEI O OVO DIVINO MAIS RARO DO HALLOWEEN! 🎃🥚',url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'},
-      {desc:'TOP GLOBAL no jogo mais difícil! 🏆',url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4'},
-      {desc:'DEMON SLAYER — melhor momento do anime! ⚔️🔥',url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4'}
+      {desc:'PEGUEI O OVO DIVINO MAIS RARO DO HALLOWEEN! 🎃🥚',url:SAMPLES[0]},
+      {desc:'TOP GLOBAL no jogo mais difícil! 🏆',url:SAMPLES[1]},
+      {desc:'DEMON SLAYER — melhor momento do anime! ⚔️🔥',url:SAMPLES[2]}
     ];
     vSamples.forEach(function(s,i){
       vids.push({id:'v'+i,userId:'creator',userName:'tex_tt',userPhoto:null,url:s.url,description:s.desc,type:'video',likes:Math.floor(Math.random()*500)+100,views:Math.floor(Math.random()*15000)+1000,comments:[],timestamp:Date.now()-(i+1)*43200000,likedBy:[],dislikedBy:[],botLikes:0});
     });
     var sSamples = [
-      {desc:'Bunny 🐰',url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'},
-      {desc:'Muito fogo! 🔥',url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4'},
-      {desc:'Diversão pura 😎',url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4'}
+      {desc:'Flor desabrochando 🌸',url:SAMPLES[3]},
+      {desc:'Boa sexta! 🎉',url:SAMPLES[4]},
+      {desc:'Clima de verão ☀️',url:SAMPLES[5]}
     ];
     sSamples.forEach(function(s,i){
       vids.push({id:'s'+i,userId:'creator',userName:'tex_tt',userPhoto:null,url:s.url,description:s.desc,type:'short',likes:Math.floor(Math.random()*50)+5,views:Math.floor(Math.random()*500)+100,comments:[],timestamp:Date.now()-i*3600000,likedBy:[],dislikedBy:[],botLikes:0});
@@ -1290,6 +1848,8 @@ window.addEventListener('storage', function(e){
   }
 
   if(!curUser()){ window.location.href='/home'; return; }
+  // Se a página foi recarregada durante uma live, a bolinha volta com ela.
+  if(DB.live()){ overlayOn = true; startLiveTick(); }
   startBots();
   render();
 })();
