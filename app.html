@@ -1219,7 +1219,7 @@ function renderProfile(){
       ? '<div class="pf-grid">'+vids.map(function(v){
           return '<div class="pf-cell" onclick="playProfileVideo(\''+v.id+'\')">'+
             '<video data-src="'+v.url+'" data-thumb="1" data-dur="1" muted playsinline preload="none"></video>'+
-            '<div class="vc">❤ '+fmt(v.likes||0)+' · ▶ '+fmt(v.views||0)+'</div>'+
+            '<div class="vc">▶ '+fmt(v.views||0)+'</div>'+
             '<div class="vdur"></div>'+
           '</div>';
         }).join('')+'</div>'
@@ -1242,7 +1242,6 @@ function openSaved(){
         : '<div class="pf-grid">'+vids.map(function(v){
             return '<div class="pf-cell" onclick="closeSaved();playProfileVideo(\''+v.id+'\')">'+
               '<video data-src="'+v.url+'" data-thumb="1" data-dur="1" muted playsinline preload="none"></video>'+
-              '<div class="vc">❤ '+fmt(v.likes||0)+'</div>'+
               '<div class="vdur"></div>'+
             '</div>';
           }).join('')+'</div>')+
