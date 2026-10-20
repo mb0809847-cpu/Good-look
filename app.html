@@ -121,8 +121,8 @@ body{background:#000;color:#fff}
 .post-view{height:100%;overflow-y:auto;background:#0a0a0a;padding:20px}
 .post-view::-webkit-scrollbar{display:none}
 .post-view h2{font-size:20px;margin-bottom:20px;text-align:center}
-.post-opts{display:flex;gap:12px;margin-bottom:20px}
-.post-opt{flex:1;padding:16px;border-radius:12px;background:#1e1e1e;text-align:center;cursor:pointer;border:2px solid transparent}
+.post-opts{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:20px}
+.post-opt{flex:1 1 44%;padding:16px;border-radius:12px;background:#1e1e1e;text-align:center;cursor:pointer;border:2px solid transparent}
 .post-opt.active{border-color:#F97316}
 .post-opt svg{width:32px;height:32px;color:#F97316;margin-bottom:8px}
 .post-opt .t{font-size:13px;color:#ccc}
@@ -159,6 +159,35 @@ body{background:#000;color:#fff}
 .notif{position:fixed;top:0;left:0;right:0;background:#F97316;padding:12px 16px;z-index:9999;font-size:13px;display:none;align-items:center;gap:8px;cursor:pointer}
 .notif.show{display:flex}
 
+/* Live (transmissão) */
+.live-pill{display:inline-flex;align-items:center;gap:6px;background:#e11900;color:#fff;font-size:12px;font-weight:800;border-radius:20px;padding:5px 11px;letter-spacing:.5px}
+.live-pill .dot{width:8px;height:8px;border-radius:50%;background:#fff;animation:livePulse 1.1s infinite}
+@keyframes livePulse{0%,100%{opacity:1}50%{opacity:.25}}
+.live-card{border-color:#e11900}
+.live-cover{position:relative;aspect-ratio:16/9;background:linear-gradient(160deg,#1d0a0a,#000 70%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;padding:0 16px}
+.live-ctitle{font-size:15px;font-weight:800;color:#fff;text-align:center;line-height:1.3}
+.live-cmeta{font-size:11.5px;color:#9a9a9a;display:flex;align-items:center;gap:4px}
+.live-watch{padding:9px 16px;border-radius:20px;border:none;background:#e11900;color:#fff;font-size:12.5px;font-weight:800;cursor:pointer;flex-shrink:0}
+.live-slide{height:100%;scroll-snap-align:start;scroll-snap-stop:always;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:linear-gradient(160deg,#1d0a0a,#000 70%);padding:0 24px}
+.live-slide .lt{font-size:18px;font-weight:800;color:#fff;text-align:center;line-height:1.35}
+.live-slide .ls{font-size:13px;color:#9a9a9a;display:flex;align-items:center;gap:5px}
+.live-slide .lw{margin-top:4px;padding:12px 22px;border-radius:26px;border:none;background:#fff;color:#111;font-size:14px;font-weight:800;cursor:pointer}
+.live-view{height:100%;display:flex;flex-direction:column;background:#0b0b0b;padding:18px 16px}
+.live-top{display:flex;align-items:center;gap:10px}
+.live-time{font-size:13px;font-weight:700;color:#ddd;font-variant-numeric:tabular-nums}
+.live-stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:#141414;border-radius:16px;margin:14px 0}
+.live-cam{font-size:52px}
+.live-note{color:#8b8b8b;font-size:13px;text-align:center;padding:0 20px;line-height:1.45}
+.live-title{font-size:17px;font-weight:800;color:#fff}
+.live-sub{font-size:12.5px;color:#8b8b8b;margin-top:4px;display:flex;align-items:center;gap:5px}
+.live-end{width:100%;padding:15px;border-radius:12px;border:none;background:#e11900;color:#fff;font-size:15px;font-weight:800;cursor:pointer;margin-top:12px}
+.live-bubble{position:fixed;right:14px;bottom:78px;z-index:400;display:flex;align-items:center;gap:8px;background:#e11900;color:#fff;font-size:13.5px;font-weight:800;border-radius:30px;padding:11px 14px;box-shadow:0 8px 22px rgba(0,0,0,.55);cursor:pointer;animation:bubbleIn .22s ease}
+.live-bubble .dot{width:9px;height:9px;border-radius:50%;background:#fff;animation:livePulse 1.1s infinite}
+.live-bubble .lt{font-variant-numeric:tabular-nums;opacity:.9}
+.live-bubble .x{color:#ffd9d4;font-size:13px;margin-left:2px}
+.live-bubble .x.encerrar{background:rgba(255,255,255,.2);border-radius:14px;padding:4px 9px;font-size:12px;color:#fff}
+@keyframes bubbleIn{from{transform:translateY(12px);opacity:.6}to{transform:none;opacity:1}}
+
 /* Home feed (cards) */
 .home-wrap{height:100%;overflow-y:auto;background:#0b0b0b;padding-bottom:16px}
 .home-wrap::-webkit-scrollbar{display:none}
@@ -170,17 +199,21 @@ body{background:#000;color:#fff}
 .hthumb{position:relative;width:100%;aspect-ratio:16/9;background:#0f0f0f;cursor:pointer;overflow:hidden}
 .hthumb video{width:100%;height:100%;object-fit:cover;pointer-events:none;display:block}
 .hthumb .scrim{position:absolute;left:0;right:0;bottom:0;height:75%;background:linear-gradient(to top,rgba(0,0,0,.88),rgba(0,0,0,.35) 55%,transparent);pointer-events:none}
-.hthumb .htitle{position:absolute;left:12px;right:64px;bottom:11px;color:#fff;font-size:14.5px;font-weight:700;line-height:1.32;text-shadow:0 1px 6px rgba(0,0,0,.85);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.hthumb .htitle{position:absolute;left:12px;right:80px;bottom:11px;color:#fff;font-size:14.5px;font-weight:700;line-height:1.32;text-shadow:0 1px 6px rgba(0,0,0,.85);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* Curtidas, comentários e duração ficam na própria capa do vídeo */
+.hthumb .hbadges{position:absolute;left:10px;top:10px;display:flex;gap:6px;z-index:2}
+.hthumb .hbg{display:flex;align-items:center;gap:4px;font-size:11.5px;font-weight:800;color:#fff;background:rgba(0,0,0,.62);border-radius:20px;padding:4px 9px;backdrop-filter:blur(3px)}
+.hthumb .hbg svg{width:13px;height:13px}
+.hthumb .hbg.like{color:#ff8fa3}
+/* Duração: 30s -> "30" · 30min -> "30:00" · 1h -> "1:00:00" */
+.vdur{position:absolute;right:10px;bottom:10px;font-size:11.5px;font-weight:800;color:#fff;background:rgba(0,0,0,.75);border-radius:6px;padding:3px 7px;letter-spacing:.4px;z-index:2}
 .hthumb .play-ov{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:50px;height:50px;border-radius:50%;background:rgba(249,115,22,.92);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,.5)}
 .hthumb .play-ov svg{width:24px;height:24px;color:#fff;margin-left:3px}
 .hbody{display:flex;align-items:center;gap:10px;padding:10px 12px 12px}
 .hbody .hinfo{flex:1;min-width:0}
 .hbody .hname{font-size:13px;font-weight:700;color:#fff}
 .hbody .hsub{font-size:11.5px;color:#8b8b8b;margin-top:3px}
-.hchips{display:flex;gap:6px;flex-shrink:0}
-.hchip{display:flex;align-items:center;gap:4px;font-size:11.5px;font-weight:700;color:#d4d4d4;background:#212121;border-radius:20px;padding:5px 9px}
-.hchip svg{width:13px;height:13px}
-.hchip.like{color:#ff5b7a}
+/* (curtidas e comentários saíram do rodapé do card e foram para a capa) */
 .yt-ava{width:36px;height:36px;border-radius:50%;background:#333;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#666;font-size:16px}
 .yt-ava img{width:100%;height:100%;object-fit:cover}
 .yt-va{width:40px;height:40px;border-radius:50%;background:#333;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#666;font-size:16px}
@@ -268,7 +301,9 @@ var DB = {
   privMsgs: function(){ return JSON.parse(localStorage.getItem('gl_privmsg')||'[]'); },
   savePrivMsgs: function(m){ localStorage.setItem('gl_privmsg', JSON.stringify(m)); },
   aiHist: function(){ return JSON.parse(localStorage.getItem('gl_aihist')||'[]'); },
-  saveAiHist: function(h){ localStorage.setItem('gl_aihist', JSON.stringify(h)); }
+  saveAiHist: function(h){ localStorage.setItem('gl_aihist', JSON.stringify(h)); },
+  live: function(){ return JSON.parse(localStorage.getItem('gl_live')||'null'); },
+  saveLive: function(l){ if(l) localStorage.setItem('gl_live', JSON.stringify(l)); else localStorage.removeItem('gl_live'); }
 };
 
 function curUser(){ var id=localStorage.getItem('gl_current_user'); return DB.users().find(function(u){return u.id===id;}); }
@@ -276,6 +311,16 @@ function getUser(id){ return DB.users().find(function(u){return u.id===id;}); }
 
 // ==================== HELPERS ====================
 function fmt(n){ if(n>=1e6) return (n/1e6).toFixed(1)+'M'; if(n>=1e3) return (n/1e3).toFixed(1)+'K'; return ''+n; }
+function pad2(n){ return (n<10?'0':'')+n; }
+// Duração mostrada na capa: 30s -> "30" · 30min -> "30:00" · 1h -> "1:00:00"
+function fmtDur(sec){
+  if(!sec || !isFinite(sec) || sec<=0) return '';
+  sec = Math.floor(sec);
+  var h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60), s = sec%60;
+  if(h>0) return h+':'+pad2(m)+':'+pad2(s);
+  if(m>0) return m+':'+pad2(s);
+  return ''+s;
+}
 function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function verifiedBadge(type){
   if(type==='blue') return '<span class="vbadge"><svg viewBox="0 0 24 24" fill="#2196F3"><path d="M12 1l2.4 2.4 3.4-.3 1 3.3 3 1.8-1.4 3.1 1.4 3.1-3 1.8-1 3.3-3.4-.3L12 22l-2.4-2.4-3.4.3-1-3.3-3-1.8 1.4-3.1L3.2 8.2l3-1.8 1-3.3 3.4.3z" fill="#2196F3"/><path d="M8.5 12l2.5 2.5 4.5-5" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
@@ -354,7 +399,9 @@ function render(){
     case 'post': renderPost(); break;
     case 'panel': renderPanel(); break;
     case 'detail': renderVideoDetail(); break;
+    case 'live': renderLive(); break;
   }
+  paintBubble();
 }
 
 // ==================== CARREGAMENTO DOS VÍDEOS ====================
@@ -375,6 +422,14 @@ function attachLazyVideo(el){
   if(!src || el.getAttribute('src')) return;
   el.setAttribute('preload','metadata');
   el.setAttribute('src', src + (el.dataset.thumb==='1' ? '#t=0.5' : ''));
+  // Assim que o navegador sabe a duração, ela aparece na capa.
+  if(el.dataset.dur==='1'){
+    el.addEventListener('loadedmetadata', function(){
+      var box = el.parentElement;
+      var badge = box ? box.querySelector('.vdur') : null;
+      if(badge && !badge.textContent) badge.textContent = fmtDur(el.duration);
+    });
+  }
 }
 
 function lazyLoadEls(els){
@@ -403,30 +458,48 @@ function preloadNeighbour(el){
 // ==================== HOME (feed de vídeos) ====================
 function renderHome(){
   var vids = DB.videos().filter(function(v){return v.type!=='short';});
-  if(vids.length===0){
+  if(vids.length===0 && !DB.live()){
     document.getElementById('app').innerHTML = '<div style="height:100%;display:flex;align-items:center;justify-content:center;color:#666;font-size:16px;text-align:center;padding:20px">Nenhum vídeo ainda.<br>Use o botão "+" para publicar! 🎬</div>';
     return;
   }
   var html = '<div class="home-wrap" id="homeFeed">'+
     '<div class="home-head"><div class="t">Good<b>Look</b> · Vídeos</div><div class="cnt">'+vids.length+' vídeos</div></div>';
+  // Live no ar aparece em cima da Home também.
+  var l = DB.live();
+  if(l){
+    var lo = getUser(l.userId) || {name:l.userName, photo:l.userPhoto, verifiedType:null, isCreator:false};
+    html += '<div class="hcard live-card">'+
+      '<div class="live-cover" onclick="openLiveView()">'+
+        '<span class="live-pill"><span class="dot"></span>AO VIVO</span>'+
+        '<div class="live-ctitle">'+escapeHtml(l.title)+'</div>'+
+        '<div class="live-cmeta">'+userNameDisplay(lo)+' · <span id="liveCardTime">'+liveElapsed(l.startedAt)+'</span> no ar</div>'+
+      '</div>'+
+      '<div class="hbody">'+
+        avatarHtml(lo,40,'yt-ava')+
+        '<div class="hinfo"><div class="hname">'+userNameDisplay(lo)+'</div><div class="hsub">'+l.viewers+' assistindo agora</div></div>'+
+        '<button class="live-watch" onclick="openLiveView()">'+(l.userId===curUser().id?'Ver minha live':'Assistir')+'</button>'+
+      '</div>'+
+    '</div>';
+  }
   vids.forEach(function(v){
     var owner = getUser(v.userId) || {name:v.userName, photo:v.userPhoto, verifiedType:null, isCreator:false};
     html += '<div class="hcard">'+
       '<div class="hthumb" onclick="openVideoDetail(\''+v.id+'\')">'+
-        '<video data-src="'+v.url+'" data-thumb="1" muted playsinline preload="none"></video>'+
+        '<video data-src="'+v.url+'" data-thumb="1" data-dur="1" muted playsinline preload="none"></video>'+
         '<div class="scrim"></div>'+
+        '<div class="hbadges">'+
+          '<span class="hbg like"><svg viewBox="0 0 24 24" fill="#ff5b7a"><path d="M12 21l-7.7-7.6-1.1-1a5.5 5.5 0 0 1 7.8-7.8L12 5.7l1-1.1a5.5 5.5 0 0 1 7.8 7.8l-1.1 1z"/></svg>'+fmt(v.likes||0)+'</span>'+
+          '<span class="hbg"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>'+((v.comments||[]).length)+'</span>'+
+        '</div>'+
         '<div class="play-ov"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>'+
         '<div class="htitle">'+escapeHtml(v.description||'')+'</div>'+
+        '<div class="vdur"></div>'+
       '</div>'+
       '<div class="hbody">'+
         avatarHtml(owner,40,'yt-ava')+
         '<div class="hinfo">'+
           '<div class="hname">'+userNameDisplay(owner)+'</div>'+
           '<div class="hsub">'+fmt(v.views||0)+' visualizações · '+timeAgoStr(v.timestamp)+'</div>'+
-        '</div>'+
-        '<div class="hchips">'+
-          '<span class="hchip like"><svg viewBox="0 0 24 24" fill="#ff5b7a"><path d="M12 21l-7.7-7.6-1.1-1a5.5 5.5 0 0 1 7.8-7.8L12 5.7l1-1.1a5.5 5.5 0 0 1 7.8 7.8l-1.1 1z"/></svg>'+fmt(v.likes||0)+'</span>'+
-          '<span class="hchip"><svg viewBox="0 0 24 24" fill="none" stroke="#d4d4d4" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>'+((v.comments||[]).length)+'</span>'+
         '</div>'+
       '</div>'+
     '</div>';
@@ -509,7 +582,7 @@ function renderVideoDetail(){
           '<span>Salvar</span>'+
         '</button>'+
       '</div>'+
-      '<div class="vd-cmt-head">Comentários <span class="cnt">'+(v.comments?v.comments.length:0)+'</span></div>'+
+      '<div class="vd-cmt-head" onclick="openComments(\''+v.id+'\')" style="cursor:pointer">Comentários <span class="cnt">'+(v.comments?v.comments.length:0)+'</span><span style="margin-left:auto;color:#3ea6ff;font-size:13px;font-weight:600">Ver todos ›</span></div>'+
       (previewCmt?
         '<div class="vd-cmt-preview" onclick="openComments(\''+v.id+'\')">'+
           '<div class="ca">'+(pcu.photo?'<img src="'+pcu.photo+'">':escapeHtml((pcu.name||'?')[0]))+'</div>'+
@@ -579,12 +652,23 @@ function toggleFollowDetail(uid){
 // ==================== SHORTS (full-screen feed) ====================
 function renderShorts(){
   var vids = DB.videos().filter(function(v){return v.type==='short';});
-  if(vids.length===0){
+  var liveNow = DB.live();
+  if(vids.length===0 && !liveNow){
     document.getElementById('app').innerHTML = '<div style="height:100%;display:flex;align-items:center;justify-content:center;color:#666;font-size:16px;text-align:center;padding:20px">Nenhum short ainda.<br>Use o botão "+" para adicionar! ⚡</div>';
     return;
   }
   var u = curUser();
   var html = '<div class="feed" id="feed">';
+  // Quem está ao vivo aparece no primeiro slide do Shorts.
+  if(liveNow){
+    var lo = getUser(liveNow.userId) || {name:liveNow.userName, photo:liveNow.userPhoto, verifiedType:null, isCreator:false};
+    html += '<div class="live-slide">'+
+      '<span class="live-pill"><span class="dot"></span>AO VIVO</span>'+
+      '<div class="lt">'+escapeHtml(liveNow.title)+'</div>'+
+      '<div class="ls">'+userNameDisplay(lo)+' · <span id="liveCardTime">'+liveElapsed(liveNow.startedAt)+'</span> no ar</div>'+
+      '<button class="lw" onclick="openLiveView()">'+(liveNow.userId===u.id?'Voltar para a minha live':'Assistir agora')+'</button>'+
+    '</div>';
+  }
   vids.forEach(function(v){
     var owner = getUser(v.userId) || {name:v.userName, photo:v.userPhoto, verifiedType:null, isCreator:false};
     var liked = v.likedBy && v.likedBy.indexOf(u.id)>=0;
@@ -1040,6 +1124,7 @@ function renderPVBPrivate(){
   });
   var html = '<div class="chat-view">'+
     '<div class="chat-header"><div class="back" onclick="pvbView=\'list\';render()">←</div><div class="title">'+userNameDisplay(partner)+'</div><div style="cursor:pointer;color:#F97316;font-size:13px" onclick="viewProfile(\''+partner.id+'\')">Perfil</div></div>'+
+    (isBanned(u) && partner.id===adminId()?'<div class="cp-repbar">🙏 Peça desculpas para ser liberado<b style="cursor:pointer;margin-left:auto" onclick="sendApology()">Pedir desculpas</b></div>':'')+
     '<div class="chat-messages" id="privMsgs">'+
       (msgs.length===0?'<div class="msg them">Início da conversa privada! 🔒💬</div>':'')+
       msgs.map(function(m){
@@ -1099,7 +1184,7 @@ function renderProfile(){
   // com o administrador; para quem está visitando aparece "Esta conta foi banida".
   if(banned){
     html += isMe
-      ? '<div class="banbar" onclick="openAdminChat()"><div class="tx">Sua conta foi banida. Veja detalhes<small>'+banUntilLabel(target)+'</small></div><div class="go">›</div></div>'
+      ? '<div class="banbar" onclick="openAdminChat()"><div class="tx">Você foi banido. Veja detalhes...<small>'+banUntilLabel(target)+' · toque para conversar com o administrador</small></div><div class="go">›</div></div>'
       : '<div class="banbar"><div class="tx">Esta conta foi banida</div></div>';
   }
 
@@ -1142,8 +1227,9 @@ function renderProfile(){
     html += vids.length
       ? '<div class="pf-grid">'+vids.map(function(v){
           return '<div class="pf-cell" onclick="playProfileVideo(\''+v.id+'\')">'+
-            '<video data-src="'+v.url+'" data-thumb="1" muted playsinline preload="none"></video>'+
+            '<video data-src="'+v.url+'" data-thumb="1" data-dur="1" muted playsinline preload="none"></video>'+
             '<div class="vc">❤ '+fmt(v.likes||0)+' · ▶ '+fmt(v.views||0)+'</div>'+
+            '<div class="vdur"></div>'+
           '</div>';
         }).join('')+'</div>'
       : '<div class="pf-empty">Nenhum vídeo postado ainda 🎬</div>';
@@ -1164,8 +1250,9 @@ function openSaved(){
         ? '<div class="pf-empty">Você ainda não salvou nenhum vídeo</div>'
         : '<div class="pf-grid">'+vids.map(function(v){
             return '<div class="pf-cell" onclick="closeSaved();playProfileVideo(\''+v.id+'\')">'+
-              '<video data-src="'+v.url+'" data-thumb="1" muted playsinline preload="none"></video>'+
+              '<video data-src="'+v.url+'" data-thumb="1" data-dur="1" muted playsinline preload="none"></video>'+
               '<div class="vc">❤ '+fmt(v.likes||0)+'</div>'+
+              '<div class="vdur"></div>'+
             '</div>';
           }).join('')+'</div>')+
       '<div class="sh-cancel" onclick="closeSaved()">Fechar</div>'+
@@ -1261,8 +1348,9 @@ var postFileUrl = null;
 
 function renderPost(){
   var isShort = postMode==='shorts';
+  var isLive = postMode==='live';
   var html = '<div class="post-view">'+
-    '<h2>'+(isShort?'Postar Short ⚡':'Postar Vídeo 🎬')+'</h2>'+
+    '<h2>'+(isLive?'Fazer Live 🔴':isShort?'Postar Short ⚡':'Postar Vídeo 🎬')+'</h2>'+
     '<div class="post-opts">'+
       '<div class="post-opt '+(postMode==='link'?'active':'')+'" onclick="postMode=\'link\';renderPost()">'+
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>'+
@@ -1276,7 +1364,16 @@ function renderPost(){
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 6.5L6.5 17.5"/><path d="M9 7l8.5-2.5L15 13z" fill="currentColor"/><path d="M15 17l-8.5 2.5L9 11z" fill="currentColor"/></svg>'+
         '<div class="t">Shorts</div>'+
       '</div>'+
+      '<div class="post-opt '+(isLive?'active':'')+'" onclick="postMode=\'live\';renderPost()">'+
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M6.5 7.5a7.5 7.5 0 0 0 0 9M17.5 7.5a7.5 7.5 0 0 1 0 9"/></svg>'+
+        '<div class="t">Live</div>'+
+      '</div>'+
     '</div>'+
+    (isLive?
+      '<input class="post-field" id="liveTitle" placeholder="Título da sua live">'+
+      '<div class="pf-note">🔴 Toque em <b>Ativar sobreposição</b> e depois na bolinha flutuante <b>Começar agora</b>. A bolinha fica na tela enquanto você navega — para encerrar, aperte nela e em <b>Encerrar</b>.</div>'+
+      '<button class="post-btn" style="background:#e11900;margin-top:12px" onclick="activateOverlay()">Ativar sobreposição 📱</button>'
+    :
     (postMode==='link'?
       '<input class="post-field" id="postUrl" placeholder="Cole o link do vídeo (URL)">'+
       '<div id="postPreview"></div>'
@@ -1286,11 +1383,12 @@ function renderPost(){
       '<div id="postPreview"></div>'
     )+
     '<input class="post-field" id="postDesc" placeholder="Descrição">'+
-    '<button class="post-btn" onclick="publishVideo()">Publicar 🚀</button>'+
+    '<button class="post-btn" onclick="publishVideo()">Publicar 🚀</button>'
+    )+
   '</div>';
   document.getElementById('app').innerHTML = html;
 
-  if(postMode!=='link'){
+  if(postMode==='video' || postMode==='shorts'){
     document.getElementById('postFile').addEventListener('change', function(e){
       var f = e.target.files[0]; if(!f) return;
       postFileUrl = URL.createObjectURL(f);
@@ -1524,6 +1622,124 @@ function openAdminChat(){
   render();
 }
 
+// ==================== LIVE ====================
+// Processo: Postar -> Live -> ativar a sobreposição. No APK a sobreposição fica
+// por cima dos outros apps; aqui ela aparece como uma bolinha flutuante dentro do
+// Good Look, com "Começar agora". Ao começar, a live aparece na Home e no Shorts
+// e a bolinha passa a mostrar "AO VIVO" com o tempo no ar e o "Encerrar".
+var overlayOn = false;
+var liveTitle = null;
+var liveTimer = null;
+
+function openLiveView(){ view='live'; render(); }
+
+// Tempo no ar da live (m:ss ou h:mm:ss).
+function liveElapsed(ts){
+  var s = Math.max(0, Math.floor((Date.now()-(ts||Date.now()))/1000));
+  var h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
+  return h>0 ? h+':'+pad2(m)+':'+pad2(sec) : m+':'+pad2(sec);
+}
+
+function tickLive(){
+  var l = DB.live();
+  if(!l) return;
+  var t = liveElapsed(l.startedAt);
+  ['liveTime','bubbleTime','liveCardTime'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.textContent = t;
+  });
+}
+function startLiveTick(){ if(liveTimer) clearInterval(liveTimer); liveTimer = setInterval(tickLive, 1000); }
+function stopLiveTick(){ if(liveTimer){ clearInterval(liveTimer); liveTimer = null; } }
+
+// A bolinha flutuante só existe depois de ativar a sobreposição.
+function paintBubble(){
+  var l = DB.live();
+  var b = document.getElementById('liveBubble');
+  if(!overlayOn || (view==='live' && l)){ if(b) b.remove(); return; }
+  if(!b){
+    b = document.createElement('div');
+    b.id = 'liveBubble';
+    b.className = 'live-bubble';
+    document.body.appendChild(b);
+  }
+  if(l){
+    b.innerHTML = '<span class="dot"></span>AO VIVO <span class="lt" id="bubbleTime">'+liveElapsed(l.startedAt)+'</span>'+
+      '<span class="x encerrar" onclick="event.stopPropagation();endLive()">Encerrar</span>';
+    b.onclick = function(){ openLiveView(); };
+  } else {
+    b.innerHTML = '<span class="dot"></span>Começar agora'+
+      '<span class="x" onclick="event.stopPropagation();closeBubble()">✕</span>';
+    b.onclick = function(){ startLive(); };
+  }
+}
+
+function closeBubble(){ overlayOn = false; var b = document.getElementById('liveBubble'); if(b) b.remove(); }
+
+// "Ativar sobreposição" no Postar: guarda o título e mostra a bolinha.
+function activateOverlay(){
+  if(blockedAction()) return;
+  var t = document.getElementById('liveTitle');
+  liveTitle = (t && t.value.trim()) || ('Live de '+curUser().name);
+  overlayOn = true;
+  paintBubble();
+  showNotif('Sobreposição ativada — toque na bolinha para começar 🔴');
+}
+
+function startLive(){
+  if(blockedAction()) return;
+  var u = curUser();
+  DB.saveLive({id:'live'+Date.now(), userId:u.id, userName:u.name, userPhoto:u.photo, title:liveTitle||('Live de '+u.name), startedAt:Date.now(), viewers:1});
+  overlayOn = true;
+  startLiveTick();
+  view = 'live';
+  render();
+  showNotif('Você está ao vivo 🔴 Já apareceu na Home e no Shorts');
+}
+
+// Encerrar: apertando na bolinha em "Encerrar" (ou no botão da tela da live).
+function endLive(){
+  stopLiveTick();
+  DB.saveLive(null);
+  overlayOn = false;
+  var b = document.getElementById('liveBubble');
+  if(b) b.remove();
+  view = 'home';
+  render();
+  showNotif('Live encerrada 🔴');
+}
+
+// Tela da transmissão ao vivo.
+function renderLive(){
+  var l = DB.live();
+  var u = curUser();
+  if(!l){ view='home'; render(); return; }
+  var owner = getUser(l.userId) || {name:l.userName, photo:l.userPhoto, verifiedType:null, isCreator:false};
+  var mine = l.userId===u.id;
+  var html = '<div class="live-view">'+
+    '<div class="live-top"><span class="live-pill"><span class="dot"></span>AO VIVO</span><span class="live-time" id="liveTime">'+liveElapsed(l.startedAt)+'</span></div>'+
+    '<div class="live-stage">'+
+      '<div class="live-cam">📱</div>'+
+      '<div class="live-note">'+(mine?'Você está transmitindo do Good Look. No APK a sobreposição fica por cima dos outros apps.':'Transmissão de '+escapeHtml(owner.name)+', ao vivo agora.')+'</div>'+
+    '</div>'+
+    '<div class="live-title">'+escapeHtml(l.title)+'</div>'+
+    '<div class="live-sub">'+userNameDisplay(owner)+' · '+l.viewers+' assistindo</div>'+
+    (mine?'<button class="live-end" onclick="endLive()">Encerrar live</button>':'<button class="live-end" style="background:#F97316" onclick="view=\'shorts\';render()">Sair</button>')+
+  '</div>';
+  document.getElementById('app').innerHTML = html;
+}
+
+// No chat com o administrador, quem está banido tem o pedido de desculpas na mão.
+function sendApology(){
+  var u = curUser();
+  var id = adminId();
+  if(!u || !id) return;
+  var msgs = DB.privMsgs();
+  msgs.push({fromId:u.id, toId:id, text:'Desculpe, admin 🙏 Prometo não fazer isso de novo.', ts:Date.now()});
+  DB.savePrivMsgs(msgs);
+  renderPVBPrivate();
+}
+
 // ==================== NOTIFICATIONS ====================
 function showNotif(msg){
   var n = document.getElementById('notif');
@@ -1637,6 +1853,8 @@ window.addEventListener('storage', function(e){
   }
 
   if(!curUser()){ window.location.href='/home'; return; }
+  // Se a página foi recarregada durante uma live, a bolinha volta com ela.
+  if(DB.live()){ overlayOn = true; startLiveTick(); }
   startBots();
   render();
 })();
