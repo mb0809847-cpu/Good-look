@@ -185,6 +185,9 @@ body{background:#000;color:#fff}
 .live-chat:empty{display:none}
 .live-chat .lc{font-size:12.5px;color:#e5e5e5;line-height:1.35}
 .live-chat .lc b{color:#F97316;font-weight:700}
+.live-chat-input{display:flex;gap:8px;margin-bottom:10px}
+.live-chat-input input{flex:1;padding:11px 12px;border-radius:10px;border:1px solid #2a2a2a;background:#141414;color:#fff;font-size:14px;outline:none}
+.live-chat-input button{width:46px;border-radius:10px;border:none;background:#F97316;color:#fff;font-size:16px;cursor:pointer}
 .live-video{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;z-index:0}
 .live-cover .live-pill,.live-cover .live-ctitle,.live-cover .live-cmeta{position:relative;z-index:1}
 .live-cover .live-ctitle,.live-cover .live-cmeta{text-shadow:0 1px 6px rgba(0,0,0,.9)}
@@ -362,7 +365,6 @@ var profileUserId = null;
 var panelTab = 'videos';
 var currentVideoId = null;
 var feedObserver = null;
-var botTimer = null;
 var vdVideoId = null;
 
 // ==================== NAV ====================
@@ -401,10 +403,6 @@ function navigate(v){
 }
 
 function atualizarView(){
-  if(view==='home'){
-    var publicados = DB.videos().filter(function(x){ return x.botPost; }).length;
-    sincronizarPostsBot(publicados+1, true); // atualizar = chega post novo dos bots
-  }
   render();
   showNotif('Atualizado 🔄');
 }
@@ -488,7 +486,7 @@ function preloadNeighbour(el){
 
 // ==================== HOME (feed de vídeos) ====================
 function renderHome(){
-  // Mais novo primeiro: é assim que o post novo dos bots aparece no topo.
+  // Mais novo primeiro: o último vídeo publicado aparece no topo.
   var vids = DB.videos().filter(function(v){return v.type!=='short';}).sort(function(a,b){ return (b.timestamp||0)-(a.timestamp||0); });
   if(vids.length===0 && !DB.live()){
     document.getElementById('app').innerHTML = '<div style="height:100%;display:flex;align-items:center;justify-content:center;color:#666;font-size:16px;text-align:center;padding:20px">Nenhum vídeo ainda.<br>Use o botão "+" para publicar! 🎬</div>';
@@ -1472,7 +1470,7 @@ function publishVideo(){
   }
   desc = document.getElementById('postDesc').value.trim() || 'Sem descrição';
   var vids = DB.videos();
-  var vid = { id:'vid'+Date.now(), userId:u.id, userName:u.name, userPhoto:u.photo, url:url, description:desc, type:type, likes:0, views:0, comments:[], timestamp:Date.now(), likedBy:[], dislikedBy:[], botLikes:0 };
+  var vid = { id:'vid'+Date.now(), userId:u.id, userName:u.name, userPhoto:u.photo, url:url, description:desc, type:type, likes:0, views:0, comments:[], timestamp:Date.now(), likedBy:[], dislikedBy:[] };
   vids.unshift(vid);
   DB.saveVideos(vids);
   postFileUrl = null;
@@ -1594,7 +1592,7 @@ function addFakeComment(){
   var v = vids.find(function(x){return x.id===vidId;});
   if(!v){ showNotif('Vídeo não encontrado'); return; }
   if(!v.comments) v.comments = [];
-  v.comments.push({userId:'bot_'+name, userName:name, text:text, ts:Date.now()});
+  v.comments.push({userId:'fake_'+name, userName:name, text:text, ts:Date.now()});
   DB.saveVideos(vids);
   showNotif('Comentário adicionado! 💬');
 }
@@ -1697,27 +1695,10 @@ var liveMode = 'screen';   // 'screen' = só a tela | 'screenCam' = tela + câme
 var liveWatchId = null;    // qual live está aberta na tela da transmissão
 var chatLiveId = null;     // qual live está recebendo os comentários
 
-// Lives dos outros usuários. O app é estático (não tem servidor), então essas
-// lives são as mesmas para quem abrir o app — igual aos bots que curtem e comentam.
-var simLiveSeeds = [
-  {id:'simlive1', userId:'bot_ana',    userName:'Ana',    title:'Jogando Minecraft ao vivo 🎮', viewers:342},
-  {id:'simlive2', userId:'bot_bruno',  userName:'Bruno',  title:'Desenhando no tablet 🎨',      viewers:128},
-  {id:'simlive3', userId:'bot_camila', userName:'Camila', title:'Batendo papo no Good Look ✨', viewers:57}
-];
-
-function simLives(){
-  var base = Number(localStorage.getItem('gl_simlive_base')||0);
-  if(!base){ base = Date.now(); localStorage.setItem('gl_simlive_base', String(base)); }
-  return simLiveSeeds.map(function(s,i){
-    return {id:s.id, userId:s.userId, userName:s.userName, userPhoto:null, title:s.title,
-            startedAt: base-(i+1)*600000, viewers:s.viewers, sim:true};
-  });
-}
-
-// Todas as lives no ar: a deste aparelho (se houver) + as dos outros usuários.
+// Todas as lives no ar: só as de verdade, feitas por quem está usando o app.
 function livesOnAir(){
   var l = DB.live();
-  return (l ? [l] : []).concat(simLives());
+  return l ? [l] : [];
 }
 
 function findLive(id){
@@ -1728,6 +1709,12 @@ function findLive(id){
 
 function openLiveView(id){
   var l = id ? findLive(id) : (DB.live() || livesOnAir()[0]);
+  var u = curUser();
+  // Entrar na live de outra pessoa conta como um espectador de verdade.
+  if(l && u && l.userId !== u.id){
+    l.viewers = (l.viewers||0) + 1;
+    DB.saveLive(l);
+  }
   liveWatchId = l ? l.id : null;
   view='live';
   render();
@@ -1756,21 +1743,25 @@ function tickLive(){
 function startLiveTick(){ if(liveTimer) clearInterval(liveTimer); liveTimer = setInterval(tickLive, 1000); }
 function stopLiveTick(){ if(liveTimer){ clearInterval(liveTimer); liveTimer = null; } }
 
-// Enquanto a live está no ar, pessoas aleatórias comentam ao vivo.
+// Chat da live: só entra comentário de gente de verdade. Fica guardado no
+// aparelho, então quem abrir a live vê o mesmo chat.
 var liveChat = [];
-var liveChatTimer = null;
-var liveViewers = 1;
 
-function liveComment(){
-  var l = findLive(chatLiveId);
-  if(!l) return;
-  liveChat.push({name:botNames[Math.floor(Math.random()*botNames.length)], text:comentAleatorio()});
-  if(liveChat.length>40) liveChat.shift();
-  liveViewers += 1 + Math.floor(Math.random()*3);
-  l.viewers = liveViewers;
-  if(!l.sim) DB.saveLive(l);
-  var v = document.getElementById('liveViewers');
-  if(v) v.textContent = liveViewers;
+function loadLiveChat(id){
+  if(!id){ liveChat = []; return; }
+  liveChat = (JSON.parse(localStorage.getItem('gl_livechat_'+id)||'[]')||[]).slice(-60);
+}
+
+function sendLiveComment(){
+  var u = curUser();
+  var el = document.getElementById('liveChatInput');
+  var text = el ? el.value.trim() : '';
+  if(!chatLiveId || !u || !text) return;
+  if(checarPalavroes(text)) return;
+  liveChat.push({name:u.name, text:text, ts:Date.now()});
+  if(liveChat.length>60) liveChat = liveChat.slice(-60);
+  localStorage.setItem('gl_livechat_'+chatLiveId, JSON.stringify(liveChat));
+  el.value = '';
   paintLiveChat();
 }
 
@@ -1786,12 +1777,9 @@ function paintLiveChat(){
 function startLiveChat(id){
   var l = findLive(id);
   chatLiveId = l ? l.id : null;
-  liveChat = [];
-  liveViewers = l ? (l.viewers||1) : 1;
-  if(liveChatTimer) clearInterval(liveChatTimer);
-  liveChatTimer = setInterval(liveComment, 3500);
+  loadLiveChat(chatLiveId);
+  paintLiveChat();
 }
-function stopLiveChat(){ if(liveChatTimer){ clearInterval(liveChatTimer); liveChatTimer = null; } }
 
 // Bolinha flutuante: pequena, fica na tela e é ela que começa a gravação.
 function paintBubble(){
@@ -1890,7 +1878,6 @@ function abrirLive(){
   liveWatchId = l.id;
   startLiveTick();
   startLiveChat(l.id);
-  liveComment(); // a primeira mensagem já aparece
   view = 'live';
   render();
   showNotif('Você está ao vivo 🔴 Sua live já está na Home');
@@ -1907,7 +1894,6 @@ function stopCamera(){
 // Encerrar: apertando na bolinha (que abre a tela da live) ou no botão dela.
 function endLive(){
   stopLiveTick();
-  stopLiveChat();
   stopCamera();
   DB.saveLive(null);
   overlayOn = false;
@@ -1941,6 +1927,7 @@ function renderLive(){
       )+
     '</div>'+
     '<div class="live-chat" id="liveChatList"></div>'+
+    '<div class="live-chat-input"><input id="liveChatInput" placeholder="Comentar na live..." onkeydown="if(event.key===\'Enter\')sendLiveComment()"><button onclick="sendLiveComment()">➤</button></div>'+
     '<div class="live-title">'+escapeHtml(l.title)+'</div>'+
     '<div class="live-sub">'+userNameDisplay(owner)+' · <span id="liveViewers">'+l.viewers+'</span> assistindo</div>'+
     (mine?'<button class="live-end" onclick="endLive()">Encerrar live</button>':'<button class="live-end" style="background:#F97316" onclick="view=\'shorts\';render()">Sair</button>')+
@@ -1990,16 +1977,6 @@ function abrirConversa(uid){
   render();
 }
 
-// Mensagens que os bots mandam no privado: giram para não repetir.
-var botDms = ['Oi! Vi seu vídeo e curti muito 😍','Bora fazer uma collab? 🎬','Passando pra mandar um oi 👋','Adorei seu perfil! Segue de volta? 😄','Tô com uma ideia de vídeo top, te conto?','Esse app tá demais, parabéns! 👏','Vim te desejar boa sorte por aqui ✨','Você posta quando o próximo vídeo?'];
-var ultimaDm = -1;
-function dmBot(){
-  var i = Math.floor(Math.random()*botDms.length);
-  if(botDms.length>1 && i===ultimaDm) i = (i+1)%botDms.length;
-  ultimaDm = i;
-  return botDms[i];
-}
-
 // ==================== NOTIFICATIONS ====================
 var notifAction = null, notifTimer = null;
 function showNotif(msg, action){
@@ -2030,184 +2007,26 @@ function scrollChat(id){
   }, 100);
 }
 
-// ==================== BOTS ====================
-var botNames = ['Lucas','Maria','Pedro','Ana','João','Carla','Bruno','Julia','Rafael','Camila','Felipe','Beatriz','Gustavo','Larissa','Diego','Marina','Thiago','Fernanda','Rodrigo','Patrícia'];
-var botComments = ['Muito bom! 😍','Que legal! 🔥','Adorei! ❤️','KKKKK 😂','Top demais! 👏','Sensacional! 🎉','Incrível! ✨','Amei isso! 💖','Hahaha muito bom','Show! 🎬','Mano que vídeo 😂','Que conteúdo bom!','Parabéns! 👏','Sensacional 🔥','Top! 👍','Aí sim! 💪','Não parei de rir 😂','Que edição é essa?! 🔥','Melhor vídeo da semana 🏆','Já é o meu favorito 💖','Que aula! 👏','Salvando pra ver de novo 🔖','Isso merece mais views 📈','Como você fez isso?! 😳','Chegou primeiro que todos 🥇','Chorei aqui 😭','Que trilha sonora 🎵','Vim pelo algoritmo e valeu 🎯','Sem palavras ✨','Muito bom mesmo 😄'];
-
-// Comentário sorteado sem repetir o último que saiu.
-var ultimoComent = -1;
-function comentAleatorio(){
-  var i = Math.floor(Math.random()*botComments.length);
-  if(botComments.length>1 && i===ultimoComent) i = (i+1)%botComments.length;
-  ultimoComent = i;
-  return botComments[i];
-}
-
-// Os bots são os usuários do app: eles postam (anime, jogos, comédia e IA), têm
-// perfil, ganham seguidores, curtem e comentam. São iguais para quem abrir o app,
-// porque o app é estático: o feed é montado aqui, sempre na mesma ordem.
-var SAMPLES = ['videos/bunny.mp4','videos/jellyfish.mp4','videos/sintel.mp4','videos/flower.mp4','videos/friday.mp4','videos/onda.mp4'];
-
-// Ninguém aqui tem selo azul (é só do criador): quem passa de 100 mil seguidores
-// ganha o laranja (Julia e Bruno já estão lá).
-var BOT_PERFIS = [
-  {name:'Ana',     user:'ana',     bio:'🌸 Só anime e mangá por aqui. Novidade toda semana!', followers:48600},
-  {name:'Bruno',   user:'bruno',   bio:'🎮 Gameplay todo dia. Top global no ranqueado!',      followers:112300},
-  {name:'Camila',  user:'camila',  bio:'😂 Humor, pegadinha e zoeira sem fim.',              followers:12900},
-  {name:'Diego',   user:'diego',   bio:'🤖 Faço vídeo com IA. Prompt é a nova arte.',         followers:9800},
-  {name:'Julia',   user:'julia',   bio:'⚔️ Anime, teoria e edit. Demon Slayer até morrer.',    followers:128400},
-  {name:'Rafael',  user:'rafael',  bio:'🕹️ Games retrô e lançamento. Senta e joga.',          followers:7600},
-  {name:'Larissa', user:'larissa', bio:'💅 Vida real, comédia e conselho aleatório.',         followers:21300},
-  {name:'Thiago',  user:'thiago',  bio:'🎬 IA, edição e efeito. O futuro chegou.',            followers:15600},
-  {name:'Paula',   user:'paula',   bio:'🍝 Receita rápida, doce e jantar de 15 minutos.',     followers:54300},
-  {name:'Vitor',   user:'vitor',   bio:'🐶 Meu cachorro manda mais que eu. Pet todo dia.',    followers:87200},
-  {name:'Bianca',  user:'bianca',  bio:'✈️ Viagem barata, praia e dica de mala.',             followers:33400},
-  {name:'Igor',    user:'igor',    bio:'💃 Dança, coreografia e trend nova.',                 followers:61100},
-  {name:'Sabrina', user:'sabrina', bio:'💄 Maquiagem, cabelo e look do dia.',                 followers:27800},
-  {name:'Caio',    user:'caio',    bio:'⚽ Futebol, treino e jogada de rua.',                 followers:41500}
-];
-
-// Cada post tem legenda própria e o clipe vem do clipeDoPost: nunca o mesmo dos 5
-// posts anteriores nem um clipe que o próprio bot já usou. São 42 posts (vídeos e
-// shorts de vários tipos) e nada se repete: nem legenda, nem post, nem clipe perto.
-// Os 8 primeiros dão um post para cada bot (o perfil deles nunca fica vazio).
-var BOT_POSTS = [
-  {bot:'julia',   desc:'Top 5 aberturas de anime que marcaram época 🌸⚔️',      tipo:'video', m:0, likes:8420,  views:91200},
-  {bot:'bruno',   desc:'TOP GLOBAL no jogo mais difícil! 🏆',                   tipo:'video', m:1, likes:5210,  views:74500},
-  {bot:'camila',  desc:'Quando o WiFi cai no meio do vídeo 😂',                 tipo:'video', m:2, likes:3980,  views:52300},
-  {bot:'thiago',  desc:'Fiz um vídeo inteiro com IA 🤖✨',                       tipo:'video', m:3, likes:2760,  views:39800},
-  {bot:'ana',     desc:'Esse final de anime me destruiu 😭',                    tipo:'short', m:4, likes:6140,  views:66100},
-  {bot:'rafael',  desc:'Meu melhor clutch na ranqueada 🔥',                     tipo:'video', m:5, likes:3390,  views:44700},
-  {bot:'larissa', desc:'POV: você acorda atrasado pra aula 🤡',                 tipo:'video', m:0, likes:8120,  views:103400},
-  {bot:'diego',   desc:'A IA desenhou meu sonho e deu isso 😳',                 tipo:'video', m:1, likes:980,   views:12200},
-  {bot:'julia',   desc:'Anime edit que ficou insano ⚡',                         tipo:'short', m:2, likes:1420,  views:18700},
-  {bot:'camila',  desc:'Pegadinha com IA deu ruim 😂',                          tipo:'short', m:3, likes:1730,  views:21400},
-  {bot:'bruno',   desc:'Clutch de 15 segundos no ranqueado 🎮',                  tipo:'short', m:4, likes:2260,  views:31200},
-  {bot:'ana',     desc:'Teoria: quem é o verdadeiro vilão do anime 👀',         tipo:'video', m:5, likes:7310,  views:84900},
-  {bot:'diego',   desc:'Criei um anime inteiro com IA 🤯',                      tipo:'video', m:0, likes:4120,  views:57600},
-  {bot:'larissa', desc:'Ninguém merece segunda-feira 😂',                       tipo:'video', m:1, likes:9460,  views:118300},
-  {bot:'julia',   desc:'Ranking dos animes mais tristes de todos os tempos 💔', tipo:'video', m:3, likes:10520, views:132700},
-  {bot:'bruno',   desc:'Zerei o jogo em 100% sem morrer nenhuma vez 🏅',         tipo:'video', m:2, likes:6380,  views:79400},
-  {bot:'camila',  desc:'Meu irmão tentando cozinhar por 3 minutos 🤣',           tipo:'video', m:4, likes:11240, views:141900},
-  {bot:'thiago',  desc:'Fiz a IA dublar minha voz e ficou perfeito 🎙️🤖',       tipo:'video', m:5, likes:3470,  views:49800},
-  {bot:'rafael',  desc:'Aquele headshot impossível 🎯',                         tipo:'short', m:0, likes:1890,  views:24600},
-  {bot:'larissa', desc:'Reagindo ao meu próprio vídeo antigo 😂',                tipo:'short', m:3, likes:2610,  views:33700},
-  {bot:'ana',     desc:'Os 3 animes que todo mundo precisa ver uma vez 📺',      tipo:'video', m:1, likes:8870,  views:107600},
-  {bot:'thiago',  desc:'Pedi para a IA criar meu retrato e ela me zoou 😅',      tipo:'video', m:2, likes:5240,  views:68400},
-  {bot:'rafael',  desc:'Speedrun perfeito do começo ao fim ⏱️',                 tipo:'video', m:4, likes:4380,  views:55900},
-  {bot:'diego',   desc:'A IA imitando meu cachorro ficou real demais 🐶🤖',      tipo:'short', m:5, likes:3170,  views:42100},
-  {bot:'paula',   desc:'Receita de 3 ingredientes que salva o jantar 🍝',       tipo:'short', likes:12800, views:164000},
-  {bot:'vitor',   desc:'Meu cachorro descobriu o espelho 🐶',                   tipo:'short', likes:15600, views:198000},
-  {bot:'bianca',  desc:'Praia escondida que quase ninguém conhece 🏖️',          tipo:'video', likes:7400,  views:96300},
-  {bot:'igor',    desc:'Trend nova dançada do jeito certo 💃',                  tipo:'short', likes:11200, views:151000},
-  {bot:'sabrina', desc:'Maquiagem de 5 minutos pro dia a dia 💄',               tipo:'video', likes:5300,  views:71400},
-  {bot:'caio',    desc:'Gol de bicicleta na pelada de domingo ⚽',              tipo:'video', likes:9800,  views:127500},
-  {bot:'paula',   desc:'Almoço inteiro em uma panela só 🥘',                    tipo:'video', likes:14200, views:183000},
-  {bot:'vitor',   desc:'Banho no cachorro: reação inesquecível 🛁🐕',            tipo:'video', likes:19400, views:241000},
-  {bot:'igor',    desc:'Coreografia que eu inventei na cozinha 🕺',             tipo:'video', likes:8700,  views:112000},
-  {bot:'bianca',  desc:'Dica de mala: caber 7 dias na mochila 🎒',              tipo:'short', likes:6100,  views:79600},
-  {bot:'sabrina', desc:'Cabelo liso sem chapinha em 6 minutos ✨',              tipo:'short', likes:4900,  views:65300},
-  {bot:'caio',    desc:'Treino de finalização que dá resultado ⚽🔥',           tipo:'short', likes:7800,  views:103000},
-  {bot:'paula',   desc:'Sobremesa de 4 minutos no micro-ondas 🍫',              tipo:'short', likes:16900, views:212000},
-  {bot:'vitor',   desc:'Ele aprendeu a pedir petisco sozinho 🐾',               tipo:'short', likes:21500, views:268000},
-  {bot:'bianca',  desc:'Roteiro de 3 dias gastando pouco 🗺️',                  tipo:'video', likes:5400,  views:72800},
-  {bot:'igor',    desc:'Passei a trend pro meu irmão e olha o resultado 😂',    tipo:'short', likes:10300, views:139000},
-  {bot:'sabrina', desc:'Look do dia: casual, confortável e barato 👗',          tipo:'video', likes:6300,  views:82100},
-  {bot:'caio',    desc:'Analisando o lance mais polêmico do jogo 📺',           tipo:'video', likes:8900,  views:117000}
-];
-
-function semearBots(){
-  var users = DB.users();
-  var mudou = false;
-  BOT_PERFIS.forEach(function(b){
-    var x = users.find(function(u){ return u.username===b.user; });
-    if(!x){
-      users.push({id:'bot_'+b.user, name:b.name, username:b.user, password:'bot_'+b.user, photo:null, bio:b.bio,
-        followers:b.followers, following:[], likes:0, verified:false, verifiedType:null,
-        isCreator:false, isAdmin:false, banned:false, banUntil:null, savedVideos:[]});
-      mudou = true;
-    } else if((x.followers||0) < b.followers){ // seguidores dos bots só crescem
-      x.followers = b.followers;
-      mudou = true;
+// ==================== SEM BOTS ====================
+// O app é de gente de verdade: nenhum bot posta, curte, comenta, ganha seguidor
+// ou manda mensagem. Aqui a gente só apaga o que as versões antigas gravaram.
+function limparBots(){
+  var users = DB.users().filter(function(u){ return String(u.id||'').indexOf('bot_') !== 0; });
+  users.forEach(function(u){
+    // O selo azul é só do criador: tira de todo mundo.
+    if(!u.isCreator && u.username!=='tex_tt' && (u.verified || u.verifiedType)){ u.verified = false; u.verifiedType = null; }
+  });
+  DB.saveUsers(users);
+  var vids = DB.videos().filter(function(v){
+    return !v.botPost && String(v.userId||'').indexOf('bot_') !== 0;
+  });
+  vids.forEach(function(v){
+    if(v.comments && v.comments.length){
+      v.comments = v.comments.filter(function(c){ return String(c.userId||'').indexOf('bot_') !== 0; });
     }
   });
-  // O selo azul é só do criador: tira de todo mundo.
-  users.forEach(function(u){
-    if(!u.isCreator && u.username!=='tex_tt' && (u.verified || u.verifiedType)){ u.verified = false; u.verifiedType = null; mudou = true; }
-  });
-  if(mudou) DB.saveUsers(users);
-  sincronizarPostsBot(30, false);
-}
-
-// Garante que os primeiros "n" posts dos bots estão no feed.
-function sincronizarPostsBot(alvo, novo){
-  var vids = DB.videos();
-  var tem = vids.filter(function(v){ return v.botPost; }).length;
-  var mudou = false;
-  for(var i=tem; i<alvo && i<BOT_POSTS.length; i++){
-    vids.push(criarPostBot(i, novo));
-    mudou = true;
-  }
-  if(mudou) DB.saveVideos(vids);
-  // Devolve cada clipe, legenda e horário ao lugar da lista: assim o feed sai na
-  // mesma ordem para todo mundo e nenhum clipe volta antes de 5 posts.
-  var todos = DB.videos(), corrigiu = false, base = Date.now();
-  todos.forEach(function(v){
-    if(!v.botPost) return;
-    var idx = parseInt(v.id.replace('bp',''),10) - 1;
-    var b = BOT_POSTS[idx];
-    if(!b) return;
-    var clipe = clipeDoPost(idx);
-    if(v.url !== SAMPLES[clipe]){ v.url = SAMPLES[clipe]; corrigiu = true; }
-    if(v.type !== b.tipo){ v.type = b.tipo; corrigiu = true; }
-    if(v.description !== b.desc){ v.description = b.desc; corrigiu = true; }
-    var ts = base - (BOT_POSTS.length - idx) * 420000; // 7 min entre um post e outro
-    if(Math.abs((v.timestamp||0) - ts) > 60000){ v.timestamp = ts; corrigiu = true; }
-  });
-  if(corrigiu) DB.saveVideos(todos);
-  return mudou;
-}
-
-// O clipe de cada post sai da pasta de vídeos: nunca o mesmo dos 5 posts
-// anteriores e nunca um clipe que o próprio bot já usou. Colocando mais vídeos na
-// pasta (e na lista SAMPLES), a variedade cresce sozinha.
-function clipeDoPost(idx){
-  var p = BOT_POSTS[idx];
-  if(typeof p.clip === 'number') return p.clip;
-  if(typeof p.m === 'number'){ p.clip = p.m; return p.clip; }
-  var clips = [], meus = [], i, c;
-  for(i = 0; i < idx; i++){
-    c = clipeDoPost(i);
-    clips.push(c);
-    if(BOT_POSTS[i].bot === p.bot) meus.push(c); // o que o próprio bot já usou
-  }
-  // Primeiro tenta o clipe mais distante (5 posts); se não sobrar nenhum livre,
-  // abre um pouco a distância, mas nunca repete um clipe do próprio bot.
-  c = clipeLivre(clips, meus, 5);
-  if(c < 0) c = clipeLivre(clips, meus, 3);
-  if(c < 0) c = clipeLivre(clips, meus, 1);
-  if(c < 0) c = idx % SAMPLES.length;
-  p.clip = c;
-  return c;
-}
-
-// Primeiro clipe que não saiu nos últimos "janela" posts e que o bot ainda não usou.
-function clipeLivre(clips, meus, janela){
-  var recentes = janela > 0 ? clips.slice(-janela) : [];
-  for(var i=0; i<SAMPLES.length; i++){
-    if(meus.indexOf(i) >= 0) continue;
-    if(recentes.indexOf(i) >= 0) continue;
-    return i;
-  }
-  return -1;
-}
-
-function criarPostBot(i, novo){
-  var b = BOT_POSTS[i];
-  var bot = DB.users().find(function(u){ return u.username===b.bot; });
-  return {id:'bp'+(i+1), userId:bot.id, userName:bot.name, userPhoto:null, url:SAMPLES[clipeDoPost(i)], description:b.desc,
-    type:b.tipo, likes:b.likes, views:b.views, comments:[], timestamp:(novo?Date.now():Date.now()-(i+1)*11*60000),
-    likedBy:[], dislikedBy:[], botLikes:0, botPost:true};
+  DB.saveVideos(vids);
+  DB.savePrivMsgs(DB.privMsgs().filter(function(m){ return String(m.fromId||'').indexOf('bot_') !== 0; }));
 }
 
 // ==================== PALAVRÕES ====================
@@ -2251,78 +2070,13 @@ function checarPalavroes(text){
   return false;
 }
 
-var botTick = 0;
-function startBots(){
-  if(botTimer) clearInterval(botTimer);
-  botTimer = setInterval(function(){
-    botTick++;
-    var vids = DB.videos();
-    if(vids.length===0) return;
-    // Like 1-2 random videos
-    var n = 1 + Math.floor(Math.random()*2);
-    var changed = false;
-    for(var i=0; i<n; i++){
-      var v = vids[Math.floor(Math.random()*vids.length)];
-      v.likes = (v.likes||0) + 1;
-      v.botLikes = (v.botLikes||0) + 1;
-      changed = true;
-    }
-    // Occasionally add a comment
-    if(Math.random() < 0.3){
-      var v2 = vids[Math.floor(Math.random()*vids.length)];
-      if(!v2.comments) v2.comments = [];
-      var bn = botNames[Math.floor(Math.random()*botNames.length)];
-      var bc = comentAleatorio();
-      v2.comments.push({userId:'bot_'+bn, userName:bn, text:bc, ts:Date.now()});
-      changed = true;
-    }
-    if(changed){
-      DB.saveVideos(vids);
-      // If on home, update counts without full re-render
-      if(view==='shorts'){
-        var slides = document.querySelectorAll('.video-slide');
-        slides.forEach(function(s){
-          var vid = s.dataset.vid;
-          var vd = vids.find(function(x){return x.id===vid;});
-          if(vd){
-            var cnt = s.querySelector('.vbtn .count');
-            if(cnt) cnt.textContent = fmt(vd.likes||0);
-          }
-        });
-      }
-    }
-    // De vez em quando um bot manda mensagem privada (o aviso aparece no topo).
-    var euAgora = curUser();
-    if(euAgora && !isBanned(euAgora) && Math.random() < 0.08){
-      var botsU = DB.users().filter(function(x){ return !!x.id && x.id.indexOf('bot_') === 0; });
-      if(botsU.length){
-        var de = botsU[Math.floor(Math.random()*botsU.length)];
-        var pmsgs = DB.privMsgs();
-        pmsgs.push({fromId:de.id, toId:euAgora.id, text:dmBot(), ts:Date.now()});
-        DB.savePrivMsgs(pmsgs);
-      }
-    }
-    checarMensagensNovas();
-    // De vez em quando os bots crescem: ganham seguidores e soltam post novo.
-    if(botTick % 5 === 0){
-      var bu = DB.users(), mudouU = false;
-      BOT_PERFIS.forEach(function(b){
-        var x = bu.find(function(u){ return u.username===b.user; });
-        if(x && Math.random() < 0.4){ x.followers = (x.followers||0) + 1 + Math.floor(Math.random()*40); mudouU = true; }
-      });
-      if(mudouU) DB.saveUsers(bu);
-      var pub = DB.videos().filter(function(x){ return x.botPost; }).length;
-      sincronizarPostsBot(pub+1, true);
-    }
-  }, 3000);
-}
-
 // ==================== STORAGE SYNC ====================
 window.addEventListener('storage', function(e){
   if(e.key==='gl_pubmsg' && view==='pvb' && pvbView==='public') renderPVBPublic();
   if(e.key==='gl_privmsg' && view==='pvb' && pvbView==='private') renderPVBPrivate();
   if(e.key==='gl_videos' && view==='home') renderHome();
   if(e.key==='gl_videos' && view==='shorts') renderShorts();
+  if(chatLiveId && e.key==='gl_livechat_'+chatLiveId && view==='live'){ loadLiveChat(chatLiveId); paintLiveChat(); }
 });
 
 // ==================== INIT ====================
@@ -2338,17 +2092,17 @@ window.addEventListener('storage', function(e){
     creator.password = '12345678910';
     DB.saveUsers(users);
   }
-  // Os clipes ficam na pasta do site (caminho relativo: funciona no Netlify, no
-  // GitHub Pages e no APK). Os vídeos de exemplo antigos saem do ar: quem publica
-  // na Home e no Shorts agora é a comunidade de bots.
+  // Os vídeos de exemplo antigos saem do banco: quem publica na Home e no Shorts
+  // são as pessoas de verdade que usam o app.
   var vids = DB.videos().filter(function(v){ return ['v0','v1','v2','s0','s1','s2'].indexOf(v.id)<0; });
   DB.saveVideos(vids);
-  semearBots();
+  limparBots();
 
   if(!curUser()){ window.location.href='home.html'; return; }
   // Se a página foi recarregada durante uma live, a bolinha volta com ela.
   if(DB.live()){ overlayOn = true; startLiveTick(); }
-  startBots();
+  // Só checa mensagem de gente de verdade chegando: nenhum bot roda por aqui.
+  setInterval(checarMensagensNovas, 3000);
   render();
 })();
 </script>

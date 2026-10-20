@@ -71,8 +71,8 @@
         creator.password = '12345678910';
         localStorage.setItem('gl_users', JSON.stringify(users));
       }
-      // Os vídeos de exemplo saíram do ar: quem publica na Home e no Shorts é a
-      // comunidade de bots, montada no app.html.
+      // Os vídeos de exemplo saíram do ar: quem publica na Home e no Shorts são
+      // as pessoas de verdade que usam o app.
       var vids = JSON.parse(localStorage.getItem('gl_videos') || '[]').filter(function(v){ return ['v0','v1','v2','s0','s1','s2'].indexOf(v.id)<0; });
       localStorage.setItem('gl_videos', JSON.stringify(vids));
       // Auto-login
