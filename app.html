@@ -59,6 +59,7 @@ body{background:#000;color:#fff}
 .pvb-tab.active{color:#F97316;border-bottom-color:#F97316}
 .user-list{flex:1;overflow-y:auto}
 .user-row{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;border-bottom:1px solid #1a1a1a}
+.ban-tag{font-size:10px;font-weight:700;color:#fff;background:#e11900;border-radius:6px;padding:1px 6px;vertical-align:middle}
 .user-row:active{background:#1a1a1a}
 .user-row .ava{width:44px;height:44px;border-radius:50%;background:#333;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#666;font-size:18px}
 .user-row .ava img{width:100%;height:100%;object-fit:cover}
@@ -294,7 +295,7 @@ body{background:#000;color:#fff}
 <body>
 <div id="app"></div>
 <div id="nav"></div>
-<div class="notif" id="notif" onclick="this.classList.remove('show')"></div>
+<div class="notif" id="notif" onclick="notifClick()"></div>
 
 <script>
 // ==================== DATA LAYER ====================
@@ -1075,7 +1076,14 @@ function renderPVB(){
 }
 
 function renderPVBList(){
-  var users = DB.users().filter(function(u){return u.id!==curUser().id;});
+  var eu = curUser();
+  var souCriador = !!(eu.isCreator || eu.isAdmin);
+  // A lista abre em tela cheia com todo mundo; quem está banido só o criador vê.
+  var users = DB.users().filter(function(u){
+    if(u.id === eu.id) return false;
+    if(!souCriador && isBanned(u)) return false;
+    return true;
+  });
   var html = '<div class="chat-view">'+
     '<div class="chat-header"><div class="title">💬 PVB</div></div>'+
     '<div class="pvb-tabs">'+
@@ -1087,7 +1095,7 @@ function renderPVBList(){
       users.map(function(u){
         return '<div class="user-row" onclick="startPrivateChat(\''+u.id+'\')">'+
           avatarHtml(u)+
-          '<div class="info"><div class="n">'+userNameDisplay(u)+'</div><div class="s">'+(u.bio||'Sem bio')+'</div></div>'+
+          '<div class="info"><div class="n">'+userNameDisplay(u)+(isBanned(u)?' <span class="ban-tag">banido</span>':'')+'</div><div class="s">'+(u.bio||'Sem bio')+'</div></div>'+
           '<div class="acts"><button class="pbtn" onclick="event.stopPropagation();viewProfile(\''+u.id+'\')">Perfil</button><button class="cbtn" onclick="event.stopPropagation();startPrivateChat(\''+u.id+'\')">Conversar</button></div>'+
         '</div>';
       }).join(''))+
@@ -1954,12 +1962,64 @@ function sendApology(){
   renderPVBPrivate();
 }
 
+// ==================== MENSAGENS RECEBIDAS ====================
+// Chegou mensagem privada? Aparece um aviso no topo com o nome de quem mandou
+// (de quem está banido também) e, tocando nele, abre a conversa com a pessoa.
+function checarMensagensNovas(){
+  var u = curUser();
+  if(!u || isBanned(u)) return;
+  var msgs = DB.privMsgs().filter(function(m){ return m.toId===u.id && !m.sys; });
+  if(!msgs.length) return;
+  var ultima = msgs[msgs.length-1];
+  var chave = 'gl_msgvista_'+u.id;
+  var visto = parseInt(localStorage.getItem(chave) || '0', 10);
+  if(!ultima.ts || ultima.ts <= visto) return;
+  localStorage.setItem(chave, String(ultima.ts));
+  // Se já estou na conversa com essa pessoa, não preciso de aviso.
+  if(view==='pvb' && pvbView==='private' && pvbChatUser===ultima.fromId) return;
+  var quem = getUser(ultima.fromId);
+  var nome = quem ? quem.name : 'Alguém';
+  var id = ultima.fromId;
+  showNotif('💬 '+nome+' te mandou mensagem'+(quem && isBanned(quem)?' · banido 🚫':''), function(){ abrirConversa(id); });
+}
+
+function abrirConversa(uid){
+  pvbChatUser = uid;
+  pvbView = 'private';
+  view = 'pvb';
+  render();
+}
+
+// Mensagens que os bots mandam no privado: giram para não repetir.
+var botDms = ['Oi! Vi seu vídeo e curti muito 😍','Bora fazer uma collab? 🎬','Passando pra mandar um oi 👋','Adorei seu perfil! Segue de volta? 😄','Tô com uma ideia de vídeo top, te conto?','Esse app tá demais, parabéns! 👏','Vim te desejar boa sorte por aqui ✨','Você posta quando o próximo vídeo?'];
+var ultimaDm = -1;
+function dmBot(){
+  var i = Math.floor(Math.random()*botDms.length);
+  if(botDms.length>1 && i===ultimaDm) i = (i+1)%botDms.length;
+  ultimaDm = i;
+  return botDms[i];
+}
+
 // ==================== NOTIFICATIONS ====================
-function showNotif(msg){
+var notifAction = null, notifTimer = null;
+function showNotif(msg, action){
   var n = document.getElementById('notif');
   n.textContent = msg;
+  notifAction = action || null;
   n.classList.add('show');
-  setTimeout(function(){ n.classList.remove('show'); }, 3000);
+  if(notifTimer) clearTimeout(notifTimer);
+  // O aviso de mensagem fica no topo até você tocar nele; os outros somem sozinhos.
+  notifTimer = action ? null : setTimeout(function(){ n.classList.remove('show'); }, 3000);
+}
+
+// Tocar no aviso abre a conversa de quem mandou a mensagem.
+function notifClick(){
+  var n = document.getElementById('notif');
+  n.classList.remove('show');
+  if(notifTimer) clearTimeout(notifTimer);
+  var acao = notifAction;
+  notifAction = null;
+  if(acao) acao();
 }
 
 // ==================== SCROLL HELPER ====================
@@ -1998,12 +2058,18 @@ var BOT_PERFIS = [
   {name:'Julia',   user:'julia',   bio:'⚔️ Anime, teoria e edit. Demon Slayer até morrer.',    followers:128400},
   {name:'Rafael',  user:'rafael',  bio:'🕹️ Games retrô e lançamento. Senta e joga.',          followers:7600},
   {name:'Larissa', user:'larissa', bio:'💅 Vida real, comédia e conselho aleatório.',         followers:21300},
-  {name:'Thiago',  user:'thiago',  bio:'🎬 IA, edição e efeito. O futuro chegou.',            followers:15600}
+  {name:'Thiago',  user:'thiago',  bio:'🎬 IA, edição e efeito. O futuro chegou.',            followers:15600},
+  {name:'Paula',   user:'paula',   bio:'🍝 Receita rápida, doce e jantar de 15 minutos.',     followers:54300},
+  {name:'Vitor',   user:'vitor',   bio:'🐶 Meu cachorro manda mais que eu. Pet todo dia.',    followers:87200},
+  {name:'Bianca',  user:'bianca',  bio:'✈️ Viagem barata, praia e dica de mala.',             followers:33400},
+  {name:'Igor',    user:'igor',    bio:'💃 Dança, coreografia e trend nova.',                 followers:61100},
+  {name:'Sabrina', user:'sabrina', bio:'💄 Maquiagem, cabelo e look do dia.',                 followers:27800},
+  {name:'Caio',    user:'caio',    bio:'⚽ Futebol, treino e jogada de rua.',                 followers:41500}
 ];
 
-// Cada post tem legenda própria (24 legendas diferentes) e o clipe sai de um ciclo
-// que só fecha na 6ª vez: o mesmo clipe nunca volta antes de 5 posts, nenhum bot
-// repete clipe no próprio perfil e nenhuma legenda se repete.
+// Cada post tem legenda própria e o clipe vem do clipeDoPost: nunca o mesmo dos 5
+// posts anteriores nem um clipe que o próprio bot já usou. São 42 posts (vídeos e
+// shorts de vários tipos) e nada se repete: nem legenda, nem post, nem clipe perto.
 // Os 8 primeiros dão um post para cada bot (o perfil deles nunca fica vazio).
 var BOT_POSTS = [
   {bot:'julia',   desc:'Top 5 aberturas de anime que marcaram época 🌸⚔️',      tipo:'video', m:0, likes:8420,  views:91200},
@@ -2029,7 +2095,25 @@ var BOT_POSTS = [
   {bot:'ana',     desc:'Os 3 animes que todo mundo precisa ver uma vez 📺',      tipo:'video', m:1, likes:8870,  views:107600},
   {bot:'thiago',  desc:'Pedi para a IA criar meu retrato e ela me zoou 😅',      tipo:'video', m:2, likes:5240,  views:68400},
   {bot:'rafael',  desc:'Speedrun perfeito do começo ao fim ⏱️',                 tipo:'video', m:4, likes:4380,  views:55900},
-  {bot:'diego',   desc:'A IA imitando meu cachorro ficou real demais 🐶🤖',      tipo:'short', m:5, likes:3170,  views:42100}
+  {bot:'diego',   desc:'A IA imitando meu cachorro ficou real demais 🐶🤖',      tipo:'short', m:5, likes:3170,  views:42100},
+  {bot:'paula',   desc:'Receita de 3 ingredientes que salva o jantar 🍝',       tipo:'short', likes:12800, views:164000},
+  {bot:'vitor',   desc:'Meu cachorro descobriu o espelho 🐶',                   tipo:'short', likes:15600, views:198000},
+  {bot:'bianca',  desc:'Praia escondida que quase ninguém conhece 🏖️',          tipo:'video', likes:7400,  views:96300},
+  {bot:'igor',    desc:'Trend nova dançada do jeito certo 💃',                  tipo:'short', likes:11200, views:151000},
+  {bot:'sabrina', desc:'Maquiagem de 5 minutos pro dia a dia 💄',               tipo:'video', likes:5300,  views:71400},
+  {bot:'caio',    desc:'Gol de bicicleta na pelada de domingo ⚽',              tipo:'video', likes:9800,  views:127500},
+  {bot:'paula',   desc:'Almoço inteiro em uma panela só 🥘',                    tipo:'video', likes:14200, views:183000},
+  {bot:'vitor',   desc:'Banho no cachorro: reação inesquecível 🛁🐕',            tipo:'video', likes:19400, views:241000},
+  {bot:'igor',    desc:'Coreografia que eu inventei na cozinha 🕺',             tipo:'video', likes:8700,  views:112000},
+  {bot:'bianca',  desc:'Dica de mala: caber 7 dias na mochila 🎒',              tipo:'short', likes:6100,  views:79600},
+  {bot:'sabrina', desc:'Cabelo liso sem chapinha em 6 minutos ✨',              tipo:'short', likes:4900,  views:65300},
+  {bot:'caio',    desc:'Treino de finalização que dá resultado ⚽🔥',           tipo:'short', likes:7800,  views:103000},
+  {bot:'paula',   desc:'Sobremesa de 4 minutos no micro-ondas 🍫',              tipo:'short', likes:16900, views:212000},
+  {bot:'vitor',   desc:'Ele aprendeu a pedir petisco sozinho 🐾',               tipo:'short', likes:21500, views:268000},
+  {bot:'bianca',  desc:'Roteiro de 3 dias gastando pouco 🗺️',                  tipo:'video', likes:5400,  views:72800},
+  {bot:'igor',    desc:'Passei a trend pro meu irmão e olha o resultado 😂',    tipo:'short', likes:10300, views:139000},
+  {bot:'sabrina', desc:'Look do dia: casual, confortável e barato 👗',          tipo:'video', likes:6300,  views:82100},
+  {bot:'caio',    desc:'Analisando o lance mais polêmico do jogo 📺',           tipo:'video', likes:8900,  views:117000}
 ];
 
 function semearBots(){
@@ -2052,7 +2136,7 @@ function semearBots(){
     if(!u.isCreator && u.username!=='tex_tt' && (u.verified || u.verifiedType)){ u.verified = false; u.verifiedType = null; mudou = true; }
   });
   if(mudou) DB.saveUsers(users);
-  sincronizarPostsBot(8, false);
+  sincronizarPostsBot(30, false);
 }
 
 // Garante que os primeiros "n" posts dos bots estão no feed.
@@ -2073,7 +2157,8 @@ function sincronizarPostsBot(alvo, novo){
     var idx = parseInt(v.id.replace('bp',''),10) - 1;
     var b = BOT_POSTS[idx];
     if(!b) return;
-    if(v.url !== SAMPLES[b.m]){ v.url = SAMPLES[b.m]; corrigiu = true; }
+    var clipe = clipeDoPost(idx);
+    if(v.url !== SAMPLES[clipe]){ v.url = SAMPLES[clipe]; corrigiu = true; }
     if(v.type !== b.tipo){ v.type = b.tipo; corrigiu = true; }
     if(v.description !== b.desc){ v.description = b.desc; corrigiu = true; }
     var ts = base - (BOT_POSTS.length - idx) * 420000; // 7 min entre um post e outro
@@ -2083,10 +2168,44 @@ function sincronizarPostsBot(alvo, novo){
   return mudou;
 }
 
+// O clipe de cada post sai da pasta de vídeos: nunca o mesmo dos 5 posts
+// anteriores e nunca um clipe que o próprio bot já usou. Colocando mais vídeos na
+// pasta (e na lista SAMPLES), a variedade cresce sozinha.
+function clipeDoPost(idx){
+  var p = BOT_POSTS[idx];
+  if(typeof p.clip === 'number') return p.clip;
+  if(typeof p.m === 'number'){ p.clip = p.m; return p.clip; }
+  var clips = [], meus = [], i, c;
+  for(i = 0; i < idx; i++){
+    c = clipeDoPost(i);
+    clips.push(c);
+    if(BOT_POSTS[i].bot === p.bot) meus.push(c); // o que o próprio bot já usou
+  }
+  // Primeiro tenta o clipe mais distante (5 posts); se não sobrar nenhum livre,
+  // abre um pouco a distância, mas nunca repete um clipe do próprio bot.
+  c = clipeLivre(clips, meus, 5);
+  if(c < 0) c = clipeLivre(clips, meus, 3);
+  if(c < 0) c = clipeLivre(clips, meus, 1);
+  if(c < 0) c = idx % SAMPLES.length;
+  p.clip = c;
+  return c;
+}
+
+// Primeiro clipe que não saiu nos últimos "janela" posts e que o bot ainda não usou.
+function clipeLivre(clips, meus, janela){
+  var recentes = janela > 0 ? clips.slice(-janela) : [];
+  for(var i=0; i<SAMPLES.length; i++){
+    if(meus.indexOf(i) >= 0) continue;
+    if(recentes.indexOf(i) >= 0) continue;
+    return i;
+  }
+  return -1;
+}
+
 function criarPostBot(i, novo){
   var b = BOT_POSTS[i];
   var bot = DB.users().find(function(u){ return u.username===b.bot; });
-  return {id:'bp'+(i+1), userId:bot.id, userName:bot.name, userPhoto:null, url:SAMPLES[b.m], description:b.desc,
+  return {id:'bp'+(i+1), userId:bot.id, userName:bot.name, userPhoto:null, url:SAMPLES[clipeDoPost(i)], description:b.desc,
     type:b.tipo, likes:b.likes, views:b.views, comments:[], timestamp:(novo?Date.now():Date.now()-(i+1)*11*60000),
     likedBy:[], dislikedBy:[], botLikes:0, botPost:true};
 }
@@ -2127,8 +2246,8 @@ function checarPalavroes(text){
     render();
     return true;
   }
+  // O contador fica em silêncio: ninguém vê o aviso de palavrão, mas o ban continua valendo.
   DB.saveUsers(users);
-  showNotif('Palavrão contado ('+x.palavroes+'/'+LIMITE_PALAVROES+') — ao chegar em '+LIMITE_PALAVROES+' você toma ban de 24h 🚫');
   return false;
 }
 
@@ -2172,6 +2291,18 @@ function startBots(){
         });
       }
     }
+    // De vez em quando um bot manda mensagem privada (o aviso aparece no topo).
+    var euAgora = curUser();
+    if(euAgora && !isBanned(euAgora) && Math.random() < 0.08){
+      var botsU = DB.users().filter(function(x){ return !!x.id && x.id.indexOf('bot_') === 0; });
+      if(botsU.length){
+        var de = botsU[Math.floor(Math.random()*botsU.length)];
+        var pmsgs = DB.privMsgs();
+        pmsgs.push({fromId:de.id, toId:euAgora.id, text:dmBot(), ts:Date.now()});
+        DB.savePrivMsgs(pmsgs);
+      }
+    }
+    checarMensagensNovas();
     // De vez em quando os bots crescem: ganham seguidores e soltam post novo.
     if(botTick % 5 === 0){
       var bu = DB.users(), mudouU = false;
