@@ -99,7 +99,15 @@ var SYNC = (function () {
         ((res.deleted || {})[kind] || []).forEach(function (id) {
           if (porId[id]) { delete porId[id]; mudouAqui = true; }
         });
-        if (mudouAqui) { grava(kind, Object.keys(porId).map(function (k) { return porId[k]; })); mexeu = true; }
+        if (mudouAqui) {
+          // Mensagens antigas, escritas antes de existir id, ficam no aparelho:
+          // elas nunca foram para o servidor, então não somem daqui.
+          var semId = (kind === 'pubMsgs' || kind === 'privMsgs')
+            ? lista(kind).filter(function (it) { return it && !it.id; })
+            : [];
+          grava(kind, Object.keys(porId).map(function (k) { return porId[k]; }).concat(semId));
+          mexeu = true;
+        }
         if (!dirty[kind]) marcarConhecido(kind);
       });
       if (res.liveU && res.liveU > since) {

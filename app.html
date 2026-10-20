@@ -1137,6 +1137,10 @@ function renderPVBPublic(){
   scrollChat('pubMsgs');
 }
 
+// Cada mensagem precisa de um id próprio: é por ele que a sincronia reconhece
+// a mensagem entre os aparelhos. Sem id, ela nunca sai do aparelho de quem escreveu.
+function novoMsgId(){ return 'msg'+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+
 function sendPubMsg(img){
   var input = document.getElementById('pubText');
   var text = input ? input.value.trim() : '';
@@ -1144,7 +1148,7 @@ function sendPubMsg(img){
   if(checarPalavroes(text)) return;
   var u = curUser();
   var msgs = DB.pubMsgs();
-  msgs.push({userId:u.id, userName:u.name, text:text, image:img, ts:Date.now()});
+  msgs.push({id:novoMsgId(), userId:u.id, userName:u.name, text:text, image:img, ts:Date.now()});
   DB.savePubMsgs(msgs);
   renderPVBPublic();
 }
@@ -1207,13 +1211,13 @@ function sendPrivMsg(img){
   }
   if(checarPalavroes(text)) return;
   var msgs = DB.privMsgs();
-  msgs.push({fromId:u.id, toId:pvbChatUser, text:text, image:img, ts:Date.now()});
+  msgs.push({id:novoMsgId(), fromId:u.id, toId:pvbChatUser, text:text, image:img, ts:Date.now()});
   // O criador libera a pessoa escrevendo "liberado" na conversa: ela volta ao normal.
   if((u.isCreator || u.isAdmin) && text.toLowerCase().indexOf('liberado') >= 0){
     var alvo = getUser(pvbChatUser);
     if(alvo && isBanned(alvo)){
       banUser(alvo.id, 0);
-      msgs.push({fromId:alvo.id, toId:u.id, text:MSG_LIBERADO, sys:true, ts:Date.now()+1});
+      msgs.push({id:novoMsgId(), fromId:alvo.id, toId:u.id, text:MSG_LIBERADO, sys:true, ts:Date.now()+1});
       showNotif('Você liberou '+alvo.name+' ✅');
     }
   }
@@ -1964,7 +1968,7 @@ function sendApology(){
   var id = adminId();
   if(!u || !id) return;
   var msgs = DB.privMsgs();
-  msgs.push({fromId:u.id, toId:id, text:'Desculpe, admin 🙏 Prometo não fazer isso de novo.', ts:Date.now()});
+  msgs.push({id:novoMsgId(), fromId:u.id, toId:id, text:'Desculpe, admin 🙏 Prometo não fazer isso de novo.', ts:Date.now()});
   DB.savePrivMsgs(msgs);
   renderPVBPrivate();
 }
