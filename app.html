@@ -44,6 +44,7 @@ body{background:#000;color:#fff}
 .msg{max-width:80%;padding:10px 14px;border-radius:16px;font-size:14px;line-height:1.4;word-break:break-word}
 .msg.me{align-self:flex-end;background:#F97316;color:#fff}
 .msg.them{align-self:flex-start;background:#1e1e1e;color:#fff}
+.msg.sys{align-self:center;max-width:94%;background:#0f2d1a;border:1px solid #22c55e;color:#bbf7d0;font-size:12.5px;font-weight:600;text-align:center;line-height:1.45}
 .msg .name{font-size:11px;color:#888;margin-bottom:2px;display:flex;align-items:center;gap:3px}
 .msg img{max-width:200px;border-radius:12px;margin-top:6px}
 .chat-input{padding:10px;background:#111;display:flex;gap:8px;align-items:center;border-top:1px solid #222}
@@ -412,11 +413,13 @@ function render(){
   var u = curUser();
   if(!u){ window.location.href='home.html'; return; }
   // Banido não posta, não conversa e não assiste vídeo: cai sempre no próprio perfil.
-  if(isBanned(u) && !bannedViewAllowed(u)){
+  var banido = isBanned(u);
+  if(banido && !bannedViewAllowed(u)){
     view = 'profile';
     profileUserId = u.id;
   }
-  document.getElementById('nav').style.display='flex';
+  // Sem rodapé para quem está banido: sobram o próprio perfil e a conversa com o criador.
+  document.getElementById('nav').style.display = banido ? 'none' : 'flex';
   renderNav();
   switch(view){
     case 'home': renderHome(); break;
@@ -1157,6 +1160,7 @@ function renderPVBPrivate(){
     '<div class="chat-messages" id="privMsgs">'+
       (msgs.length===0?'<div class="msg them">Início da conversa privada! 🔒💬</div>':'')+
       msgs.map(function(m){
+        if(m.sys) return '<div class="msg sys">'+escapeHtml(m.text)+'</div>';
         return '<div class="msg '+(m.fromId===u.id?'me':'them')+'">'+
           (m.image?'<img src="'+m.image+'">':'')+
           escapeHtml(m.text)+
@@ -1180,14 +1184,31 @@ function renderPVBPrivate(){
   scrollChat('privMsgs');
 }
 
+// Mensagem que o liberado recebe na conversa.
+var MSG_LIBERADO = '🎉 O criador liberou você! Na próxima, tenha educação + respeito seguindo a lei da nossa comunidade.';
+
 function sendPrivMsg(img){
   var input = document.getElementById('privText');
   var text = input ? input.value.trim() : '';
   if(!text && !img) return;
-  if(checarPalavroes(text)) return;
   var u = curUser();
+  // Banido conversa com o criador, mas palavrão não passa.
+  if(isBanned(u) && contarPalavroes(text) > 0){
+    showNotif('Você está banido 🚫 Pode conversar, mas sem palavrão');
+    return;
+  }
+  if(checarPalavroes(text)) return;
   var msgs = DB.privMsgs();
   msgs.push({fromId:u.id, toId:pvbChatUser, text:text, image:img, ts:Date.now()});
+  // O criador libera a pessoa escrevendo "liberado" na conversa: ela volta ao normal.
+  if((u.isCreator || u.isAdmin) && text.toLowerCase().indexOf('liberado') >= 0){
+    var alvo = getUser(pvbChatUser);
+    if(alvo && isBanned(alvo)){
+      banUser(alvo.id, 0);
+      msgs.push({fromId:alvo.id, toId:u.id, text:MSG_LIBERADO, sys:true, ts:Date.now()+1});
+      showNotif('Você liberou '+alvo.name+' ✅');
+    }
+  }
   DB.savePrivMsgs(msgs);
   renderPVBPrivate();
 }
@@ -1242,8 +1263,8 @@ function renderProfile(){
       '</div>'+
     '</div>';
 
-  // No meio da tela, o botão para sair da conta
-  if(isMe) html += '<button class="pf-out" onclick="logout()">Sair dessa conta</button>';
+  // No meio da tela, o botão para sair da conta — para quem está banido ele não aparece.
+  if(isMe && !banned) html += '<button class="pf-out" onclick="logout()">Sair dessa conta</button>';
 
   var rows = '';
   if(isMe && !banned && target.isCreator) rows += '<div class="pf-row" onclick="view=\'panel\';render()"><div class="ic">⚡</div>Central do Criador<div class="ar">›</div></div>';
@@ -1574,7 +1595,8 @@ function banUser(uid, duration){
   var users = DB.users();
   var u = users.find(function(x){return x.id===uid;});
   if(!u) return;
-  if(duration===0){ u.banned=false; u.banUntil=null; showNotif(u.name+' está livre de novo ✅'); }
+  // Liberar = conta normal de novo: banimento e contador de palavrões zerados.
+  if(duration===0){ u.banned=false; u.banUntil=null; u.banReason=null; u.palavroes=0; showNotif(u.name+' está livre de novo ✅'); }
   else {
     u.banned = true;
     u.banUntil = duration===-1 ? -1 : Date.now()+duration;
@@ -2106,7 +2128,7 @@ function checarPalavroes(text){
     return true;
   }
   DB.saveUsers(users);
-  showNotif('Palavrão contado ('+x.palavroes+'/'+LIMITE_PALAVROES+') — em 10 você toma ban de 24h 🚫');
+  showNotif('Palavrão contado ('+x.palavroes+'/'+LIMITE_PALAVROES+') — ao chegar em '+LIMITE_PALAVROES+' você toma ban de 24h 🚫');
   return false;
 }
 
