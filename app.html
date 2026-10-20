@@ -1979,29 +1979,35 @@ var BOT_PERFIS = [
   {name:'Thiago',  user:'thiago',  bio:'🎬 IA, edição e efeito. O futuro chegou.',            followers:15600}
 ];
 
-// Cada post tem legenda própria e o clipe gira entre os 6 do site: nada sai repetido.
+// Cada post tem legenda própria (24 legendas diferentes) e o clipe sai de um ciclo
+// que só fecha na 6ª vez: o mesmo clipe nunca volta antes de 5 posts, nenhum bot
+// repete clipe no próprio perfil e nenhuma legenda se repete.
 // Os 8 primeiros dão um post para cada bot (o perfil deles nunca fica vazio).
 var BOT_POSTS = [
-  {bot:'julia',   desc:'Top 5 aberturas de anime que marcaram época 🌸⚔️',    tipo:'video', m:0, likes:8420,  views:91200},
-  {bot:'bruno',   desc:'TOP GLOBAL no jogo mais difícil! 🏆',                 tipo:'video', m:1, likes:5210,  views:74500},
-  {bot:'camila',  desc:'Quando o WiFi cai no meio do vídeo 😂',               tipo:'video', m:2, likes:3980,  views:52300},
-  {bot:'thiago',  desc:'Fiz um vídeo inteiro com IA 🤖✨',                     tipo:'video', m:3, likes:2760,  views:39800},
-  {bot:'ana',     desc:'Esse final de anime me destruiu 😭',                  tipo:'short', m:4, likes:6140,  views:66100},
-  {bot:'rafael',  desc:'Meu melhor clutch na ranqueada 🔥',                   tipo:'video', m:5, likes:3390,  views:44700},
-  {bot:'larissa', desc:'POV: você acorda atrasado pra aula 🤡',               tipo:'video', m:0, likes:8120,  views:103400},
-  {bot:'diego',   desc:'A IA desenhou meu sonho e deu isso 😳',               tipo:'video', m:1, likes:980,   views:12200},
-  {bot:'julia',   desc:'Anime edit que ficou insano ⚡',                       tipo:'short', m:2, likes:1420,  views:18700},
-  {bot:'camila',  desc:'Pegadinha com IA deu ruim 😂',                        tipo:'short', m:3, likes:1730,  views:21400},
-  {bot:'bruno',   desc:'Clutch de 15 segundos no ranqueado 🎮',                tipo:'short', m:4, likes:2260,  views:31200},
-  {bot:'ana',     desc:'Teoria: quem é o verdadeiro vilão do anime 👀',       tipo:'video', m:5, likes:7310,  views:84900},
-  {bot:'diego',   desc:'Criei um anime inteiro com IA 🤯',                    tipo:'video', m:0, likes:4120,  views:57600},
-  {bot:'larissa', desc:'Ninguém merece segunda-feira 😂',                     tipo:'video', m:1, likes:9460,  views:118300},
-  {bot:'julia',   desc:'Ranking dos animes mais tristes de todos os tempos 💔',tipo:'video', m:2, likes:10520, views:132700},
-  {bot:'bruno',   desc:'Zerei o jogo em 100% sem morrer nenhuma vez 🏅',       tipo:'video', m:3, likes:6380,  views:79400},
-  {bot:'camila',  desc:'Meu irmão tentando cozinhar por 3 minutos 🤣',         tipo:'video', m:4, likes:11240, views:141900},
-  {bot:'thiago',  desc:'Fiz a IA dublar minha voz e ficou perfeito 🎙️🤖',     tipo:'video', m:5, likes:3470,  views:49800},
-  {bot:'rafael',  desc:'Aquele headshot impossível 🎯',                       tipo:'short', m:0, likes:1890,  views:24600},
-  {bot:'larissa', desc:'Reagindo ao meu próprio vídeo antigo 😂',              tipo:'short', m:1, likes:2610,  views:33700}
+  {bot:'julia',   desc:'Top 5 aberturas de anime que marcaram época 🌸⚔️',      tipo:'video', m:0, likes:8420,  views:91200},
+  {bot:'bruno',   desc:'TOP GLOBAL no jogo mais difícil! 🏆',                   tipo:'video', m:1, likes:5210,  views:74500},
+  {bot:'camila',  desc:'Quando o WiFi cai no meio do vídeo 😂',                 tipo:'video', m:2, likes:3980,  views:52300},
+  {bot:'thiago',  desc:'Fiz um vídeo inteiro com IA 🤖✨',                       tipo:'video', m:3, likes:2760,  views:39800},
+  {bot:'ana',     desc:'Esse final de anime me destruiu 😭',                    tipo:'short', m:4, likes:6140,  views:66100},
+  {bot:'rafael',  desc:'Meu melhor clutch na ranqueada 🔥',                     tipo:'video', m:5, likes:3390,  views:44700},
+  {bot:'larissa', desc:'POV: você acorda atrasado pra aula 🤡',                 tipo:'video', m:0, likes:8120,  views:103400},
+  {bot:'diego',   desc:'A IA desenhou meu sonho e deu isso 😳',                 tipo:'video', m:1, likes:980,   views:12200},
+  {bot:'julia',   desc:'Anime edit que ficou insano ⚡',                         tipo:'short', m:2, likes:1420,  views:18700},
+  {bot:'camila',  desc:'Pegadinha com IA deu ruim 😂',                          tipo:'short', m:3, likes:1730,  views:21400},
+  {bot:'bruno',   desc:'Clutch de 15 segundos no ranqueado 🎮',                  tipo:'short', m:4, likes:2260,  views:31200},
+  {bot:'ana',     desc:'Teoria: quem é o verdadeiro vilão do anime 👀',         tipo:'video', m:5, likes:7310,  views:84900},
+  {bot:'diego',   desc:'Criei um anime inteiro com IA 🤯',                      tipo:'video', m:0, likes:4120,  views:57600},
+  {bot:'larissa', desc:'Ninguém merece segunda-feira 😂',                       tipo:'video', m:1, likes:9460,  views:118300},
+  {bot:'julia',   desc:'Ranking dos animes mais tristes de todos os tempos 💔', tipo:'video', m:3, likes:10520, views:132700},
+  {bot:'bruno',   desc:'Zerei o jogo em 100% sem morrer nenhuma vez 🏅',         tipo:'video', m:2, likes:6380,  views:79400},
+  {bot:'camila',  desc:'Meu irmão tentando cozinhar por 3 minutos 🤣',           tipo:'video', m:4, likes:11240, views:141900},
+  {bot:'thiago',  desc:'Fiz a IA dublar minha voz e ficou perfeito 🎙️🤖',       tipo:'video', m:5, likes:3470,  views:49800},
+  {bot:'rafael',  desc:'Aquele headshot impossível 🎯',                         tipo:'short', m:0, likes:1890,  views:24600},
+  {bot:'larissa', desc:'Reagindo ao meu próprio vídeo antigo 😂',                tipo:'short', m:3, likes:2610,  views:33700},
+  {bot:'ana',     desc:'Os 3 animes que todo mundo precisa ver uma vez 📺',      tipo:'video', m:1, likes:8870,  views:107600},
+  {bot:'thiago',  desc:'Pedi para a IA criar meu retrato e ela me zoou 😅',      tipo:'video', m:2, likes:5240,  views:68400},
+  {bot:'rafael',  desc:'Speedrun perfeito do começo ao fim ⏱️',                 tipo:'video', m:4, likes:4380,  views:55900},
+  {bot:'diego',   desc:'A IA imitando meu cachorro ficou real demais 🐶🤖',      tipo:'short', m:5, likes:3170,  views:42100}
 ];
 
 function semearBots(){
@@ -2037,9 +2043,9 @@ function sincronizarPostsBot(alvo, novo){
     mudou = true;
   }
   if(mudou) DB.saveVideos(vids);
-  // Devolve cada clipe para a vez dele na lista: assim dois posts seguidos não
-  // saem com o mesmo vídeo.
-  var todos = DB.videos(), corrigiu = false;
+  // Devolve cada clipe, legenda e horário ao lugar da lista: assim o feed sai na
+  // mesma ordem para todo mundo e nenhum clipe volta antes de 5 posts.
+  var todos = DB.videos(), corrigiu = false, base = Date.now();
   todos.forEach(function(v){
     if(!v.botPost) return;
     var idx = parseInt(v.id.replace('bp',''),10) - 1;
@@ -2047,6 +2053,9 @@ function sincronizarPostsBot(alvo, novo){
     if(!b) return;
     if(v.url !== SAMPLES[b.m]){ v.url = SAMPLES[b.m]; corrigiu = true; }
     if(v.type !== b.tipo){ v.type = b.tipo; corrigiu = true; }
+    if(v.description !== b.desc){ v.description = b.desc; corrigiu = true; }
+    var ts = base - (BOT_POSTS.length - idx) * 420000; // 7 min entre um post e outro
+    if(Math.abs((v.timestamp||0) - ts) > 60000){ v.timestamp = ts; corrigiu = true; }
   });
   if(corrigiu) DB.saveVideos(todos);
   return mudou;
