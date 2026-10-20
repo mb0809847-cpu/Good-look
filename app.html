@@ -178,14 +178,18 @@ body{background:#000;color:#fff}
 .live-stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:#141414;border-radius:16px;margin:14px 0}
 .live-cam{font-size:52px}
 .live-note{color:#8b8b8b;font-size:13px;text-align:center;padding:0 20px;line-height:1.45}
+.live-preview{width:100%;flex:1;min-height:0;object-fit:cover;border-radius:16px;background:#000}
 .live-title{font-size:17px;font-weight:800;color:#fff}
 .live-sub{font-size:12.5px;color:#8b8b8b;margin-top:4px;display:flex;align-items:center;gap:5px}
 .live-end{width:100%;padding:15px;border-radius:12px;border:none;background:#e11900;color:#fff;font-size:15px;font-weight:800;cursor:pointer;margin-top:12px}
-.live-bubble{position:fixed;right:14px;bottom:78px;z-index:400;display:flex;align-items:center;gap:8px;background:#e11900;color:#fff;font-size:13.5px;font-weight:800;border-radius:30px;padding:11px 14px;box-shadow:0 8px 22px rgba(0,0,0,.55);cursor:pointer;animation:bubbleIn .22s ease}
-.live-bubble .dot{width:9px;height:9px;border-radius:50%;background:#fff;animation:livePulse 1.1s infinite}
-.live-bubble .lt{font-variant-numeric:tabular-nums;opacity:.9}
-.live-bubble .x{color:#ffd9d4;font-size:13px;margin-left:2px}
-.live-bubble .x.encerrar{background:rgba(255,255,255,.2);border-radius:14px;padding:4px 9px;font-size:12px;color:#fff}
+/* Bolinha flutuante pequena: ela é o botão que começa a gravação da live. */
+.live-bubble{position:fixed;right:16px;bottom:80px;z-index:400;width:58px;height:58px;border-radius:50%;background:#e11900;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 22px rgba(0,0,0,.55);cursor:pointer;animation:bubbleIn .22s ease}
+.live-bubble svg{width:26px;height:26px}
+.live-bubble .dot{width:15px;height:15px;border-radius:50%;background:#fff;animation:livePulse 1.1s infinite}
+.live-bubble .ball-x{position:absolute;top:-5px;right:-5px;width:21px;height:21px;border-radius:50%;background:#1c1c1c;color:#fff;font-size:12px;font-weight:800;line-height:1;display:flex;align-items:center;justify-content:center;border:2px solid #0b0b0b}
+.live-bubble .ball-time{position:absolute;bottom:-9px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.78);color:#fff;font-size:10.5px;font-weight:800;border-radius:9px;padding:1px 6px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.live-bubble.rec{animation:ballPulse 1.5s infinite}
+@keyframes ballPulse{0%,100%{box-shadow:0 0 0 0 rgba(225,25,0,.6)}50%{box-shadow:0 0 0 12px rgba(225,25,0,0)}}
 @keyframes bubbleIn{from{transform:translateY(12px);opacity:.6}to{transform:none;opacity:1}}
 
 /* Home feed (cards) */
@@ -1361,8 +1365,7 @@ function renderPost(){
     '</div>'+
     (isLive?
       '<input class="post-field" id="liveTitle" placeholder="Título da sua live">'+
-      '<div class="pf-note">🔴 Toque em <b>Ativar sobreposição</b> e depois na bolinha flutuante <b>Começar agora</b>. A bolinha fica na tela enquanto você navega — para encerrar, aperte nela e em <b>Encerrar</b>.</div>'+
-      '<button class="post-btn" style="background:#e11900;margin-top:12px" onclick="activateOverlay()">Ativar sobreposição 📱</button>'
+      '<div class="pf-note">🔴 Sobreposição ativada: toque na <b>bolinha flutuante</b> para ligar a câmera e começar a gravar. A bolinha fica na tela enquanto você navega — para encerrar, aperte nela e em <b>Encerrar</b>.</div>'
     :
     (postMode==='link'?
       '<input class="post-field" id="postUrl" placeholder="Cole o link do vídeo (URL)">'+
@@ -1377,6 +1380,9 @@ function renderPost(){
     )+
   '</div>';
   document.getElementById('app').innerHTML = html;
+
+  // Escolher Live no Postar já ativa a sobreposição: a bolinha aparece na hora.
+  if(isLive) activateOverlay();
 
   if(postMode==='video' || postMode==='shorts'){
     document.getElementById('postFile').addEventListener('change', function(e){
@@ -1613,10 +1619,10 @@ function openAdminChat(){
 }
 
 // ==================== LIVE ====================
-// Processo: Postar -> Live -> ativar a sobreposição. No APK a sobreposição fica
-// por cima dos outros apps; aqui ela aparece como uma bolinha flutuante dentro do
-// Good Look, com "Começar agora". Ao começar, a live aparece na Home e no Shorts
-// e a bolinha passa a mostrar "AO VIVO" com o tempo no ar e o "Encerrar".
+// Processo: Postar -> Live (a sobreposição já ativa). No APK a sobreposição fica
+// por cima dos outros apps; aqui ela é uma bolinha flutuante pequena dentro do
+// Good Look, e é ela que começa a gravação. Ao tocar na bolinha a câmera liga, a
+// live aparece na Home e no Shorts, e a bolinha passa a pulsar com o tempo no ar.
 var overlayOn = false;
 var liveTitle = null;
 var liveTimer = null;
@@ -1642,7 +1648,7 @@ function tickLive(){
 function startLiveTick(){ if(liveTimer) clearInterval(liveTimer); liveTimer = setInterval(tickLive, 1000); }
 function stopLiveTick(){ if(liveTimer){ clearInterval(liveTimer); liveTimer = null; } }
 
-// A bolinha flutuante só existe depois de ativar a sobreposição.
+// Bolinha flutuante: pequena, fica na tela e é ela que começa a gravação.
 function paintBubble(){
   var l = DB.live();
   var b = document.getElementById('liveBubble');
@@ -1650,46 +1656,70 @@ function paintBubble(){
   if(!b){
     b = document.createElement('div');
     b.id = 'liveBubble';
-    b.className = 'live-bubble';
     document.body.appendChild(b);
   }
   if(l){
-    b.innerHTML = '<span class="dot"></span>AO VIVO <span class="lt" id="bubbleTime">'+liveElapsed(l.startedAt)+'</span>'+
-      '<span class="x encerrar" onclick="event.stopPropagation();endLive()">Encerrar</span>';
+    // Gravando: bolinha pulsando, com o tempo no ar; toque abre a tela da live.
+    b.className = 'live-bubble rec';
+    b.innerHTML = '<span class="dot"></span>'+
+      '<span class="ball-time" id="bubbleTime">'+liveElapsed(l.startedAt)+'</span>';
     b.onclick = function(){ openLiveView(); };
   } else {
-    b.innerHTML = '<span class="dot"></span>Começar agora'+
-      '<span class="x" onclick="event.stopPropagation();closeBubble()">✕</span>';
+    // Pronta: toque na bolinha liga a câmera e começa a gravar.
+    b.className = 'live-bubble';
+    b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.4" fill="currentColor" stroke="none"/></svg>'+
+      '<span class="ball-x" onclick="event.stopPropagation();closeBubble()">✕</span>';
     b.onclick = function(){ startLive(); };
   }
 }
 
 function closeBubble(){ overlayOn = false; var b = document.getElementById('liveBubble'); if(b) b.remove(); }
 
-// "Ativar sobreposição" no Postar: guarda o título e mostra a bolinha.
+// Escolher Live no Postar já ativa a sobreposição: guarda o título e mostra a bolinha.
 function activateOverlay(){
-  if(blockedAction()) return;
   var t = document.getElementById('liveTitle');
-  liveTitle = (t && t.value.trim()) || ('Live de '+curUser().name);
+  if(t && t.value.trim()) liveTitle = t.value.trim();
   overlayOn = true;
   paintBubble();
-  showNotif('Sobreposição ativada — toque na bolinha para começar 🔴');
 }
 
+// Toque na bolinha: liga a câmera e a live começa a gravar.
 function startLive(){
   if(blockedAction()) return;
   var u = curUser();
+  var t = document.getElementById('liveTitle');
+  if(t && t.value.trim()) liveTitle = t.value.trim();
   DB.saveLive({id:'live'+Date.now(), userId:u.id, userName:u.name, userPhoto:u.photo, title:liveTitle||('Live de '+u.name), startedAt:Date.now(), viewers:1});
   overlayOn = true;
+  startCamera();
   startLiveTick();
   view = 'live';
   render();
   showNotif('Você está ao vivo 🔴 Já apareceu na Home e no Shorts');
 }
 
-// Encerrar: apertando na bolinha em "Encerrar" (ou no botão da tela da live).
+// Câmera: a gravação só existe enquanto a live está no ar.
+var liveStream = null;
+
+function startCamera(){
+  var md = navigator.mediaDevices;
+  if(!md || !md.getUserMedia) return;
+  md.getUserMedia({video:true, audio:true}).then(function(stream){
+    liveStream = stream;
+    if(view==='live') render(); // mostra a câmera na tela da live
+  }).catch(function(){
+    showNotif('Não consegui abrir a câmera 📷');
+  });
+}
+
+function stopCamera(){
+  if(liveStream){ liveStream.getTracks().forEach(function(t){ t.stop(); }); liveStream = null; }
+}
+
+// Encerrar: apertando na bolinha (que abre a tela da live) ou no botão dela.
 function endLive(){
   stopLiveTick();
+  stopCamera();
   DB.saveLive(null);
   overlayOn = false;
   var b = document.getElementById('liveBubble');
@@ -1709,14 +1739,20 @@ function renderLive(){
   var html = '<div class="live-view">'+
     '<div class="live-top"><span class="live-pill"><span class="dot"></span>AO VIVO</span><span class="live-time" id="liveTime">'+liveElapsed(l.startedAt)+'</span></div>'+
     '<div class="live-stage">'+
-      '<div class="live-cam">📱</div>'+
-      '<div class="live-note">'+(mine?'Você está transmitindo do Good Look. No APK a sobreposição fica por cima dos outros apps.':'Transmissão de '+escapeHtml(owner.name)+', ao vivo agora.')+'</div>'+
+      (mine && liveStream?
+        '<video class="live-preview" id="livePreview" autoplay playsinline muted></video>'
+      :
+        '<div class="live-cam">📱</div>'+
+        '<div class="live-note">'+(mine?'Sua live está no ar. No APK a sobreposição fica por cima dos outros apps.':'Transmissão de '+escapeHtml(owner.name)+', ao vivo agora.')+'</div>'
+      )+
     '</div>'+
     '<div class="live-title">'+escapeHtml(l.title)+'</div>'+
     '<div class="live-sub">'+userNameDisplay(owner)+' · '+l.viewers+' assistindo</div>'+
     (mine?'<button class="live-end" onclick="endLive()">Encerrar live</button>':'<button class="live-end" style="background:#F97316" onclick="view=\'shorts\';render()">Sair</button>')+
   '</div>';
   document.getElementById('app').innerHTML = html;
+  var pv = document.getElementById('livePreview');
+  if(pv) pv.srcObject = liveStream;
 }
 
 // No chat com o administrador, quem está banido tem o pedido de desculpas na mão.
