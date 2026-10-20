@@ -470,24 +470,24 @@ function renderHome(){
   }
   var html = '<div class="home-wrap" id="homeFeed">'+
     '<div class="home-head"><div class="t">Good<b>Look</b> · Vídeos</div><div class="cnt">'+vids.length+' vídeos</div></div>';
-  // Live no ar aparece em cima da Home também.
-  var l = DB.live();
-  if(l){
+  // Quem está ao vivo aparece em cima da Home — a sua live e as dos outros usuários.
+  livesOnAir().forEach(function(l){
     var lo = getUser(l.userId) || {name:l.userName, photo:l.userPhoto, verifiedType:null, isCreator:false};
+    var mine = l.userId===curUser().id;
     html += '<div class="hcard live-card">'+
-      '<div class="live-cover" onclick="openLiveView()">'+
-        (liveStream && l.userId===curUser().id?'<video class="live-video" id="homeLiveVideo" autoplay playsinline muted></video>':'')+
+      '<div class="live-cover" onclick="openLiveView(\''+l.id+'\')">'+
+        (mine && liveStream?'<video class="live-video" id="homeLiveVideo" autoplay playsinline muted></video>':'')+
         '<span class="live-pill"><span class="dot"></span>AO VIVO</span>'+
         '<div class="live-ctitle">'+escapeHtml(l.title)+'</div>'+
-        '<div class="live-cmeta">'+userNameDisplay(lo)+' · <span id="liveCardTime">'+liveElapsed(l.startedAt)+'</span> no ar</div>'+
+        '<div class="live-cmeta">'+userNameDisplay(lo)+' · <span data-live="'+l.id+'">'+liveElapsed(l.startedAt)+'</span> no ar</div>'+
       '</div>'+
       '<div class="hbody">'+
         avatarHtml(lo,40,'yt-ava')+
         '<div class="hinfo"><div class="hname">'+userNameDisplay(lo)+'</div><div class="hsub">'+l.viewers+' assistindo agora</div></div>'+
-        '<button class="live-watch" onclick="openLiveView()">'+(l.userId===curUser().id?'Ver minha live':'Assistir')+'</button>'+
+        '<button class="live-watch" onclick="openLiveView(\''+l.id+'\')">'+(mine?'Ver minha live':'Assistir')+'</button>'+
       '</div>'+
     '</div>';
-  }
+  });
   vids.forEach(function(v){
     var owner = getUser(v.userId) || {name:v.userName, photo:v.userPhoto, verifiedType:null, isCreator:false};
     html += '<div class="hcard">'+
@@ -665,13 +665,14 @@ function renderShorts(){
   var u = curUser();
   var html = '<div class="feed" id="feed">';
   // Quem está ao vivo aparece no primeiro slide do Shorts.
-  if(liveNow){
-    var lo = getUser(liveNow.userId) || {name:liveNow.userName, photo:liveNow.userPhoto, verifiedType:null, isCreator:false};
+  var liveTop = livesOnAir()[0];
+  if(liveTop){
+    var lo = getUser(liveTop.userId) || {name:liveTop.userName, photo:liveTop.userPhoto, verifiedType:null, isCreator:false};
     html += '<div class="live-slide">'+
       '<span class="live-pill"><span class="dot"></span>AO VIVO</span>'+
-      '<div class="lt">'+escapeHtml(liveNow.title)+'</div>'+
-      '<div class="ls">'+userNameDisplay(lo)+' · <span id="liveCardTime">'+liveElapsed(liveNow.startedAt)+'</span> no ar</div>'+
-      '<button class="lw" onclick="openLiveView()">'+(liveNow.userId===u.id?'Voltar para a minha live':'Assistir agora')+'</button>'+
+      '<div class="lt">'+escapeHtml(liveTop.title)+'</div>'+
+      '<div class="ls">'+userNameDisplay(lo)+' · <span data-live="'+liveTop.id+'">'+liveElapsed(liveTop.startedAt)+'</span> no ar</div>'+
+      '<button class="lw" onclick="openLiveView(\''+liveTop.id+'\')">'+(liveTop.userId===u.id?'Voltar para a minha live':'Assistir agora')+'</button>'+
     '</div>';
   }
   vids.forEach(function(v){
@@ -1375,7 +1376,9 @@ function renderPost(){
     '</div>'+
     (isLive?
       '<input class="post-field" id="liveTitle" placeholder="Título da sua live">'+
-      '<div class="pf-note">🔴 Sobreposição ativada: toque na <b>bolinha flutuante</b> para ligar a câmera e começar a gravar. A bolinha fica na tela enquanto você navega — para encerrar, aperte nela e em <b>Encerrar</b>.</div>'
+      '<div class="pf-note">🔴 Escolha como quer transmitir. A live começa na hora e a <b>bolinha flutuante</b> fica na tela enquanto você navega — toque nela para encerrar.</div>'+
+      '<button class="post-btn" onclick="comecarLive(\'screen\')">📱 Gravar só a tela</button>'+
+      '<button class="post-btn" style="margin-top:10px;background:#1e1e1e" onclick="comecarLive(\'screenCam\')">🎥 Tela + câmera frontal</button>'
     :
     (postMode==='link'?
       '<input class="post-field" id="postUrl" placeholder="Cole o link do vídeo (URL)">'+
@@ -1391,8 +1394,7 @@ function renderPost(){
   '</div>';
   document.getElementById('app').innerHTML = html;
 
-  // Escolher Live no Postar já ativa a sobreposição: a bolinha aparece na hora.
-  if(isLive) activateOverlay();
+  // No modo Live, quem começa a transmissão são os botões de modo (comecarLive).
 
   if(postMode==='video' || postMode==='shorts'){
     document.getElementById('postFile').addEventListener('change', function(e){
@@ -1629,15 +1631,53 @@ function openAdminChat(){
 }
 
 // ==================== LIVE ====================
-// Processo: Postar -> Live (a sobreposição já ativa). No APK a sobreposição fica
-// por cima dos outros apps; aqui ela é uma bolinha flutuante pequena dentro do
-// Good Look, e é ela que começa a gravação. Ao tocar na bolinha a câmera liga, a
-// live aparece na Home e no Shorts, e a bolinha passa a pulsar com o tempo no ar.
+// Processo: Postar -> Live oferece dois modos (só a tela, ou tela + câmera
+// frontal). Escolhido o modo, a captura da tela começa na hora e a live entra no
+// ar: ela aparece na Home e no Shorts, e a bolinha flutuante fica na tela pulsando
+// com o tempo. No APK a sobreposição fica por cima dos outros apps e a captura é
+// a do próprio Android.
 var overlayOn = false;
 var liveTitle = null;
 var liveTimer = null;
+var liveMode = 'screen';   // 'screen' = só a tela | 'screenCam' = tela + câmera frontal
+var liveWatchId = null;    // qual live está aberta na tela da transmissão
+var chatLiveId = null;     // qual live está recebendo os comentários
 
-function openLiveView(){ view='live'; render(); }
+// Lives dos outros usuários. O app é estático (não tem servidor), então essas
+// lives são as mesmas para quem abrir o app — igual aos bots que curtem e comentam.
+var simLiveSeeds = [
+  {id:'simlive1', userId:'bot_ana',    userName:'Ana',    title:'Jogando Minecraft ao vivo 🎮', viewers:342},
+  {id:'simlive2', userId:'bot_bruno',  userName:'Bruno',  title:'Desenhando no tablet 🎨',      viewers:128},
+  {id:'simlive3', userId:'bot_camila', userName:'Camila', title:'Batendo papo no Good Look ✨', viewers:57}
+];
+
+function simLives(){
+  var base = Number(localStorage.getItem('gl_simlive_base')||0);
+  if(!base){ base = Date.now(); localStorage.setItem('gl_simlive_base', String(base)); }
+  return simLiveSeeds.map(function(s,i){
+    return {id:s.id, userId:s.userId, userName:s.userName, userPhoto:null, title:s.title,
+            startedAt: base-(i+1)*600000, viewers:s.viewers, sim:true};
+  });
+}
+
+// Todas as lives no ar: a deste aparelho (se houver) + as dos outros usuários.
+function livesOnAir(){
+  var l = DB.live();
+  return (l ? [l] : []).concat(simLives());
+}
+
+function findLive(id){
+  var all = livesOnAir();
+  for(var i=0;i<all.length;i++){ if(all[i].id===id) return all[i]; }
+  return all[0] || null;
+}
+
+function openLiveView(id){
+  var l = id ? findLive(id) : (DB.live() || livesOnAir()[0]);
+  liveWatchId = l ? l.id : null;
+  view='live';
+  render();
+}
 
 // Tempo no ar da live (m:ss ou h:mm:ss).
 function liveElapsed(ts){
@@ -1648,11 +1688,15 @@ function liveElapsed(ts){
 
 function tickLive(){
   var l = DB.live();
-  if(!l) return;
-  var t = liveElapsed(l.startedAt);
-  ['liveTime','bubbleTime','liveCardTime'].forEach(function(id){
-    var el = document.getElementById(id);
-    if(el) el.textContent = t;
+  if(l){
+    var t = liveElapsed(l.startedAt);
+    var a = document.getElementById('liveTime'); if(a) a.textContent = t;
+    var b = document.getElementById('bubbleTime'); if(b) b.textContent = t;
+  }
+  // Cada card da Home tem o seu próprio relógio no ar.
+  document.querySelectorAll('[data-live]').forEach(function(el){
+    var lv = findLive(el.getAttribute('data-live'));
+    if(lv) el.textContent = liveElapsed(lv.startedAt);
   });
 }
 function startLiveTick(){ if(liveTimer) clearInterval(liveTimer); liveTimer = setInterval(tickLive, 1000); }
@@ -1664,13 +1708,13 @@ var liveChatTimer = null;
 var liveViewers = 1;
 
 function liveComment(){
-  var l = DB.live();
+  var l = findLive(chatLiveId);
   if(!l) return;
   liveChat.push({name:botNames[Math.floor(Math.random()*botNames.length)], text:botComments[Math.floor(Math.random()*botComments.length)]});
   if(liveChat.length>40) liveChat.shift();
   liveViewers += 1 + Math.floor(Math.random()*3);
   l.viewers = liveViewers;
-  DB.saveLive(l);
+  if(!l.sim) DB.saveLive(l);
   var v = document.getElementById('liveViewers');
   if(v) v.textContent = liveViewers;
   paintLiveChat();
@@ -1685,9 +1729,11 @@ function paintLiveChat(){
   el.scrollTop = el.scrollHeight;
 }
 
-function startLiveChat(){
+function startLiveChat(id){
+  var l = findLive(id);
+  chatLiveId = l ? l.id : null;
   liveChat = [];
-  liveViewers = 1;
+  liveViewers = l ? (l.viewers||1) : 1;
   if(liveChatTimer) clearInterval(liveChatTimer);
   liveChatTimer = setInterval(liveComment, 3500);
 }
@@ -1697,84 +1743,111 @@ function stopLiveChat(){ if(liveChatTimer){ clearInterval(liveChatTimer); liveCh
 function paintBubble(){
   var l = DB.live();
   var b = document.getElementById('liveBubble');
-  if(!overlayOn || (view==='live' && l)){ if(b) b.remove(); return; }
+  if(!overlayOn || !l || view==='live'){ if(b) b.remove(); return; }
   if(!b){
     b = document.createElement('div');
     b.id = 'liveBubble';
     document.body.appendChild(b);
   }
-  if(l){
-    // Gravando: bolinha pulsando, com o tempo no ar; toque abre a tela da live.
-    b.className = 'live-bubble rec';
-    b.innerHTML = '<span class="dot"></span>'+
-      '<span class="ball-time" id="bubbleTime">'+liveElapsed(l.startedAt)+'</span>';
-    b.onclick = function(){ openLiveView(); };
-  } else {
-    // Pronta: toque na bolinha liga a câmera e começa a gravar.
-    b.className = 'live-bubble';
-    b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.4" fill="currentColor" stroke="none"/></svg>'+
-      '<span class="ball-x" onclick="event.stopPropagation();closeBubble()">✕</span>';
-    b.onclick = function(){ startLive(); };
-  }
+  // Gravando: bolinha pulsando, com o tempo no ar; toque abre a tela da live.
+  b.className = 'live-bubble rec';
+  b.innerHTML = '<span class="dot"></span>'+
+    '<span class="ball-time" id="bubbleTime">'+liveElapsed(l.startedAt)+'</span>';
+  b.onclick = function(){ openLiveView(l.id); };
 }
 
-function closeBubble(){ overlayOn = false; var b = document.getElementById('liveBubble'); if(b) b.remove(); }
-
-// Escolher Live no Postar já ativa a sobreposição: guarda o título e mostra a bolinha.
-function activateOverlay(){
-  var t = document.getElementById('liveTitle');
-  if(t && t.value.trim()) liveTitle = t.value.trim();
-  overlayOn = true;
-  paintBubble();
-}
-
-// Toque na bolinha: liga a câmera e a live começa a gravar.
-function startLive(){
+// Escolha do modo no Postar: guarda o título e começa a captura + a live.
+function comecarLive(modo){
   if(blockedAction()) return;
-  var u = curUser();
+  liveMode = modo;
   var t = document.getElementById('liveTitle');
   if(t && t.value.trim()) liveTitle = t.value.trim();
-  DB.saveLive({id:'live'+Date.now(), userId:u.id, userName:u.name, userPhoto:u.photo, title:liveTitle||('Live de '+u.name), startedAt:Date.now(), viewers:1});
+  capturarTela();
+}
+
+// O que aparece na live (a tela, ou a tela + a câmera frontal).
+var liveStream = null;
+var screenStream = null;  // captura da tela do aparelho
+var camStream = null;     // câmera frontal (modo tela + câmera)
+var mixTimer = null;      // desenha a tela com a câmera num quadradinho
+var mix = null;
+
+// Captura da tela. O Chrome do computador deixa gravar; o navegador do celular
+// não — lá a live entra no ar sem imagem (no APK a captura é a do Android).
+function capturarTela(){
+  var md = navigator.mediaDevices;
+  if(!md || !md.getDisplayMedia){ semImagem('Este navegador não grava a tela 📵'); return; }
+  md.getDisplayMedia({video:true}).then(function(scr){
+    screenStream = scr;
+    var vt = scr.getVideoTracks()[0];
+    if(vt) vt.addEventListener('ended', function(){ showNotif('A gravação de tela foi parada ⏹'); });
+    if(liveMode!=='screenCam'){ liveStream = scr; abrirLive(); return; }
+    return md.getUserMedia({video:{facingMode:'user'}}).then(function(cam){
+      camStream = cam;
+      juntarTelaECamera();
+      abrirLive();
+    }).catch(function(){
+      liveStream = scr;
+      showNotif('Sem a câmera frontal — gravando só a tela 📱');
+      abrirLive();
+    });
+  }).catch(function(){ semImagem('A gravação de tela não abriu 📵'); });
+}
+
+// Sem captura: a live entra no ar e avisa que está sem imagem.
+function semImagem(msg){ showNotif(msg+' A live entrou no ar sem imagem'); abrirLive(); }
+
+// Modo tela + câmera frontal: a tela ocupa tudo e a câmera fica num quadradinho.
+function juntarTelaECamera(){
+  var cv = document.createElement('canvas');
+  cv.width = 720; cv.height = 1280;
+  var ctx = cv.getContext('2d');
+  var vs = document.createElement('video'); vs.muted = true; vs.playsInline = true; vs.srcObject = screenStream; vs.play();
+  var vc = document.createElement('video'); vc.muted = true; vc.playsInline = true; vc.srcObject = camStream; vc.play();
+  mix = {cv:cv, ctx:ctx, vs:vs, vc:vc};
+  if(mixTimer) clearInterval(mixTimer);
+  mixTimer = setInterval(function(){
+    if(!mix) return;
+    var w = cv.width, h = cv.height;
+    ctx.fillStyle = '#000'; ctx.fillRect(0,0,w,h);
+    cobrir(ctx, mix.vs, 0, 0, w, h);
+    var cw = Math.round(w*0.3), ch = Math.round(cw*4/3);
+    var cx = w-cw-16, cy = h-ch-16;
+    ctx.fillStyle = '#fff'; ctx.fillRect(cx-3, cy-3, cw+6, ch+6);
+    cobrir(ctx, mix.vc, cx, cy, cw, ch);
+  }, 66); // ~15 quadros por segundo
+  liveStream = cv.captureStream(15);
+}
+
+// Desenha o vídeo preenchendo a área (como o object-fit: cover).
+function cobrir(ctx, v, x, y, w, h){
+  if(!v.videoWidth) return;
+  var s = Math.max(w/v.videoWidth, h/v.videoHeight);
+  var dw = v.videoWidth*s, dh = v.videoHeight*s;
+  ctx.drawImage(v, x+(w-dw)/2, y+(h-dh)/2, dw, dh);
+}
+
+// Live no ar: salva a transmissão, liga o relógio e os comentários.
+function abrirLive(){
+  var u = curUser();
+  var l = {id:'live'+Date.now(), userId:u.id, userName:u.name, userPhoto:u.photo, title:liveTitle||('Live de '+u.name), startedAt:Date.now(), viewers:1};
+  DB.saveLive(l);
   overlayOn = true;
-  startCamera();
+  liveWatchId = l.id;
   startLiveTick();
-  startLiveChat();
+  startLiveChat(l.id);
   liveComment(); // a primeira mensagem já aparece
   view = 'live';
   render();
-  showNotif('Você está ao vivo 🔴 Já apareceu na Home e no Shorts');
-}
-
-// Câmera: a gravação só existe enquanto a live está no ar.
-var liveStream = null;
-
-// O navegador do computador consegue gravar a tela; o do celular não, então a
-// gravação cai na câmera. No APK isso pode ser trocado pela captura do Android.
-function startCamera(){
-  var md = navigator.mediaDevices;
-  if(!md) return;
-  if(md.getDisplayMedia){
-    md.getDisplayMedia({video:true}).then(useStream).catch(openCamera);
-    return;
-  }
-  openCamera();
-}
-
-function openCamera(){
-  var md = navigator.mediaDevices;
-  if(!md || !md.getUserMedia) return;
-  md.getUserMedia({video:true, audio:true}).then(useStream).catch(function(){
-    showNotif('Não consegui abrir a câmera 📷');
-  });
-}
-
-function useStream(stream){
-  liveStream = stream;
-  if(view==='live' || view==='home') render(); // mostra a gravação na tela
+  showNotif('Você está ao vivo 🔴 Sua live já está na Home');
 }
 
 function stopCamera(){
   if(liveStream){ liveStream.getTracks().forEach(function(t){ t.stop(); }); liveStream = null; }
+  if(screenStream){ screenStream.getTracks().forEach(function(t){ t.stop(); }); screenStream = null; }
+  if(camStream){ camStream.getTracks().forEach(function(t){ t.stop(); }); camStream = null; }
+  if(mixTimer){ clearInterval(mixTimer); mixTimer = null; }
+  mix = null;
 }
 
 // Encerrar: apertando na bolinha (que abre a tela da live) ou no botão dela.
@@ -1784,6 +1857,8 @@ function endLive(){
   stopCamera();
   DB.saveLive(null);
   overlayOn = false;
+  liveWatchId = null;
+  chatLiveId = null;
   var b = document.getElementById('liveBubble');
   if(b) b.remove();
   view = 'home';
@@ -1791,13 +1866,14 @@ function endLive(){
   showNotif('Live encerrada 🔴');
 }
 
-// Tela da transmissão ao vivo.
+// Tela da transmissão ao vivo (a sua ou a de outro usuário).
 function renderLive(){
-  var l = DB.live();
   var u = curUser();
+  var l = findLive(liveWatchId) || DB.live();
   if(!l){ view='home'; render(); return; }
   var owner = getUser(l.userId) || {name:l.userName, photo:l.userPhoto, verifiedType:null, isCreator:false};
   var mine = l.userId===u.id;
+  if(chatLiveId!==l.id) startLiveChat(l.id);
   var html = '<div class="live-view">'+
     '<div class="live-top"><span class="live-pill"><span class="dot"></span>AO VIVO</span><span class="live-time" id="liveTime">'+liveElapsed(l.startedAt)+'</span></div>'+
     '<div class="live-stage">'+
@@ -1805,7 +1881,9 @@ function renderLive(){
         '<video class="live-preview" id="livePreview" autoplay playsinline muted></video>'
       :
         '<div class="live-cam">📱</div>'+
-        '<div class="live-note">'+(mine?'Sua live está no ar. No APK a sobreposição fica por cima dos outros apps.':'Transmissão de '+escapeHtml(owner.name)+', ao vivo agora.')+'</div>'
+        '<div class="live-note">'+(mine?
+          (screenStream?'Gravando a tela do seu aparelho. No APK a sobreposição fica por cima dos outros apps.':'Sua live está no ar sem imagem — este navegador não grava a tela. No APK a captura é a do próprio Android.')
+          :'Transmissão de '+escapeHtml(owner.name)+', ao vivo agora.')+'</div>'
       )+
     '</div>'+
     '<div class="live-chat" id="liveChatList"></div>'+
