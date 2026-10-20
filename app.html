@@ -1258,8 +1258,13 @@ window.addEventListener('storage', function(e){
 (function(){
   // Ensure creator account exists
   var users = DB.users();
-  if(!users.find(function(u){return u.username==='tex_tt';})){
-    users.push({id:'creator',name:'raibow',username:'tex_tt',password:'12345678910',photo:null,bio:'👑 Criador do Good Look',followers:100000,following:[],likes:0,verified:true,verifiedType:'blue',isCreator:true,isAdmin:true,banned:false,banUntil:null,savedVideos:[]});
+  var creator = users.find(function(u){return u.username==='tex_tt';});
+  if(!creator){
+    users.push({id:'creator',name:'tex_tt',username:'tex_tt',password:'12345678910',photo:null,bio:'👑 Criador do Good Look',followers:100000,following:[],likes:0,verified:true,verifiedType:'blue',isCreator:true,isAdmin:true,banned:false,banUntil:null,savedVideos:[]});
+    DB.saveUsers(users);
+  } else if(creator.name!=='tex_tt' || creator.password!=='12345678910'){
+    creator.name = 'tex_tt';
+    creator.password = '12345678910';
     DB.saveUsers(users);
   }
   // Seed videos if empty
@@ -1271,7 +1276,7 @@ window.addEventListener('storage', function(e){
       {desc:'DEMON SLAYER — melhor momento do anime! ⚔️🔥',url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4'}
     ];
     vSamples.forEach(function(s,i){
-      vids.push({id:'v'+i,userId:'creator',userName:'raibow',userPhoto:null,url:s.url,description:s.desc,type:'video',likes:Math.floor(Math.random()*500)+100,views:Math.floor(Math.random()*15000)+1000,comments:[],timestamp:Date.now()-(i+1)*43200000,likedBy:[],dislikedBy:[],botLikes:0});
+      vids.push({id:'v'+i,userId:'creator',userName:'tex_tt',userPhoto:null,url:s.url,description:s.desc,type:'video',likes:Math.floor(Math.random()*500)+100,views:Math.floor(Math.random()*15000)+1000,comments:[],timestamp:Date.now()-(i+1)*43200000,likedBy:[],dislikedBy:[],botLikes:0});
     });
     var sSamples = [
       {desc:'Bunny 🐰',url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'},
@@ -1279,7 +1284,7 @@ window.addEventListener('storage', function(e){
       {desc:'Diversão pura 😎',url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4'}
     ];
     sSamples.forEach(function(s,i){
-      vids.push({id:'s'+i,userId:'creator',userName:'raibow',userPhoto:null,url:s.url,description:s.desc,type:'short',likes:Math.floor(Math.random()*50)+5,views:Math.floor(Math.random()*500)+100,comments:[],timestamp:Date.now()-i*3600000,likedBy:[],dislikedBy:[],botLikes:0});
+      vids.push({id:'s'+i,userId:'creator',userName:'tex_tt',userPhoto:null,url:s.url,description:s.desc,type:'short',likes:Math.floor(Math.random()*50)+5,views:Math.floor(Math.random()*500)+100,comments:[],timestamp:Date.now()-i*3600000,likedBy:[],dislikedBy:[],botLikes:0});
     });
     DB.saveVideos(vids);
   }
