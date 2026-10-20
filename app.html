@@ -297,16 +297,18 @@ body{background:#000;color:#fff}
 
 <script>
 // ==================== DATA LAYER ====================
+// Cada leitura devolve sempre uma lista, mesmo se o valor guardado estiver
+// estranho (um "null" salvo por engano quebrava o chat e a home).
 var DB = {
-  users: function(){ return JSON.parse(localStorage.getItem('gl_users')||'[]'); },
+  users: function(){ return JSON.parse(localStorage.getItem('gl_users')||'[]')||[]; },
   saveUsers: function(u){ localStorage.setItem('gl_users', JSON.stringify(u)); },
-  videos: function(){ return JSON.parse(localStorage.getItem('gl_videos')||'[]'); },
+  videos: function(){ return JSON.parse(localStorage.getItem('gl_videos')||'[]')||[]; },
   saveVideos: function(v){ localStorage.setItem('gl_videos', JSON.stringify(v)); },
-  pubMsgs: function(){ return JSON.parse(localStorage.getItem('gl_pubmsg')||'[]'); },
+  pubMsgs: function(){ return JSON.parse(localStorage.getItem('gl_pubmsg')||'[]')||[]; },
   savePubMsgs: function(m){ localStorage.setItem('gl_pubmsg', JSON.stringify(m)); },
-  privMsgs: function(){ return JSON.parse(localStorage.getItem('gl_privmsg')||'[]'); },
+  privMsgs: function(){ return JSON.parse(localStorage.getItem('gl_privmsg')||'[]')||[]; },
   savePrivMsgs: function(m){ localStorage.setItem('gl_privmsg', JSON.stringify(m)); },
-  aiHist: function(){ return JSON.parse(localStorage.getItem('gl_aihist')||'[]'); },
+  aiHist: function(){ return JSON.parse(localStorage.getItem('gl_aihist')||'[]')||[]; },
   saveAiHist: function(h){ localStorage.setItem('gl_aihist', JSON.stringify(h)); },
   live: function(){ return JSON.parse(localStorage.getItem('gl_live')||'null'); },
   saveLive: function(l){ if(l) localStorage.setItem('gl_live', JSON.stringify(l)); else localStorage.removeItem('gl_live'); }
@@ -333,7 +335,15 @@ function verifiedBadge(type){
   if(type==='orange') return '<span class="vbadge"><svg viewBox="0 0 24 24"><path d="M12 1l2.4 2.4 3.4-.3 1 3.3 3 1.8-1.4 3.1 1.4 3.1-3 1.8-1 3.3-3.4-.3L12 22l-2.4-2.4-3.4.3-1-3.3-3-1.8 1.4-3.1L3.2 8.2l3-1.8 1-3.3 3.4.3z" fill="#ED8B38"/><path d="M8.5 12l2.5 2.5 4.5-5" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
   return '';
 }
-function userNameDisplay(u){ return '<span style="display:flex;align-items:center;gap:3px">'+escapeHtml(u.name)+(u.isCreator?'👑':'')+verifiedBadge(u.verifiedType)+'</span>'; }
+// Selo: o azul é exclusivo do criador (tex_tt). Quem chega a 100 mil seguidores
+// ganha o selo laranja. Ninguém mais tem selo.
+function verificado(u){
+  if(!u) return null;
+  if(u.isCreator || u.username==='tex_tt') return 'blue';
+  if((u.followers||0) >= 100000) return 'orange';
+  return null;
+}
+function userNameDisplay(u){ return '<span style="display:flex;align-items:center;gap:3px">'+escapeHtml(u.name)+(u.isCreator?'👑':'')+verifiedBadge(verificado(u))+'</span>'; }
 function avatarHtml(u, sz, cls){
   var s=sz||44;
   var c=cls?(' '+cls):'';
@@ -1724,7 +1734,7 @@ var liveViewers = 1;
 function liveComment(){
   var l = findLive(chatLiveId);
   if(!l) return;
-  liveChat.push({name:botNames[Math.floor(Math.random()*botNames.length)], text:botComments[Math.floor(Math.random()*botComments.length)]});
+  liveChat.push({name:botNames[Math.floor(Math.random()*botNames.length)], text:comentAleatorio()});
   if(liveChat.length>40) liveChat.shift();
   liveViewers += 1 + Math.floor(Math.random()*3);
   l.viewers = liveViewers;
@@ -1940,52 +1950,78 @@ function scrollChat(id){
 
 // ==================== BOTS ====================
 var botNames = ['Lucas','Maria','Pedro','Ana','João','Carla','Bruno','Julia','Rafael','Camila','Felipe','Beatriz','Gustavo','Larissa','Diego','Marina','Thiago','Fernanda','Rodrigo','Patrícia'];
-var botComments = ['Muito bom! 😍','Que legal! 🔥','Adorei! ❤️','KKKKK 😂','Top demais! 👏','Sensacional! 🎉','Incrível! ✨','Amei isso! 💖','Hahaha muito bom','Show! 🎬','Mano que vídeo 😂','Que conteúdo bom!','Parabéns! 👏','Sensacional 🔥','Top! 👍'];
+var botComments = ['Muito bom! 😍','Que legal! 🔥','Adorei! ❤️','KKKKK 😂','Top demais! 👏','Sensacional! 🎉','Incrível! ✨','Amei isso! 💖','Hahaha muito bom','Show! 🎬','Mano que vídeo 😂','Que conteúdo bom!','Parabéns! 👏','Sensacional 🔥','Top! 👍','Aí sim! 💪','Não parei de rir 😂','Que edição é essa?! 🔥','Melhor vídeo da semana 🏆','Já é o meu favorito 💖','Que aula! 👏','Salvando pra ver de novo 🔖','Isso merece mais views 📈','Como você fez isso?! 😳','Chegou primeiro que todos 🥇','Chorei aqui 😭','Que trilha sonora 🎵','Vim pelo algoritmo e valeu 🎯','Sem palavras ✨','Muito bom mesmo 😄'];
+
+// Comentário sorteado sem repetir o último que saiu.
+var ultimoComent = -1;
+function comentAleatorio(){
+  var i = Math.floor(Math.random()*botComments.length);
+  if(botComments.length>1 && i===ultimoComent) i = (i+1)%botComments.length;
+  ultimoComent = i;
+  return botComments[i];
+}
 
 // Os bots são os usuários do app: eles postam (anime, jogos, comédia e IA), têm
 // perfil, ganham seguidores, curtem e comentam. São iguais para quem abrir o app,
 // porque o app é estático: o feed é montado aqui, sempre na mesma ordem.
 var SAMPLES = ['videos/bunny.mp4','videos/jellyfish.mp4','videos/sintel.mp4','videos/flower.mp4','videos/friday.mp4','videos/onda.mp4'];
 
+// Ninguém aqui tem selo azul (é só do criador): quem passa de 100 mil seguidores
+// ganha o laranja (Julia e Bruno já estão lá).
 var BOT_PERFIS = [
-  {name:'Ana',     user:'ana',     bio:'🌸 Só anime e mangá por aqui. Novidade toda semana!', followers:18400, verified:true,  vt:'blue'},
-  {name:'Bruno',   user:'bruno',   bio:'🎮 Gameplay todo dia. Top global no ranqueado!',      followers:32700, verified:true,  vt:'blue'},
-  {name:'Camila',  user:'camila',  bio:'😂 Humor, pegadinha e zoeira sem fim.',              followers:12900, verified:false, vt:null},
-  {name:'Diego',   user:'diego',   bio:'🤖 Faço vídeo com IA. Prompt é a nova arte.',         followers:9800,  verified:true,  vt:'gold'},
-  {name:'Julia',   user:'julia',   bio:'⚔️ Anime, teoria e edit. Demon Slayer até morrer.',    followers:45200, verified:true,  vt:'blue'},
-  {name:'Rafael',  user:'rafael',  bio:'🕹️ Games retrô e lançamento. Senta e joga.',          followers:7600,  verified:false, vt:null},
-  {name:'Larissa', user:'larissa', bio:'💅 Vida real, comédia e conselho aleatório.',         followers:21300, verified:false, vt:null},
-  {name:'Thiago',  user:'thiago',  bio:'🎬 IA, edição e efeito. O futuro chegou.',            followers:15600, verified:true,  vt:'blue'}
+  {name:'Ana',     user:'ana',     bio:'🌸 Só anime e mangá por aqui. Novidade toda semana!', followers:48600},
+  {name:'Bruno',   user:'bruno',   bio:'🎮 Gameplay todo dia. Top global no ranqueado!',      followers:112300},
+  {name:'Camila',  user:'camila',  bio:'😂 Humor, pegadinha e zoeira sem fim.',              followers:12900},
+  {name:'Diego',   user:'diego',   bio:'🤖 Faço vídeo com IA. Prompt é a nova arte.',         followers:9800},
+  {name:'Julia',   user:'julia',   bio:'⚔️ Anime, teoria e edit. Demon Slayer até morrer.',    followers:128400},
+  {name:'Rafael',  user:'rafael',  bio:'🕹️ Games retrô e lançamento. Senta e joga.',          followers:7600},
+  {name:'Larissa', user:'larissa', bio:'💅 Vida real, comédia e conselho aleatório.',         followers:21300},
+  {name:'Thiago',  user:'thiago',  bio:'🎬 IA, edição e efeito. O futuro chegou.',            followers:15600}
 ];
 
+// Cada post tem legenda própria e o clipe gira entre os 6 do site: nada sai repetido.
 // Os 8 primeiros dão um post para cada bot (o perfil deles nunca fica vazio).
 var BOT_POSTS = [
-  {bot:'julia',   desc:'Top 5 aberturas de anime que marcaram época 🌸⚔️', tipo:'video', m:2, likes:8420, views:91200},
-  {bot:'bruno',   desc:'TOP GLOBAL no jogo mais difícil! 🏆',               tipo:'video', m:0, likes:5210, views:74500},
-  {bot:'camila',  desc:'Quando o WiFi cai no meio do vídeo 😂',             tipo:'video', m:4, likes:3980, views:52300},
-  {bot:'thiago',  desc:'Fiz um vídeo inteiro com IA 🤖✨',                   tipo:'video', m:1, likes:2760, views:39800},
-  {bot:'ana',     desc:'Esse final de anime me destruiu 😭',                tipo:'short', m:3, likes:6140, views:66100},
-  {bot:'rafael',  desc:'Meu melhor clutch na ranqueada 🔥',                 tipo:'video', m:5, likes:3390, views:44700},
-  {bot:'larissa', desc:'POV: você acorda atrasado pra aula 🤡',             tipo:'video', m:4, likes:8120, views:103400},
-  {bot:'diego',   desc:'A IA desenhou meu sonho e deu isso 😳',             tipo:'video', m:1, likes:980,  views:12200},
-  {bot:'julia',   desc:'Anime edit que ficou insano ⚡',                     tipo:'short', m:2, likes:1420, views:18700},
-  {bot:'camila',  desc:'Pegadinha com IA 😂',                               tipo:'short', m:3, likes:1730, views:21400},
-  {bot:'bruno',   desc:'Clutch de 15 segundos no ranqueado 🔥',             tipo:'short', m:0, likes:2260, views:31200},
-  {bot:'ana',     desc:'Teoria: quem é o verdadeiro vilão do anime 👀',     tipo:'video', m:2, likes:7310, views:84900},
-  {bot:'diego',   desc:'Criei um anime inteiro com IA 🤯',                  tipo:'video', m:5, likes:4120, views:57600},
-  {bot:'larissa', desc:'Ninguém merece segunda-feira 😂',                   tipo:'video', m:3, likes:9460, views:118300}
+  {bot:'julia',   desc:'Top 5 aberturas de anime que marcaram época 🌸⚔️',    tipo:'video', m:0, likes:8420,  views:91200},
+  {bot:'bruno',   desc:'TOP GLOBAL no jogo mais difícil! 🏆',                 tipo:'video', m:1, likes:5210,  views:74500},
+  {bot:'camila',  desc:'Quando o WiFi cai no meio do vídeo 😂',               tipo:'video', m:2, likes:3980,  views:52300},
+  {bot:'thiago',  desc:'Fiz um vídeo inteiro com IA 🤖✨',                     tipo:'video', m:3, likes:2760,  views:39800},
+  {bot:'ana',     desc:'Esse final de anime me destruiu 😭',                  tipo:'short', m:4, likes:6140,  views:66100},
+  {bot:'rafael',  desc:'Meu melhor clutch na ranqueada 🔥',                   tipo:'video', m:5, likes:3390,  views:44700},
+  {bot:'larissa', desc:'POV: você acorda atrasado pra aula 🤡',               tipo:'video', m:0, likes:8120,  views:103400},
+  {bot:'diego',   desc:'A IA desenhou meu sonho e deu isso 😳',               tipo:'video', m:1, likes:980,   views:12200},
+  {bot:'julia',   desc:'Anime edit que ficou insano ⚡',                       tipo:'short', m:2, likes:1420,  views:18700},
+  {bot:'camila',  desc:'Pegadinha com IA deu ruim 😂',                        tipo:'short', m:3, likes:1730,  views:21400},
+  {bot:'bruno',   desc:'Clutch de 15 segundos no ranqueado 🎮',                tipo:'short', m:4, likes:2260,  views:31200},
+  {bot:'ana',     desc:'Teoria: quem é o verdadeiro vilão do anime 👀',       tipo:'video', m:5, likes:7310,  views:84900},
+  {bot:'diego',   desc:'Criei um anime inteiro com IA 🤯',                    tipo:'video', m:0, likes:4120,  views:57600},
+  {bot:'larissa', desc:'Ninguém merece segunda-feira 😂',                     tipo:'video', m:1, likes:9460,  views:118300},
+  {bot:'julia',   desc:'Ranking dos animes mais tristes de todos os tempos 💔',tipo:'video', m:2, likes:10520, views:132700},
+  {bot:'bruno',   desc:'Zerei o jogo em 100% sem morrer nenhuma vez 🏅',       tipo:'video', m:3, likes:6380,  views:79400},
+  {bot:'camila',  desc:'Meu irmão tentando cozinhar por 3 minutos 🤣',         tipo:'video', m:4, likes:11240, views:141900},
+  {bot:'thiago',  desc:'Fiz a IA dublar minha voz e ficou perfeito 🎙️🤖',     tipo:'video', m:5, likes:3470,  views:49800},
+  {bot:'rafael',  desc:'Aquele headshot impossível 🎯',                       tipo:'short', m:0, likes:1890,  views:24600},
+  {bot:'larissa', desc:'Reagindo ao meu próprio vídeo antigo 😂',              tipo:'short', m:1, likes:2610,  views:33700}
 ];
 
 function semearBots(){
   var users = DB.users();
   var mudou = false;
   BOT_PERFIS.forEach(function(b){
-    if(!users.find(function(u){ return u.username===b.user; })){
+    var x = users.find(function(u){ return u.username===b.user; });
+    if(!x){
       users.push({id:'bot_'+b.user, name:b.name, username:b.user, password:'bot_'+b.user, photo:null, bio:b.bio,
-        followers:b.followers, following:[], likes:0, verified:b.verified, verifiedType:b.vt,
+        followers:b.followers, following:[], likes:0, verified:false, verifiedType:null,
         isCreator:false, isAdmin:false, banned:false, banUntil:null, savedVideos:[]});
       mudou = true;
+    } else if((x.followers||0) < b.followers){ // seguidores dos bots só crescem
+      x.followers = b.followers;
+      mudou = true;
     }
+  });
+  // O selo azul é só do criador: tira de todo mundo.
+  users.forEach(function(u){
+    if(!u.isCreator && u.username!=='tex_tt' && (u.verified || u.verifiedType)){ u.verified = false; u.verifiedType = null; mudou = true; }
   });
   if(mudou) DB.saveUsers(users);
   sincronizarPostsBot(8, false);
@@ -2001,6 +2037,18 @@ function sincronizarPostsBot(alvo, novo){
     mudou = true;
   }
   if(mudou) DB.saveVideos(vids);
+  // Devolve cada clipe para a vez dele na lista: assim dois posts seguidos não
+  // saem com o mesmo vídeo.
+  var todos = DB.videos(), corrigiu = false;
+  todos.forEach(function(v){
+    if(!v.botPost) return;
+    var idx = parseInt(v.id.replace('bp',''),10) - 1;
+    var b = BOT_POSTS[idx];
+    if(!b) return;
+    if(v.url !== SAMPLES[b.m]){ v.url = SAMPLES[b.m]; corrigiu = true; }
+    if(v.type !== b.tipo){ v.type = b.tipo; corrigiu = true; }
+  });
+  if(corrigiu) DB.saveVideos(todos);
   return mudou;
 }
 
@@ -2016,7 +2064,7 @@ function criarPostBot(i, novo){
 // Juntando 10 palavrões (no chat público, no privado ou nos comentários) a conta
 // toma ban automático de 24h, e o motivo fica registrado no perfil dela.
 var PALAVROES = ['porra','desgraça','disgraça','vagabundo','vagabunda','filho da puta','filha da puta','caralho','puta que pariu','vai tomar no cu'];
-var LIMITE_PALAVROES = 10;
+var LIMITE_PALAVROES = 6;
 
 function contarPalavroes(text){
   var t = (text||'').toLowerCase();
@@ -2033,6 +2081,7 @@ function checarPalavroes(text){
   var u = curUser();
   var n = contarPalavroes(text);
   if(!u || !n) return false;
+  if(u.isCreator || u.isAdmin) return false; // o dono do app não toma ban
   var users = DB.users();
   var x = users.find(function(y){ return y.id===u.id; });
   if(!x) return false;
@@ -2073,7 +2122,7 @@ function startBots(){
       var v2 = vids[Math.floor(Math.random()*vids.length)];
       if(!v2.comments) v2.comments = [];
       var bn = botNames[Math.floor(Math.random()*botNames.length)];
-      var bc = botComments[Math.floor(Math.random()*botComments.length)];
+      var bc = comentAleatorio();
       v2.comments.push({userId:'bot_'+bn, userName:bn, text:bc, ts:Date.now()});
       changed = true;
     }
