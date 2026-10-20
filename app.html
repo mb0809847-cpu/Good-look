@@ -389,7 +389,7 @@ function navigate(v){
 // ==================== RENDER ====================
 function render(){
   var u = curUser();
-  if(!u){ window.location.href='/home'; return; }
+  if(!u){ window.location.href='home.html'; return; }
   // Banido não posta, não conversa e não assiste vídeo: cai sempre no próprio perfil.
   if(isBanned(u) && !bannedViewAllowed(u)){
     view = 'profile';
@@ -1343,7 +1343,7 @@ function saveProfile(){
 
 function logout(){
   localStorage.removeItem('gl_current_user');
-  window.location.href = '/';
+  window.location.href = 'index.html';
 }
 
 // ==================== POST ====================
@@ -1947,7 +1947,7 @@ window.addEventListener('storage', function(e){
     DB.saveVideos(vids);
   }
 
-  if(!curUser()){ window.location.href='/home'; return; }
+  if(!curUser()){ window.location.href='home.html'; return; }
   // Se a página foi recarregada durante uma live, a bolinha volta com ela.
   if(DB.live()){ overlayOn = true; startLiveTick(); }
   startBots();

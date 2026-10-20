@@ -56,7 +56,7 @@
       <div class="err" id="lErr"></div>
       <button class="btn" onclick="loginAccount()">Entrar</button>
     </div>
-    <div class="foot"><a href="/">← Voltar</a></div>
+    <div class="foot"><a href="index.html">← Voltar</a></div>
   </div>
   <script>
     (function(){
@@ -96,7 +96,7 @@
       var cur = localStorage.getItem('gl_current_user');
       if (cur) {
         var u = users.find(function(x){return x.id===cur;});
-        if (u && !u.banned) window.location.href = '/app';
+        if (u && !u.banned) window.location.href = 'app.html';
       }
     })();
 
@@ -134,7 +134,7 @@
       users.push({ id:id, name:name, username:name.toLowerCase().replace(/\s/g,'_'), password:pass, photo:photoData, bio:'', followers:0, following:[], likes:0, verified:false, verifiedType:null, isCreator:false, isAdmin:false, banned:false, banUntil:null, savedVideos:[] });
       localStorage.setItem('gl_users', JSON.stringify(users));
       localStorage.setItem('gl_current_user', id);
-      window.location.href = '/app';
+      window.location.href = 'app.html';
     }
 
     function loginAccount(){
@@ -146,7 +146,7 @@
       if (!u) { err.textContent='Nome ou senha incorretos'; err.style.display='block'; return; }
       if (u.banned && u.banUntil && Date.now() < u.banUntil) { err.textContent='Conta banida'; err.style.display='block'; return; }
       localStorage.setItem('gl_current_user', u.id);
-      window.location.href = '/app';
+      window.location.href = 'app.html';
     }
   </script>
 </body>
