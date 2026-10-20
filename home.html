@@ -58,6 +58,7 @@
     </div>
     <div class="foot"><a href="index.html">← Voltar</a></div>
   </div>
+  <script src="sync.js"></script>
   <script>
     (function(){
       // Seed creator account
@@ -75,11 +76,24 @@
       // as pessoas de verdade que usam o app.
       var vids = JSON.parse(localStorage.getItem('gl_videos') || '[]').filter(function(v){ return ['v0','v1','v2','s0','s1','s2'].indexOf(v.id)<0; });
       localStorage.setItem('gl_videos', JSON.stringify(vids));
-      // Auto-login
+      // Auto-login. Quem já tinha conta neste aparelho entra direto e, se a
+      // conta é de antes do servidor, ela é registrada lá com a mesma senha.
       var cur = localStorage.getItem('gl_current_user');
-      if (cur) {
-        var u = users.find(function(x){return x.id===cur;});
-        if (u && !u.banned) window.location.href = 'app.html';
+      var u = cur ? users.find(function(x){return x.id===cur;}) : null;
+      if (u && !u.banned) {
+        if (localStorage.getItem('gl_token') || !u.password) { window.location.href = 'app.html'; return; }
+        SYNC.entrar(u.name, u.password).then(function(j){
+          SYNC.guardarSessao(j);
+          window.location.href = 'app.html';
+        }).catch(function(e){
+          if (e && e.status === 404) {
+            return SYNC.criar(u.name, u.password, u.photo).then(function(j){
+              SYNC.guardarSessao(j);
+              window.location.href = 'app.html';
+            });
+          }
+          if (!e || !e.status) { window.location.href = 'app.html'; return; }  // sem servidor: modo local
+        });
       }
     })();
 
@@ -108,7 +122,21 @@
       var name = document.getElementById('cName').value.trim();
       var pass = document.getElementById('cPass').value;
       var err = document.getElementById('cErr');
+      err.style.display = 'none';
       if (!name || !pass) { err.textContent='Preencha nome e senha'; err.style.display='block'; return; }
+      // A conta passa a viver no servidor: é ela que te deixa entrar em qualquer
+      // celular e aparecer para as outras pessoas.
+      SYNC.criar(name, pass, photoData).then(function(j){
+        SYNC.guardarSessao(j);
+        window.location.href = 'app.html';
+      }).catch(function(e){
+        if (e && e.status) { err.textContent = (e.dados && e.dados.error) || e.message || 'Não deu para criar a conta'; err.style.display='block'; return; }
+        criarContaLocal(name, pass);   // sem servidor: conta só neste aparelho
+      });
+    }
+
+    function criarContaLocal(name, pass){
+      var err = document.getElementById('cErr');
       var users = JSON.parse(localStorage.getItem('gl_users')||'[]');
       if (users.find(function(u){return u.name.toLowerCase()===name.toLowerCase();})) {
         err.textContent='Esse nome já existe. Tente "Entrar".'; err.style.display='block'; return;
@@ -120,25 +148,40 @@
       window.location.href = 'app.html';
     }
 
+    function mostrarBan(u){
+      var ms = u.banUntil - Date.now(), h = Math.floor(ms/3600000), m = Math.floor((ms%3600000)/60000);
+      return u.banUntil === -1 ? 'banido permanentemente' : 'libera em ' + (h>0?h+'h ':'') + m + 'min';
+    }
+
     function loginAccount(){
       var name = document.getElementById('lName').value.trim();
       var pass = document.getElementById('lPass').value;
       var err = document.getElementById('lErr');
-      var users = JSON.parse(localStorage.getItem('gl_users')||'[]');
-      var u = users.find(function(x){return x.name.toLowerCase()===name.toLowerCase() && x.password===pass;});
-      if (!u) { err.textContent='Nome ou senha incorretos'; err.style.display='block'; return; }
-      if (u.banned && u.banUntil && Date.now() < u.banUntil) {
-        var rest = u.banUntil === -1 ? 'banido permanentemente' : (function(){
-          var ms = u.banUntil - Date.now(), h = Math.floor(ms/3600000), m = Math.floor((ms%3600000)/60000);
-          return 'libera em ' + (h>0?h+'h ':'') + m + 'min';
-        })();
-        err.textContent = 'Você foi banido: ' + (u.banReason || 'palavras ofensivas') + ' (' + rest + ')';
+      err.style.display = 'none';
+      SYNC.entrar(name, pass).then(function(j){
+        var u = SYNC.guardarSessao(j);
+        if (u.banned && u.banUntil && Date.now() < u.banUntil) { err.textContent = 'Você foi banido: ' + (u.banReason || 'palavras ofensivas') + ' (' + mostrarBan(u) + ')'; err.style.display='block'; return; }
+        window.location.href = 'app.html';
+      }).catch(function(e){
+        var users = JSON.parse(localStorage.getItem('gl_users')||'[]');
+        var local = users.find(function(x){return x.name.toLowerCase()===name.toLowerCase() && x.password===pass;});
+        // Conta antiga deste aparelho (de antes do servidor): registra no servidor
+        // com a mesma senha, para ela valer em qualquer celular.
+        if (local && (!e || !e.status || e.status === 404)) {
+          SYNC.criar(name, pass, local.photo).then(function(j){
+            SYNC.guardarSessao(j);
+            window.location.href = 'app.html';
+          }).catch(function(){
+            localStorage.setItem('gl_current_user', local.id);
+            window.location.href = 'app.html';
+          });
+          return;
+        }
+        err.textContent = (e && e.dados && e.dados.message) || 'Nome ou senha incorretos';
         err.style.display = 'block';
-        return;
-      }
-      localStorage.setItem('gl_current_user', u.id);
-      window.location.href = 'app.html';
+      });
     }
+
   </script>
 </body>
 </html>

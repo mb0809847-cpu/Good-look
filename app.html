@@ -300,23 +300,24 @@ body{background:#000;color:#fff}
 <div id="nav"></div>
 <div class="notif" id="notif" onclick="notifClick()"></div>
 
+<script src="sync.js"></script>
 <script>
 // ==================== DATA LAYER ====================
 // Cada leitura devolve sempre uma lista, mesmo se o valor guardado estiver
 // estranho (um "null" salvo por engano quebrava o chat e a home).
 var DB = {
   users: function(){ return JSON.parse(localStorage.getItem('gl_users')||'[]')||[]; },
-  saveUsers: function(u){ localStorage.setItem('gl_users', JSON.stringify(u)); },
+  saveUsers: function(u){ localStorage.setItem('gl_users', JSON.stringify(u)); if(window.SYNC) SYNC.save('users'); },
   videos: function(){ return JSON.parse(localStorage.getItem('gl_videos')||'[]')||[]; },
-  saveVideos: function(v){ localStorage.setItem('gl_videos', JSON.stringify(v)); },
+  saveVideos: function(v){ localStorage.setItem('gl_videos', JSON.stringify(v)); if(window.SYNC) SYNC.save('videos'); },
   pubMsgs: function(){ return JSON.parse(localStorage.getItem('gl_pubmsg')||'[]')||[]; },
-  savePubMsgs: function(m){ localStorage.setItem('gl_pubmsg', JSON.stringify(m)); },
+  savePubMsgs: function(m){ localStorage.setItem('gl_pubmsg', JSON.stringify(m)); if(window.SYNC) SYNC.save('pubMsgs'); },
   privMsgs: function(){ return JSON.parse(localStorage.getItem('gl_privmsg')||'[]')||[]; },
-  savePrivMsgs: function(m){ localStorage.setItem('gl_privmsg', JSON.stringify(m)); },
+  savePrivMsgs: function(m){ localStorage.setItem('gl_privmsg', JSON.stringify(m)); if(window.SYNC) SYNC.save('privMsgs'); },
   aiHist: function(){ return JSON.parse(localStorage.getItem('gl_aihist')||'[]')||[]; },
   saveAiHist: function(h){ localStorage.setItem('gl_aihist', JSON.stringify(h)); },
   live: function(){ return JSON.parse(localStorage.getItem('gl_live')||'null'); },
-  saveLive: function(l){ if(l) localStorage.setItem('gl_live', JSON.stringify(l)); else localStorage.removeItem('gl_live'); }
+  saveLive: function(l){ if(l) localStorage.setItem('gl_live', JSON.stringify(l)); else localStorage.removeItem('gl_live'); if(window.SYNC) SYNC.save('live'); }
 };
 
 function curUser(){ var id=localStorage.getItem('gl_current_user'); return DB.users().find(function(u){return u.id===id;}); }
@@ -404,6 +405,7 @@ function navigate(v){
 
 function atualizarView(){
   render();
+  if(window.SYNC && SYNC.logged()) SYNC.tick();
   showNotif('Atualizado 🔄');
 }
 
@@ -1394,6 +1396,7 @@ function saveProfile(){
 }
 
 function logout(){
+  if(window.SYNC) SYNC.sair();
   localStorage.removeItem('gl_current_user');
   window.location.href = 'index.html';
 }
@@ -1401,6 +1404,7 @@ function logout(){
 // ==================== POST ====================
 var postMode = 'link';
 var postFileUrl = null;
+var postFile = null;
 
 function renderPost(){
   var isShort = postMode==='shorts';
@@ -1450,32 +1454,48 @@ function renderPost(){
   if(postMode==='video' || postMode==='shorts'){
     document.getElementById('postFile').addEventListener('change', function(e){
       var f = e.target.files[0]; if(!f) return;
+      postFile = f;
       postFileUrl = URL.createObjectURL(f);
       document.getElementById('postPreview').innerHTML = '<video class="post-preview" src="'+postFileUrl+'" controls muted></video>';
     });
   }
 }
 
+function publicarVideo(url, type, desc){
+  var u = curUser();
+  desc = desc || document.getElementById('postDesc').value.trim() || 'Sem descrição';
+  var vids = DB.videos();
+  var vid = { id:'vid'+Date.now(), userId:u.id, userName:u.name, userPhoto:u.photo, url:url, description:desc, type:type, likes:0, views:0, comments:[], timestamp:Date.now(), likedBy:[], dislikedBy:[] };
+  vids.unshift(vid);
+  DB.saveVideos(vids);
+  postFile = null;
+  postFileUrl = null;
+  showNotif(type==='short'?'Short publicado! ⚡🎉':'Vídeo publicado! 🎉');
+  setTimeout(function(){ view=(type==='short'?'shorts':'home'); render(); }, 800);
+}
+
 function publishVideo(){
   if(blockedAction()) return;
-  var u = curUser();
   var url, desc;
   var type = postMode==='shorts' ? 'short' : 'video';
   if(postMode==='link'){
     url = document.getElementById('postUrl').value.trim();
     if(!url){ showNotif('Cole o link do vídeo! 🔗'); return; }
   } else {
+    if(!postFile && !postFileUrl){ showNotif('Escolha um '+(type==='short'?'short':'vídeo')+' primeiro! 📹'); return; }
+    desc = document.getElementById('postDesc').value.trim() || 'Sem descrição';
+    if(postFile && window.SYNC && SYNC.logged()){
+      // Sobe o vídeo para o servidor: assim ele abre no celular de qualquer pessoa.
+      showNotif('Enviando o vídeo... ⬆️');
+      var ext = (String(postFile.name||'').split('.').pop() || 'mp4').toLowerCase();
+      var arquivo = postFile, preview = postFileUrl, legenda = desc;
+      SYNC.upload(arquivo, ext).then(function(r){ url = r.url; publicarVideo(url, type, legenda); })
+        .catch(function(){ url = preview; publicarVideo(url, type, legenda); showNotif('Publicado só neste aparelho (sem conexão com o servidor) 📴'); });
+      return;
+    }
     url = postFileUrl;
-    if(!url){ showNotif('Escolha um '+(type==='short'?'short':'vídeo')+' primeiro! 📹'); return; }
   }
-  desc = document.getElementById('postDesc').value.trim() || 'Sem descrição';
-  var vids = DB.videos();
-  var vid = { id:'vid'+Date.now(), userId:u.id, userName:u.name, userPhoto:u.photo, url:url, description:desc, type:type, likes:0, views:0, comments:[], timestamp:Date.now(), likedBy:[], dislikedBy:[] };
-  vids.unshift(vid);
-  DB.saveVideos(vids);
-  postFileUrl = null;
-  showNotif(type==='short'?'Short publicado! ⚡🎉':'Vídeo publicado! 🎉');
-  setTimeout(function(){ view=(type==='short'?'shorts':'home'); render(); }, 800);
+  publicarVideo(url, type, desc);
 }
 
 // ==================== PANEL (Creator) ====================
@@ -1785,7 +1805,7 @@ function startLiveChat(id){
 function paintBubble(){
   var l = DB.live();
   var b = document.getElementById('liveBubble');
-  if(!overlayOn || !l || view==='live'){ if(b) b.remove(); return; }
+  if(!overlayOn || !l || view==='live' || l.userId!==curUser().id){ if(b) b.remove(); return; }
   if(!b){
     b = document.createElement('div');
     b.id = 'liveBubble';
@@ -2099,8 +2119,18 @@ window.addEventListener('storage', function(e){
   limparBots();
 
   if(!curUser()){ window.location.href='home.html'; return; }
-  // Se a página foi recarregada durante uma live, a bolinha volta com ela.
-  if(DB.live()){ overlayOn = true; startLiveTick(); }
+  // Sem sessão no servidor: quem tem servidor cai na tela de entrada (que entra
+  // sozinha com a conta que já existe neste aparelho). Site aberto sem servidor
+  // (GitHub Pages) continua funcionando só no aparelho.
+  if(window.SYNC && !SYNC.logged()){
+    SYNC.ping().then(function(){ window.location.href='home.html'; }).catch(function(){});
+  }
+  // Contas, vídeos, shorts e conversas ficam no servidor: o que acontece aqui
+  // aparece no celular das outras pessoas (e o que elas fazem aparece aqui).
+  if(window.SYNC) SYNC.start();
+  // Se a página foi recarregada durante a MINHA live, a bolinha volta com ela.
+  var liveAtual = DB.live();
+  if(liveAtual && liveAtual.userId===curUser().id){ overlayOn = true; startLiveTick(); }
   // Só checa mensagem de gente de verdade chegando: nenhum bot roda por aqui.
   setInterval(checarMensagensNovas, 3000);
   render();
