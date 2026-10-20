@@ -1262,21 +1262,34 @@ window.addEventListener('storage', function(e){
     users.push({id:'creator',name:'raibow',username:'tex_tt',password:'12345678910',photo:null,bio:'👑 Criador do Good Look',followers:100000,following:[],likes:0,verified:true,verifiedType:'blue',isCreator:true,isAdmin:true,banned:false,banUntil:null,savedVideos:[]});
     DB.saveUsers(users);
   }
-  // Seed videos if empty
+  // Sample clips ship with the site: the external bucket used before now answers
+  // 403, which left every seeded video showing a black player.
+  var SAMPLES = ['/videos/bunny.mp4','/videos/jellyfish.mp4','/videos/sintel.mp4','/videos/flower.mp4','/videos/friday.mp4','/videos/onda.mp4'];
+  var SEED_INDEX = {v0:0,v1:1,v2:2,s0:3,s1:4,s2:5};
+
+  // Point sample videos already saved in this browser at the local files.
   var vids = DB.videos();
+  var resaved = false;
+  vids.forEach(function(v){
+    var si = SEED_INDEX[v.id];
+    if(si!==undefined && v.url && v.url.indexOf('gtv-videos-bucket')>=0){ v.url = SAMPLES[si]; resaved = true; }
+  });
+  if(resaved) DB.saveVideos(vids);
+
+  // Seed videos if empty
   if(vids.length===0){
     var vSamples = [
-      {desc:'PEGUEI O OVO DIVINO MAIS RARO DO HALLOWEEN! 🎃🥚',url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'},
-      {desc:'TOP GLOBAL no jogo mais difícil! 🏆',url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4'},
-      {desc:'DEMON SLAYER — melhor momento do anime! ⚔️🔥',url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4'}
+      {desc:'PEGUEI O OVO DIVINO MAIS RARO DO HALLOWEEN! 🎃🥚',url:SAMPLES[0]},
+      {desc:'TOP GLOBAL no jogo mais difícil! 🏆',url:SAMPLES[1]},
+      {desc:'DEMON SLAYER — melhor momento do anime! ⚔️🔥',url:SAMPLES[2]}
     ];
     vSamples.forEach(function(s,i){
       vids.push({id:'v'+i,userId:'creator',userName:'raibow',userPhoto:null,url:s.url,description:s.desc,type:'video',likes:Math.floor(Math.random()*500)+100,views:Math.floor(Math.random()*15000)+1000,comments:[],timestamp:Date.now()-(i+1)*43200000,likedBy:[],dislikedBy:[],botLikes:0});
     });
     var sSamples = [
-      {desc:'Bunny 🐰',url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'},
-      {desc:'Muito fogo! 🔥',url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4'},
-      {desc:'Diversão pura 😎',url:'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4'}
+      {desc:'Flor desabrochando 🌸',url:SAMPLES[3]},
+      {desc:'Boa sexta! 🎉',url:SAMPLES[4]},
+      {desc:'Clima de verão ☀️',url:SAMPLES[5]}
     ];
     sSamples.forEach(function(s,i){
       vids.push({id:'s'+i,userId:'creator',userName:'raibow',userPhoto:null,url:s.url,description:s.desc,type:'short',likes:Math.floor(Math.random()*50)+5,views:Math.floor(Math.random()*500)+100,comments:[],timestamp:Date.now()-i*3600000,likedBy:[],dislikedBy:[],botLikes:0});
