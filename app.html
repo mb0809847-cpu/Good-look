@@ -179,6 +179,13 @@ body{background:#000;color:#fff}
 .live-cam{font-size:52px}
 .live-note{color:#8b8b8b;font-size:13px;text-align:center;padding:0 20px;line-height:1.45}
 .live-preview{width:100%;flex:1;min-height:0;object-fit:cover;border-radius:16px;background:#000}
+.live-chat{max-height:30%;overflow-y:auto;background:#141414;border-radius:12px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+.live-chat:empty{display:none}
+.live-chat .lc{font-size:12.5px;color:#e5e5e5;line-height:1.35}
+.live-chat .lc b{color:#F97316;font-weight:700}
+.live-video{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;z-index:0}
+.live-cover .live-pill,.live-cover .live-ctitle,.live-cover .live-cmeta{position:relative;z-index:1}
+.live-cover .live-ctitle,.live-cover .live-cmeta{text-shadow:0 1px 6px rgba(0,0,0,.9)}
 .live-title{font-size:17px;font-weight:800;color:#fff}
 .live-sub{font-size:12.5px;color:#8b8b8b;margin-top:4px;display:flex;align-items:center;gap:5px}
 .live-end{width:100%;padding:15px;border-radius:12px;border:none;background:#e11900;color:#fff;font-size:15px;font-weight:800;cursor:pointer;margin-top:12px}
@@ -469,6 +476,7 @@ function renderHome(){
     var lo = getUser(l.userId) || {name:l.userName, photo:l.userPhoto, verifiedType:null, isCreator:false};
     html += '<div class="hcard live-card">'+
       '<div class="live-cover" onclick="openLiveView()">'+
+        (liveStream && l.userId===curUser().id?'<video class="live-video" id="homeLiveVideo" autoplay playsinline muted></video>':'')+
         '<span class="live-pill"><span class="dot"></span>AO VIVO</span>'+
         '<div class="live-ctitle">'+escapeHtml(l.title)+'</div>'+
         '<div class="live-cmeta">'+userNameDisplay(lo)+' · <span id="liveCardTime">'+liveElapsed(l.startedAt)+'</span> no ar</div>'+
@@ -502,6 +510,8 @@ function renderHome(){
   html += '</div>';
   document.getElementById('app').innerHTML = html;
   lazyLoadEls(document.querySelectorAll('#homeFeed video'));
+  var hv = document.getElementById('homeLiveVideo');
+  if(hv) hv.srcObject = liveStream;
 }
 
 function timeAgoStr(ts){
@@ -1648,6 +1658,41 @@ function tickLive(){
 function startLiveTick(){ if(liveTimer) clearInterval(liveTimer); liveTimer = setInterval(tickLive, 1000); }
 function stopLiveTick(){ if(liveTimer){ clearInterval(liveTimer); liveTimer = null; } }
 
+// Enquanto a live está no ar, pessoas aleatórias comentam ao vivo.
+var liveChat = [];
+var liveChatTimer = null;
+var liveViewers = 1;
+
+function liveComment(){
+  var l = DB.live();
+  if(!l) return;
+  liveChat.push({name:botNames[Math.floor(Math.random()*botNames.length)], text:botComments[Math.floor(Math.random()*botComments.length)]});
+  if(liveChat.length>40) liveChat.shift();
+  liveViewers += 1 + Math.floor(Math.random()*3);
+  l.viewers = liveViewers;
+  DB.saveLive(l);
+  var v = document.getElementById('liveViewers');
+  if(v) v.textContent = liveViewers;
+  paintLiveChat();
+}
+
+function paintLiveChat(){
+  var el = document.getElementById('liveChatList');
+  if(!el) return;
+  el.innerHTML = liveChat.map(function(c){
+    return '<div class="lc"><b>'+escapeHtml(c.name)+'</b> '+escapeHtml(c.text)+'</div>';
+  }).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+function startLiveChat(){
+  liveChat = [];
+  liveViewers = 1;
+  if(liveChatTimer) clearInterval(liveChatTimer);
+  liveChatTimer = setInterval(liveComment, 3500);
+}
+function stopLiveChat(){ if(liveChatTimer){ clearInterval(liveChatTimer); liveChatTimer = null; } }
+
 // Bolinha flutuante: pequena, fica na tela e é ela que começa a gravação.
 function paintBubble(){
   var l = DB.live();
@@ -1693,6 +1738,8 @@ function startLive(){
   overlayOn = true;
   startCamera();
   startLiveTick();
+  startLiveChat();
+  liveComment(); // a primeira mensagem já aparece
   view = 'live';
   render();
   showNotif('Você está ao vivo 🔴 Já apareceu na Home e no Shorts');
@@ -1701,15 +1748,29 @@ function startLive(){
 // Câmera: a gravação só existe enquanto a live está no ar.
 var liveStream = null;
 
+// O navegador do computador consegue gravar a tela; o do celular não, então a
+// gravação cai na câmera. No APK isso pode ser trocado pela captura do Android.
 function startCamera(){
   var md = navigator.mediaDevices;
+  if(!md) return;
+  if(md.getDisplayMedia){
+    md.getDisplayMedia({video:true}).then(useStream).catch(openCamera);
+    return;
+  }
+  openCamera();
+}
+
+function openCamera(){
+  var md = navigator.mediaDevices;
   if(!md || !md.getUserMedia) return;
-  md.getUserMedia({video:true, audio:true}).then(function(stream){
-    liveStream = stream;
-    if(view==='live') render(); // mostra a câmera na tela da live
-  }).catch(function(){
+  md.getUserMedia({video:true, audio:true}).then(useStream).catch(function(){
     showNotif('Não consegui abrir a câmera 📷');
   });
+}
+
+function useStream(stream){
+  liveStream = stream;
+  if(view==='live' || view==='home') render(); // mostra a gravação na tela
 }
 
 function stopCamera(){
@@ -1719,6 +1780,7 @@ function stopCamera(){
 // Encerrar: apertando na bolinha (que abre a tela da live) ou no botão dela.
 function endLive(){
   stopLiveTick();
+  stopLiveChat();
   stopCamera();
   DB.saveLive(null);
   overlayOn = false;
@@ -1746,13 +1808,15 @@ function renderLive(){
         '<div class="live-note">'+(mine?'Sua live está no ar. No APK a sobreposição fica por cima dos outros apps.':'Transmissão de '+escapeHtml(owner.name)+', ao vivo agora.')+'</div>'
       )+
     '</div>'+
+    '<div class="live-chat" id="liveChatList"></div>'+
     '<div class="live-title">'+escapeHtml(l.title)+'</div>'+
-    '<div class="live-sub">'+userNameDisplay(owner)+' · '+l.viewers+' assistindo</div>'+
+    '<div class="live-sub">'+userNameDisplay(owner)+' · <span id="liveViewers">'+l.viewers+'</span> assistindo</div>'+
     (mine?'<button class="live-end" onclick="endLive()">Encerrar live</button>':'<button class="live-end" style="background:#F97316" onclick="view=\'shorts\';render()">Sair</button>')+
   '</div>';
   document.getElementById('app').innerHTML = html;
   var pv = document.getElementById('livePreview');
   if(pv) pv.srcObject = liveStream;
+  paintLiveChat();
 }
 
 // No chat com o administrador, quem está banido tem o pedido de desculpas na mão.
