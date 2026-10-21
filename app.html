@@ -1123,6 +1123,13 @@ function renderPVBList(){
     if(!souCriador && isBanned(u)) return false;
     return true;
   });
+  // Quem está banido e já teve o convite da conversa dos três aparece marcado na
+  // lista do criador: ele acha a conversa sem ter de procurar no meio das outras.
+  var convites = {};
+  if(souCriador) DB.privMsgs().forEach(function(m){
+    var dono = (m && m.convite && m.trio) ? getUser(m.trio) : null;
+    if(dono && isBanned(dono)) convites[m.trio] = true;
+  });
   var html = '<div class="chat-view">'+
     '<div class="chat-header"><div class="title">💬 PVB</div></div>'+
     '<div class="pvb-tabs">'+
@@ -1134,7 +1141,7 @@ function renderPVBList(){
       users.map(function(u){
         return '<div class="user-row" onclick="startPrivateChat(\''+u.id+'\')">'+
           avatarHtml(u)+
-          '<div class="info"><div class="n">'+userNameDisplay(u)+(isBanned(u)?' <span class="ban-tag">banido</span>':'')+'</div><div class="s">'+(u.bio||'Sem bio')+'</div></div>'+
+          '<div class="info"><div class="n">'+userNameDisplay(u)+(isBanned(u)?' <span class="ban-tag">banido</span>':'')+(convites[u.id]?' <span class="ban-tag" style="background:#F97316;color:#111">📨 convite dos três</span>':'')+'</div><div class="s">'+(u.bio||'Sem bio')+'</div></div>'+
           '<div class="acts"><button class="pbtn" onclick="event.stopPropagation();viewProfile(\''+u.id+'\')">Perfil</button><button class="cbtn" onclick="event.stopPropagation();startPrivateChat(\''+u.id+'\')">Conversar</button></div>'+
         '</div>';
       }).join(''))+
@@ -1299,7 +1306,11 @@ function sendPrivMsg(img){
 //     criador e banido). Quem decide liberar é o criador.
 var MSG_BOAS_VINDAS = 'Oi! 👋 Eu sou a suporte good look, a assistente oficial do app. Me chame pelo meu nome — "assistente" — que eu respondo na hora: postar vídeo, Shorts, live, selo verificado, chat PVB, regras da comunidade e banimento. 💬';
 
-var MSG_AGUARDE = 'Recebi o seu pedido de desculpas 🙏 Agora eu não libero mais na hora. Aguarde 1 minuto que eu vou chamar o criador para entrar nesta conversa com a gente — só nós três: eu, você e ele. Fique por aqui. ⏳';
+var MSG_AGUARDE = [
+  'Recebi o seu pedido de desculpas 🙏 Agora eu não libero mais na hora. Aguarde 1 minuto que eu vou chamar o criador para entrar nesta conversa com a gente — só nós três: eu, você e ele. Fique por aqui. ⏳',
+  'Já vi o seu recado 🙏 Quem libera conta não sou eu: é o criador. Daqui a 1 minuto eu chamo ele para esta conversa dos três. Enquanto isso pode me contar o que aconteceu. ⏳',
+  'Anotado 🙏 Só espera um minuto: eu chamo o criador para entrar nesta conversa (só nós três) e é ele que decide a liberação. ⏳'
+];
 
 var TOPICOS_SUPORTE = 'postar vídeo, Shorts e live · selo verificado · regras da comunidade · banimento e como sair dele · chat PVB e mensagens · conta, perfil e senha · baixar o app';
 
@@ -1320,47 +1331,127 @@ function boasVindasSuporte(partner, u){
 }
 
 // O que a assistente responde: é ela que explica o app inteiro para quem tem dúvida.
-function respostaSuporte(texto){
+// A assistente é uma conta só, mas conversa como gente: ela tem mais de uma
+// resposta para a mesma pergunta e sorteia entre elas (não repete a mesma frase
+// duas vezes na tela), chama a pessoa pelo nome, puxa assunto de volta e também
+// responde o que não é sobre o app — bom dia, elogio, brincadeira, despedida.
+function umaResposta(lista, nome){
+  var r = lista[Math.floor(Math.random()*lista.length)];
+  return r.replace(/\{nome\}/g, nome || 'amigo(a)');
+}
+
+function respostaSuporte(texto, usuario){
   var t = (texto||'').toLowerCase();
-  if(/desculp|perd[aã]o|me perdoa|foi mal|sinto muito|prometo|arrepend/.test(t))
-    return 'Obrigada pelas desculpas 🙏 Você não está banido agora, então está tudo em ordem. Continue seguindo as regras da comunidade: respeito e nada de palavrões. 💙';
+  var nome = usuario && usuario.name ? String(usuario.name).split(' ')[0] : '';
+  var banido = usuario && isBanned(usuario);
+  var r = function(lista){ return umaResposta(lista, nome); };
+
+  if(/rob[oô]|bot|voc[eê] [eé] (uma? )?(rob|bot|gente|humano|pessoa)|intelig[eê]ncia artificial|de verdade/.test(t))
+    return r(['Sou a assistente do Good Look 🤖 — uma ajuda automática, não uma pessoa. Fico aqui o dia todo para tirar dúvida do app. O dono dele é o tex_tt 👑.',
+      'Robô, sim 😄 mas treinado em tudo do Good Look: postar, Shorts, live, regras e banimento. Manda a dúvida que eu respondo na hora.',
+      'Não sou gente, não: sou a assistente automática do app 🤖. Quem toca o Good Look é o tex_tt 👑 — eu só ajudo por aqui.']);
+
+  if(/desculp|perd[aã]o|me perdoa|foi mal|sinto muito|prometo|arrepend|nunca mais|calma|j[aá] (pedi|mandei)/.test(t))
+    return banido
+      ? r(['Já li, {nome} 🙂 Nada de repetir que eu anotei. Quem decide a liberação é o criador, e eu já estou chamando ele para esta conversa.',
+        'Calma que está tudo anotado, {nome} 🙏 O criador entra aqui para ler e decidir — enquanto isso, pode me contar o que aconteceu.',
+        'Fica tranquilo 🙂 O seu recado já está comigo. Estou só esperando o criador aparecer por aqui na conversa dos três.'])
+      : r(['Relaxa, {nome}, você não está banido 🙂 Está tudo em ordem por aqui — só continue com respeito e sem palavrões. 💙',
+        'A sua conta está limpa 👍 Nada de banimento. Segue as regras que continua assim, {nome}.']);
+
   if(/idade|quantos anos|menor de idade|crian[çc]a/.test(t))
-    return 'O Good Look é para maiores de 10 anos 🚫 Quem diz que tem 10 anos ou menos toma banimento permanente na hora, com o motivo registrado no perfil. Nesse caso só o criador pode liberar, e é nesta conversa que ele entra para decidir.';
+    return r(['O Good Look é para maiores de 10 anos 🚫 Quem diz que tem 10 anos ou menos toma banimento permanente na hora, com o motivo no perfil — e aí só o criador libera.',
+      'Idade aqui é séria: 10 anos ou menos é banimento permanente 🚫 Quem decide liberar depois é o criador, aqui nesta conversa.']);
+
   if(/banid|banir|banimento|bloquead|penaliz|sem acesso|quantas horas|quantos dias|quanto tempo/.test(t))
-    return 'Sobre banimento 🚫: '+(isBanned()?banDurationLabel(curUser())+' — só o criador pode liberar a sua conta. ':'')+'A conta banida não posta, conversa nem assiste vídeos — só vê o próprio perfil e esta conversa. Para pedir a liberação, mande as suas desculpas aqui mesmo: eu não libero mais na hora, eu chamo o criador para entrar nesta conversa (só nós três) e ele decide se libera. Nas regras, respeito sempre e nada de palavrões: juntando 6 a conta toma ban de 24h (na conversa com o criador, 2 já bastam). 🙏';
+    return r(['Sobre banimento 🚫: '+(banido?banDurationLabel(usuario)+' — ':'')+'quem libera é o criador, não é na hora. Mande as suas desculpas aqui que eu chamo ele para esta conversa (só nós três). Respeito sempre e nada de palavrões: com 6 a conta toma ban de 24h (na conversa com o criador, 2 já bastam). 🙏',
+      'Banimento 🚫: a conta banida não posta, não conversa e não assiste — só vê o perfil e esta conversa. '+(banido?'A sua é '+banDurationLabel(usuario)+'. ':'')+'Para voltar, peça desculpas aqui mesmo: eu chamo o criador e ele decide. 🙏']);
+
   if(/postar|publicar|enviar.*video|manda.*video|galeria|link do video/.test(t))
-    return 'Para postar é só tocar no botão "+" no meio do rodapé: escolha "Pública por link" (cola o endereço do vídeo), "Vídeo" (pega da galeria do celular) ou "Shorts" para os vídeos curtos. Escreva a descrição e toque em Publicar 🚀. O vídeo vai para o servidor e aparece para todo mundo.';
+    return r(['Para postar toque no "+" no meio do rodapé: "Pública por link", "Vídeo" (galeria do celular) ou "Shorts". Escreve a descrição e toca em Publicar 🚀',
+      'É no botão "+" 🚀: vídeo da galeria, link ou Shorts. O vídeo sobe para o servidor e aparece para todo mundo na hora.']);
+
   if(/short/.test(t))
-    return 'Shorts são os vídeos curtos, em tela cheia: escolha "Shorts" no botão "+" e depois veja todos na aba Shorts do rodapé. É só deslizar para cima para passar para o próximo. ⚡';
+    return r(['Shorts são os cortos em tela cheia: escolhe "Shorts" no "+" e depois desliza para cima na aba Shorts ⚡',
+      'Os Shorts ficam na aba Shorts do rodapé — é só deslizar para cima para passar de um para o outro ⚡']);
+
   if(/live|transmis|transmit|ao vivo|gravar a tela|tela do/.test(t))
-    return 'Para fazer live: toque em "+", escolha Live e depois "Gravar só a tela" ou "Tela + câmera frontal". A transmissão começa na hora e aparece na Home e no Shorts; a bolinha flutuante fica na tela enquanto você navega (no app instalado ela fica por cima dos outros apps) e é nela que se encerra a live. 🔴';
+    return r(['Para fazer live: "+" → Live → "Gravar só a tela" ou "Tela + câmera frontal". Começa na hora e a bolinha flutuante continua na tela enquanto você navega 🔴',
+      'A live sai no "+" → Live 🔴. Escolhe se grava só a tela ou tela com a câmera na frente; para encerrar, é só tocar na bolinha flutuante.']);
+
   if(/selo|verificad|verifica|azul|laranja|insignia/.test(t))
-    return 'Sobre os selos: o azul é exclusivo do criador tex_tt 👑 e o laranja é de quem chega a 100 mil seguidores. Não existe outro selo no app. ✅';
+    return r(['Selo azul é exclusivo do criador tex_tt 👑 e o laranja é de quem chega a 100 mil seguidores. Não tem outro selo no app ✅',
+      'Só existem dois selos ✅: azul (tex_tt, o criador 👑) e laranja (100 mil seguidores).']);
+
   if(/regra|palavr|ofens|respeito|comunidade|xingar/.test(t))
-    return 'As regras são simples: respeito com todo mundo e nada de palavrões. Cada palavrão conta no seu cadastro; juntando 6 a conta toma ban automático de 24h (na conversa com o criador, 2 já bastam) e o motivo aparece no seu perfil. 🤝';
+    return r(['As regras são curtas: respeito e nada de palavrões 🤝 Cada palavrão conta; com 6 a conta toma ban de 24h (2 já bastam na conversa com o criador) e o motivo fica no seu perfil.',
+      'Respeito com todo mundo e zero palavrão 🤝 É o que mantém a conta liberada: 6 palavrões = ban de 24h, e na conversa com o criador 2 já bastam.']);
+
   if(/salvar|salvos|guardad/.test(t))
-    return 'Para salvar um vídeo, toque em "Salvar" nele (na Home ou no player). Ele fica guardado em Perfil → Vídeos salvos 🔖.';
+    return r(['Para salvar, toque em "Salvar" no vídeo (na Home ou no player) — ele fica em Perfil → Vídeos salvos 🔖',
+      'É só tocar em "Salvar" ali no vídeo 🔖 Depois procura em Perfil → Vídeos salvos.']);
+
   if(/perfil|editar|meu nome|bio|foto/.test(t))
-    return 'No seu perfil toque em "Editar perfil" ✏️ para trocar nome, bio e foto (a foto vem da galeria do celular). Ali também ficam os seus vídeos e os vídeos salvos.';
+    return r(['No perfil tem "Editar perfil" ✏️ para trocar nome, bio e foto (a foto vem da galeria). Ali também ficam os seus vídeos e os salvos.',
+      'Para mudar nome, bio ou foto: Perfil → "Editar perfil" ✏️']);
+
   if(/seguidor|seguir|amigo|inscrever|inscrito/.test(t))
-    return 'Para adicionar alguém, abra o perfil da pessoa e toque em "Adicionar amigos" (dentro do vídeo aparece como "Inscrever-se"). 👥';
+    return r(['Abra o perfil da pessoa e toque em "Adicionar amigos" (dentro do vídeo é "Inscrever-se") 👥',
+      'Seguir alguém é no perfil dela — ou no "Inscrever-se" que aparece em cima do vídeo 👥']);
+
   if(/coment/.test(t))
-    return 'Para comentar, abra o vídeo e toque no ícone de comentário 💬. Quem publicou o vídeo pode fixar, excluir ou bloquear um comentário.';
+    return r(['Abra o vídeo e toque no ícone de comentário 💬 Quem publicou pode fixar, excluir ou bloquear comentário.',
+      'É o balãozinho 💬 no vídeo. Toque em quem comentou para fixar, excluir ou bloquear.']);
+
   if(/bloque/.test(t))
-    return 'Para bloquear alguém, abra os comentários, toque em quem comentou e escolha "Bloquear". Os comentários daquela pessoa somem para você 🚫.';
+    return r(['Para bloquear alguém, abra os comentários, toque na pessoa e escolha "Bloquear" 🚫 Os comentários dela somem para você.',
+      'Bloquear é pelos comentários: toque em quem comentou e escolha "Bloquear" 🚫']);
+
+  if(/denunci|reportar|report|abuso|ofendendo/.test(t))
+    return r(['Anotei a denúncia 📝 Aqui a gente resolve assim: toque em quem comentou e escolha "Bloquear" 🚫, e os palavrões já contam sozinhos para o banimento.',
+      'Vou anotar, {nome} 📝 Bloqueie a pessoa nos comentários 🚫 e me conte quem foi que eu levo para o criador olhar.']);
+
+  if(/n[aã]o (consigo|funciona|d[aá]|carrega|abre)|erro|trava|bug|travando|lento/.test(t))
+    return r(['Conta com calma o que aconteceu 🙂 Em qual tela, o que você tocou e o que apareceu? Assim eu já te digo o caminho.',
+      'Me explica melhor: o que você estava fazendo quando travou? Se for vídeo, tenta fechar e abrir o app de novo — e me avisa se voltar.']);
+
   if(/chat|pvb|mensagem|conversar|falar com/.test(t))
-    return 'No rodapé, a aba PVB tem o Chat Público (todo mundo vê o que é escrito) e o Chat Privado (a conversa entre duas pessoas, com foto se quiser) 💬. E comigo você pode falar aqui a qualquer momento.';
+    return r(['No rodapé, a aba PVB tem o Chat Público (todo mundo vê) e o Chat Privado (a conversa entre duas pessoas, com foto se quiser) 💬 E comigo é aqui, a qualquer hora.',
+      'PVB 💬 = Chat Público + Chat Privado. E se quiser falar só comigo, é aqui mesmo, {nome}.']);
+
   if(/senha|conta|entrar|login|cadastr|criar conta/.test(t))
-    return 'Sua conta é o nome e a senha criados na tela de entrada: em outro celular é só entrar com os mesmos dados que o app aparece igual 🔐.';
+    return r(['Sua conta é o nome e a senha da tela de entrada: em outro celular é só entrar com os mesmos dados que tudo aparece igual 🔐',
+      'Para entrar em outro aparelho use o mesmo nome e senha 🔐 Perdeu a senha? Me fala que eu passo o recado para o criador.']);
+
   if(/baixar|apk|instalar|download/.test(t))
-    return 'Para instalar o app, toque em "Baixar app" na tela inicial: baixa o APK do Good Look 📲.';
+    return r(['Para instalar, toque em "Baixar app" na tela inicial: baixa o APK do Good Look 📲',
+      'O APK está na tela inicial, no "Baixar app" 📲']);
+
   if(/curtir|curtida|like|coracao/.test(t))
-    return 'Para curtir é só tocar no coração ❤ no vídeo ou no player. As curtidas aparecem no perfil de quem publicou.';
+    return r(['Curtir é o coração ❤ no vídeo ou no player — as curtidas aparecem no perfil de quem publicou.',
+      'É só tocar no ❤ As curtidas contam no perfil de quem postou.']);
+
+  if(/(muito (bom|legal)|adorei|gostei|top|show|sensacional|parab[eé]ns|melhor|amo (esse|o) app|boa demais|massa|irado)/.test(t))
+    return r(['Valeu, {nome} 😄 Fico feliz! Se quiser, te conto como postar, fazer live ou pedir o selo. 🌟',
+      'Que bom que gostou 💙 Qualquer dúvida do app, é só chamar por aqui.',
+      '😄 Anotei o elogio! E se topar, te explico os Shorts e a live — é o que mais bomba por aqui.']);
+
   if(/obrigad|valeu|vlw|brigad/.test(t))
-    return 'De nada! 💙 Estou aqui sempre que precisar: dúvida sobre o app, as regras ou banimento, é só chamar.';
-  if(/(^|\s)(oi|ola|olá|opa|eai|e ai|hey|bom dia|boa tarde|boa noite)([\s!.?,]|$)/.test(t) || t.indexOf('tudo bem')>=0)
-    return 'Oi! 👋 Tudo ótimo por aqui! Sou a assistente do Good Look: pergunte sobre postar vídeo, Shorts, live, selo verificado, chat PVB, regras ou banimento que eu explico na hora. 😊';
-  return 'Anotei sua dúvida 📝 Eu explico tudo sobre o Good Look: '+TOPICOS_SUPORTE+'. Escreve qual desses você quer saber que eu respondo na hora!';
+    return r(['De nada, {nome}! 💙 Estou aqui sempre que precisar: app, regras, banimento — é só chamar.',
+      'Imagina 💙 Qualquer coisa, me chama: eu respondo na hora.']);
+
+  if(/(^|[\s!.?,])(tchau|adeus|at[eé] (logo )?mais|vou sair|fui|falou|boa noite)([\s!.?,]|$)/.test(t))
+    return r(['Falou, {nome}! 👋 Volta quando quiser — se precisar de mim, é só escrever "assistente".',
+      'Até mais 👋 Qualquer dúvida do app, me chama por aqui.']);
+
+  if(/(^|\s)(oi|ola|olá|opa|eai|e ai|hey|bom dia|boa tarde|boa noite)([\s!.?,]|$)/.test(t) || t.indexOf('tudo bem')>=0 || t.indexOf('como vai')>=0)
+    return r(['Oi, {nome}! 👋 Tudo ótimo por aqui! Sou a assistente do Good Look: pergunte de vídeo, Shorts, live, selo, chat PVB, regras ou banimento que eu explico na hora. 😊',
+      'Oi, {nome}! 😄 Tudo joia? Manda a dúvida: postar, Shorts, live, selo verificado, banimento... eu sei de tudo por aqui.',
+      '{nome}! 👋 Bem-vindo de volta! Como posso ajudar hoje — vídeo, live, selo ou alguma regra?']);
+
+  return r(['Anotei, {nome} 📝 Sobre o que você quer saber? Eu explico tudo do Good Look: '+TOPICOS_SUPORTE+'.',
+    'Hmm, conta mais 🙂 Se for de app, eu sei de tudo: '+TOPICOS_SUPORTE+'. Qual desses?',
+    'Quer ajuda com o quê, {nome}? '+TOPICOS_SUPORTE+' — escolhe um que eu já te explico.']);
 }
 
 // Liberação da conta: banimento, motivo e contador de palavrões zerados.
@@ -1388,14 +1479,18 @@ function falarComSuporte(texto){
   var desculpa = /desculp|perd[aã]o|me perdoa|foi mal|sinto muito|prometo|arrepend|nunca mais/.test(t);
   if(isBanned(u) && desculpa){ pedirLiberacao(u, sid); return; }
   if(t.indexOf('assistente') < 0) return;   // sem chamar pelo nome, ela fica quieta
-  responderSuporte(u, sid, respostaSuporte(texto));
+  responderSuporte(u, sid, respostaSuporte(texto, u));
 }
 
 // A resposta sai daqui, com um instante de espera para parecer uma conversa.
-function responderSuporte(u, sid, texto){
+// A "marca" existe para a assistente não repetir a mesma resposta quando a
+// pessoa insiste no mesmo assunto.
+function responderSuporte(u, sid, texto, marca){
   setTimeout(function(){
     var msgs = DB.privMsgs();
-    msgs.push({id:novoMsgId(), fromId:sid, toId:u.id, text:texto, auto:true, ts:Date.now()});
+    var m = {id:novoMsgId(), fromId:sid, toId:u.id, text:texto, auto:true, ts:Date.now()};
+    if(marca) m[marca] = true;
+    msgs.push(m);
     DB.savePrivMsgs(msgs);
     if(view==='pvb' && pvbView==='private' && pvbChatUser===sid) renderPVBPrivate();
   }, 600);
@@ -1407,7 +1502,12 @@ function responderSuporte(u, sid, texto){
 // TRÊS" em server.js). Assim o convite sai mesmo que o app seja fechado no meio
 // da espera, e o criador o recebe em qualquer aparelho.
 function pedirLiberacao(u, sid){
-  responderSuporte(u, sid, MSG_AGUARDE);
+  // Tocando várias vezes em "Pedir desculpas", ela responde uma vez só: o que
+  // aparece na conversa é gente falando, não um robô repetindo a mesma frase.
+  var msgs = DB.privMsgs(), ultima = 0;
+  msgs.forEach(function(m){ if(m && m.aguarde && m.fromId===sid && m.toId===u.id) ultima = Math.max(ultima, m.ts||0); });
+  if(ultima && Date.now() - ultima < 45000) return;
+  responderSuporte(u, sid, umaResposta(MSG_AGUARDE, u.name), 'aguarde');
 }
 
 // Quem libera é o criador: ele tira o banimento pela conversa, pelo painel ou
@@ -2330,7 +2430,10 @@ function checarMensagensNovas(){
     return !banido || atendem.indexOf(m.fromId) >= 0;
   });
   if(!msgs.length) return;
-  var ultima = msgs[msgs.length-1];
+  // A mensagem mais nova é a que vale: o aviso abre sempre a conversa de quem
+  // acabou de escrever, e não a de uma mensagem antiga que ficou no meio da lista.
+  var ultima = msgs[0];
+  msgs.forEach(function(m){ if((m.ts||0) > (ultima.ts||0)) ultima = m; });
   var chave = 'gl_msgvista_'+u.id;
   var visto = parseInt(localStorage.getItem(chave) || '0', 10);
   if(!ultima.ts || ultima.ts <= visto) return;

@@ -316,6 +316,12 @@ function aplicarPush(body, quem) {
             novo.views = Math.max(Number(novo.views) || 0, Number(antigo.views) || 0);
           }
           if (antigo._lim) novo._lim = antigo._lim;
+          // A capa e a duração quem arruma é o servidor (ver CAPA E DURAÇÃO DE
+          // TODO VÍDEO): o aparelho que publicou sem elas (celular que não consegue
+          // decodificar) não pode apagá-las na sincronia, senão o feed volta a
+          // baixar o vídeo inteiro só para desenhar um quadro.
+          if (antigo.poster && !novo.poster) novo.poster = antigo.poster;
+          if (antigo.dur && !novo.dur) novo.dur = antigo.dur;
         }
       }
       novo._u = ++clock;
@@ -342,6 +348,74 @@ function aplicarPush(body, quem) {
   return { ok: true, now: clock, mexeu: mexeu };
 }
 
+/* ==================== CAPA E DURAÇÃO DE TODO VÍDEO ==================== */
+
+// O feed abre na hora quando o card mostra uma imagem (a capa) em vez do vídeo.
+// Quem publica manda a capa junto, mas vídeo que o celular não conseguiu
+// decodificar chega sem ela — e aí cada card volta a baixar o vídeo inteiro só
+// para desenhar um quadro, que é justo o que deixa o app lento no celular. Aqui
+// o servidor completa o que faltou (capa em JPEG + duração) com o ffmpeg.
+
+function arquivoDoVideo(url) {
+  const u = String(url || '');
+  if (u.indexOf('/uploads/') !== 0) return null;      // vídeo de fora: não é nosso
+  return path.join(UPLOAD_DIR, path.basename(u));
+}
+
+// Um quadro pouco depois do começo vira a capa do vídeo.
+async function tirarCapa(arq) {
+  const nome = 'capa' + Date.now().toString(36) + '-' + crypto.randomBytes(3).toString('hex') + '.jpg';
+  const destino = path.join(UPLOAD_DIR, nome);
+  const r = await rodarComando(FFMPEG, ['-y', '-ss', '0.5', '-i', arq, '-frames:v', '1', '-vf', 'scale=480:-2', destino]);
+  try {
+    if (r.codigo === 0 && fs.statSync(destino).size > 0) return '/uploads/' + nome;
+    fs.unlinkSync(destino);
+  } catch (e) { /* sem capa: o card usa o próprio vídeo */ }
+  return null;
+}
+
+async function completarVideo(v) {
+  const arq = arquivoDoVideo(v.url);
+  if (!arq || !fs.existsSync(arq)) return false;
+  const ext = path.extname(arq).slice(1).toLowerCase();
+  if (IMG_OK.indexOf(ext) >= 0) return false;
+  let mexeu = false;
+  if (!v.dur) {
+    const dur = duracaoDoVideo((await rodarComando(FFMPEG, ['-i', arq])).saida);
+    if (dur) { v.dur = dur; mexeu = true; }
+  }
+  if (!v.poster) {
+    const capa = await tirarCapa(arq);
+    if (capa) { v.poster = capa; mexeu = true; }
+  }
+  if (mexeu) {
+    v._u = ++clock;
+    console.log('capa/duração prontas: ' + v.id);
+  }
+  return mexeu;
+}
+
+// Todo vídeo do acervo, um por vez, para não pesar o servidor de uma vez só.
+async function prepararAcervo() {
+  for (const id in db.videos) await completarVideo(db.videos[id]);
+  saveDb();
+}
+
+let acerviOcupado = false;
+function passoDoAcervo() {
+  if (acerviOcupado) return;
+  const faltando = Object.keys(db.videos).find(function (id) {
+    const v = db.videos[id];
+    return (!v.poster || !v.dur) && arquivoDoVideo(v.url);
+  });
+  if (!faltando) return;
+  acerviOcupado = true;
+  completarVideo(db.videos[faltando]).then(function (mexeu) {
+    acerviOcupado = false;
+    if (mexeu) saveDb();
+  }).catch(function () { acerviOcupado = false; });
+}
+
 /* ==================== CONVITE DA CONVERSA DOS TRÊS ==================== */
 
 // Quem está banido pede desculpas para a assistente, espera 1 minuto e o convite
@@ -352,9 +426,22 @@ function aplicarPush(body, quem) {
 
 const ESPERA_CONVITE = 60000;
 
-const MSG_CONVITE = '📨 Convite enviado ao criador! Ele entra nesta conversa (só nós três: eu, você e o criador) para ler o seu pedido e decidir se libera a sua conta. 🙏';
+const MSG_CONVITE = [
+  '📨 Convite enviado ao criador! Ele entra nesta conversa (só nós três: eu, você e o criador) para ler o seu pedido e decidir se libera a sua conta. 🙏',
+  '📨 Já chamei o criador 👑 Ele vem para esta conversa dos três ler o seu caso e decidir sobre a liberação. Fica por aqui, {nome}.'
+];
 
-const MSG_ESPERA_CRIADOR = 'O criador foi convidado para esta conversa dos três. Enquanto ele decide, sua conta continua banida. Você pode explicar o que aconteceu por aqui que ele vai ler. 💬';
+const MSG_ESPERA_CRIADOR = [
+  'O criador foi convidado para esta conversa dos três. Enquanto ele decide, sua conta continua banida. Você pode explicar o que aconteceu por aqui que ele vai ler. 💬',
+  'Pronto, {nome}: o criador já foi chamado 💬 Ele lê esta conversa (só nós três) e decide. Sua conta segue banida até lá — e é aqui que você explica o que aconteceu.'
+];
+
+// A assistente tem mais de uma forma de dizer a mesma coisa e sorteia entre elas:
+// duas conversas nunca saem com o mesmo texto.
+function umaDe(lista, nome) {
+  const r = lista[Math.floor(Math.random() * lista.length)];
+  return r.replace(/\{nome\}/g, nome ? String(nome).split(' ')[0] : 'amigo(a)');
+}
 
 // O mesmo pedido de desculpas que a assistente reconhece no app.
 const PEDIDO_DESCULPA = /desculp|perd[aã]o|me perdoa|foi mal|sinto muito|prometo|arrepend|nunca mais/;
@@ -387,8 +474,8 @@ function passoDoConvite() {
     if (!pedido || convite > pedido || Date.now() - pedido < ESPERA_CONVITE) continue;
     const agora = Date.now();
     const conviteId = novoMsgId(), avisoId = novoMsgId();
-    msgs[conviteId] = { id: conviteId, fromId: sup.id, toId: criador.id, trio: u.id, convite: true, text: MSG_CONVITE, ts: agora, _u: ++clock };
-    msgs[avisoId] = { id: avisoId, fromId: sup.id, toId: u.id, trio: u.id, text: MSG_ESPERA_CRIADOR, ts: agora + 1, _u: ++clock };
+    msgs[conviteId] = { id: conviteId, fromId: sup.id, toId: criador.id, trio: u.id, convite: true, text: umaDe(MSG_CONVITE, u.name), ts: agora, _u: ++clock };
+    msgs[avisoId] = { id: avisoId, fromId: sup.id, toId: u.id, trio: u.id, text: umaDe(MSG_ESPERA_CRIADOR, u.name), ts: agora + 1, _u: ++clock };
     mexeu = true;
     console.log('conversa dos três: criador convidado por causa de ' + u.name);
   }
@@ -683,7 +770,14 @@ seedSuporte();
 // sozinhos, e o convite para a conversa dos três sai do relógio daqui, não do
 // aparelho de quem pediu.
 setInterval(passoDaVida, PASSO_MS);
-setInterval(function () { if (passoDoConvite()) saveDb(); }, 5000);
+setInterval(function () {
+  let mexeu = passoDoConvite();
+  passoDoAcervo();
+  if (mexeu) saveDb();
+}, 5000);
+// Vídeo que subiu sem capa ou sem duração ganha as duas aqui (o feed abre na
+// hora, sem baixar o vídeo só para desenhar o primeiro quadro).
+prepararAcervo();
 server.listen(PORT, HOST, function () {
   console.log('Good Look no ar em http://' + HOST + ':' + PORT);
 });
