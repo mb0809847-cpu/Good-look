@@ -17,6 +17,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { spawn } = require('child_process');
 
 const ROOT = __dirname;
 const DATA_DIR = process.env.DATA_DIR || path.join(ROOT, 'data');
@@ -27,8 +28,10 @@ const HOST = process.env.HOST || '0.0.0.0';
 const MAX_BODY = 30 * 1024 * 1024;     // pushes (perfil, conversas)
 const MAX_UPLOAD = 300 * 1024 * 1024;  // vídeo escolhido na galeria (vídeo de celular é grande)
 const MAX_DATA_URL = 8 * 1024 * 1024;  // foto em base64 que vira arquivo
+const FFMPEG = process.env.FFMPEG || 'ffmpeg';
 const KINDS = ['users', 'videos', 'pubMsgs', 'privMsgs'];
 const EXT_OK = ['mp4', 'mov', 'webm', 'm4v', 'jpg', 'jpeg', 'png', 'webp', 'gif'];
+const IMG_OK = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
 
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
@@ -220,6 +223,49 @@ function localizarMedia(item) {
   return item;
 }
 
+/* ==================== VÍDEO PRONTO PARA TOCAR ==================== */
+
+// Roda um programa e devolve o que ele respondeu. Nunca derruba o servidor: se
+// o programa não existe no servidor (sem ffmpeg), volta com código -1.
+function rodarComando(programa, args) {
+  return new Promise(function (ok) {
+    let p;
+    try { p = spawn(programa, args, { stdio: ['ignore', 'ignore', 'pipe'] }); }
+    catch (e) { return ok({ codigo: -1, saida: String((e && e.message) || e) }); }
+    let saida = '';
+    p.stderr.on('data', function (d) { if (saida.length < 8000) saida += d.toString(); });
+    p.on('error', function (e) { ok({ codigo: -1, saida: String((e && e.message) || e) }); });
+    p.on('close', function (c) { ok({ codigo: c, saida: saida }); });
+  });
+}
+
+function duracaoDoVideo(saida) {
+  const m = /Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/.exec(saida || '');
+  if (!m) return null;
+  return Math.round(Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]));
+}
+
+// Deixa o vídeo enviado pronto para o celular: o índice do MP4 (moov) quase
+// sempre vem no fim do arquivo, e aí o aparelho baixa quase tudo antes de
+// mostrar o primeiro quadro. O "-c copy" só reescreve esse índice na frente
+// (não reencoda nada) e o vídeo passa a abrir na hora. Sem ffmpeg instalado no
+// servidor nada disso acontece e o vídeo sobe exatamente como veio.
+async function prepararVideo(caminho, ext) {
+  const pronto = { dur: null };
+  if (['mp4', 'm4v', 'mov'].indexOf(ext) >= 0) {
+    const tmp = caminho + '.fast.mp4';
+    const r = await rodarComando(FFMPEG, ['-y', '-i', caminho, '-c', 'copy', '-movflags', '+faststart', tmp]);
+    pronto.dur = duracaoDoVideo(r.saida);
+    try {
+      if (r.codigo === 0 && fs.statSync(tmp).size > 0) fs.renameSync(tmp, caminho);
+      else fs.unlinkSync(tmp);
+    } catch (e) { /* o arquivo enviado continua como veio */ }
+  } else {
+    pronto.dur = duracaoDoVideo((await rodarComando(FFMPEG, ['-i', caminho])).saida);
+  }
+  return pronto;
+}
+
 /* ==================== SINCRONIA ==================== */
 
 function deltasDe(since) {
@@ -334,7 +380,9 @@ function enviarArquivo(req, res, arquivo, cache) {
     const tipo = TIPOS[path.extname(arquivo).toLowerCase()] || 'application/octet-stream';
     const cabecalhos = {
       'Content-Type': tipo,
-      'Cache-Control': cache ? 'public, max-age=3600' : 'no-cache',
+      // Os nomes em /uploads/ são únicos e nunca mudam: o aparelho pode guardar
+      // o arquivo e não baixar de novo quando a pessoa volta para o feed.
+      'Cache-Control': cache === 'long' ? 'public, max-age=31536000, immutable' : (cache ? 'public, max-age=3600' : 'no-cache'),
       'Accept-Ranges': 'bytes'
     };
     const pedaco = pedacoPedido(req, st.size);
@@ -431,8 +479,11 @@ async function api(req, res, url) {
       const dados = await corpo(req, MAX_UPLOAD);
       if (!dados.length) return json(res, 400, { error: 'arquivo vazio' });
       const nome = 'up' + Date.now().toString(36) + '-' + crypto.randomBytes(3).toString('hex') + '.' + ext;
-      fs.writeFileSync(path.join(UPLOAD_DIR, nome), dados);
-      return json(res, 200, { url: '/uploads/' + nome });
+      const destino = path.join(UPLOAD_DIR, nome);
+      fs.writeFileSync(destino, dados);
+      // Foto (capa do vídeo, foto de perfil) não passa pelo preparo de vídeo.
+      const pronto = IMG_OK.indexOf(ext) >= 0 ? { dur: null } : await prepararVideo(destino, ext);
+      return json(res, 200, { url: '/uploads/' + nome, dur: pronto.dur });
     }
 
     return json(res, 404, { error: 'rota desconhecida' });
@@ -449,7 +500,7 @@ const server = http.createServer(function (req, res) {
 
   if (p.indexOf('/uploads/') === 0) {
     const nome = path.basename(p);
-    return enviarArquivo(req, res, path.join(UPLOAD_DIR, nome), true);
+    return enviarArquivo(req, res, path.join(UPLOAD_DIR, nome), 'long');
   }
 
   const arquivo = arquivoDoSite(p);

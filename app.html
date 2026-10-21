@@ -214,6 +214,7 @@ body{background:#000;color:#fff}
 .hcard{margin:12px 12px 0;border-radius:18px;background:#151515;overflow:hidden;border:1px solid #202020;box-shadow:0 8px 20px rgba(0,0,0,.45)}
 .hthumb{position:relative;width:100%;aspect-ratio:16/9;background:#0f0f0f;cursor:pointer;overflow:hidden}
 .hthumb video{width:100%;height:100%;object-fit:cover;pointer-events:none;display:block}
+.hthumb .capa,.pf-cell .capa{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
 .hthumb .scrim{position:absolute;left:0;right:0;bottom:0;height:75%;background:linear-gradient(to top,rgba(0,0,0,.88),rgba(0,0,0,.35) 55%,transparent);pointer-events:none}
 .hthumb .htitle{position:absolute;left:12px;right:80px;bottom:11px;color:#fff;font-size:14.5px;font-weight:700;line-height:1.32;text-shadow:0 1px 6px rgba(0,0,0,.85);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 /* Duração do vídeo fica na capa */
@@ -285,6 +286,12 @@ body{background:#000;color:#fff}
 .cp-input button{width:36px;height:36px;border-radius:50%;border:none;background:#F97316;color:#fff;cursor:pointer}
 
 /* Aviso de banimento aparece na tela de perfil (ver .banbar) */
+
+/* Aviso da lei: app para maiores de 10 anos, fechado no X */
+.aviso-idade{position:relative;background:#1a1a1a;border-radius:16px;padding:30px 22px 26px;width:100%;max-width:340px;text-align:center;color:#fff}
+.aviso-idade .ic{font-size:34px;margin-bottom:10px}
+.aviso-idade p{font-size:15.5px;font-weight:600;line-height:1.45}
+.aviso-idade .x{position:absolute;top:6px;right:14px;font-size:26px;line-height:1;cursor:pointer;color:#a1a1aa}
 
 /* Edit profile */
 .edit-modal{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.8);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
@@ -433,6 +440,9 @@ function render(){
     case 'live': renderLive(); break;
   }
   paintBubble();
+  // Quem foi banido por ter 10 anos ou menos vê este recado e fecha no X; a
+  // conta continua banida (quem libera é só o criador).
+  if(banPorIdade()) mostrarAvisoIdade();
 }
 
 // ==================== CARREGAMENTO DOS VÍDEOS ====================
@@ -461,6 +471,18 @@ function attachLazyVideo(el){
       if(badge && !badge.textContent) badge.textContent = fmtDur(el.duration);
     });
   }
+}
+
+// O servidor manda a capa pronta (JPEG) e a duração junto com o vídeo: o card do
+// feed aparece na hora, sem baixar o arquivo inteiro só para desenhar o primeiro
+// quadro. Vídeo sem capa (link de fora ou enviado antes disso) usa o do próprio.
+function capaHtml(v){
+  if(v.poster) return '<img class="capa" src="'+v.poster+'" alt="" loading="lazy">';
+  return '<video data-src="'+v.url+'" data-thumb="1" data-dur="1" muted playsinline preload="none"></video>';
+}
+
+function duracaoHtml(v){
+  return '<div class="vdur">'+(v.poster && v.dur ? fmtDur(v.dur) : '')+'</div>';
 }
 
 function lazyLoadEls(els){
@@ -533,10 +555,10 @@ function renderHome(){
     var owner = getUser(v.userId) || {name:v.userName, photo:v.userPhoto, verifiedType:null, isCreator:false};
     html += '<div class="hcard">'+
       '<div class="hthumb" ontouchstart="aquecerVideo(\''+v.url+'\')" onmousedown="aquecerVideo(\''+v.url+'\')" onclick="openVideoDetail(\''+v.id+'\')">'+
-        '<video data-src="'+v.url+'" data-thumb="1" data-dur="1" muted playsinline preload="none"></video>'+
+        capaHtml(v)+
         '<div class="scrim"></div>'+
         '<div class="htitle">'+escapeHtml(v.description||'')+'</div>'+
-        '<div class="vdur"></div>'+
+        duracaoHtml(v)+
       '</div>'+
       '<div class="hbody">'+
         avatarHtml(owner,40,'yt-ava')+
@@ -588,7 +610,9 @@ function renderVideoDetail(){
 
   var html = '<div class="vd-view">'+
     '<div class="vd-player">'+
-      '<video src="'+v.url+'" autoplay preload="auto" controls playsinline style="width:100%;height:100%;object-fit:contain"></video>'+
+      // A capa aparece na hora; o vídeo já começa com o índice no começo do
+      // arquivo (o servidor deixa assim no envio), então toca sem esperar tudo.
+      '<video src="'+v.url+'"'+(v.poster?' poster="'+v.poster+'"':'')+' autoplay preload="auto" controls playsinline style="width:100%;height:100%;object-fit:contain"></video>'+
       '<div class="vd-back" onclick="view=\'home\';render()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></div>'+
     '</div>'+
     '<div class="vd-body">'+
@@ -720,7 +744,7 @@ function renderShorts(){
     var liked = v.likedBy && v.likedBy.indexOf(u.id)>=0;
     var saved = u.savedVideos && u.savedVideos.indexOf(v.id)>=0;
     html += '<div class="video-slide" data-vid="'+v.id+'" ontouchstart="aquecerVideo(\''+v.url+'\')" onmousedown="aquecerVideo(\''+v.url+'\')">'+
-      '<video data-src="'+v.url+'" loop playsinline muted preload="none"></video>'+
+      '<video data-src="'+v.url+'"'+(v.poster?' poster="'+v.poster+'"':'')+' loop playsinline muted preload="none"></video>'+
       '<div class="tap-area" onclick="togglePause(this)"></div>'+
       '<div class="pause-icon">⏸</div>'+
       '<div class="video-info">'+
@@ -1518,9 +1542,9 @@ function renderProfile(){
     html += vids.length
       ? '<div class="pf-grid">'+vids.map(function(v){
           return '<div class="pf-cell" onclick="playProfileVideo(\''+v.id+'\')">'+
-            '<video data-src="'+v.url+'" data-thumb="1" data-dur="1" muted playsinline preload="none"></video>'+
+            capaHtml(v)+
             '<div class="vc">▶ '+fmt(v.views||0)+'</div>'+
-            '<div class="vdur"></div>'+
+            duracaoHtml(v)+
           '</div>';
         }).join('')+'</div>'
       : '<div class="pf-empty">Nenhum vídeo postado ainda 🎬</div>';
@@ -1541,8 +1565,8 @@ function openSaved(){
         ? '<div class="pf-empty">Você ainda não salvou nenhum vídeo</div>'
         : '<div class="pf-grid">'+vids.map(function(v){
             return '<div class="pf-cell" onclick="closeSaved();playProfileVideo(\''+v.id+'\')">'+
-              '<video data-src="'+v.url+'" data-thumb="1" data-dur="1" muted playsinline preload="none"></video>'+
-              '<div class="vdur"></div>'+
+              capaHtml(v)+
+              duracaoHtml(v)+
             '</div>';
           }).join('')+'</div>')+
       '<div class="sh-cancel" onclick="closeSaved()">Fechar</div>'+
@@ -1693,11 +1717,65 @@ function renderPost(){
   }
 }
 
-function publicarVideo(url, type, desc){
+// Tira a capa do vídeo aqui no aparelho, antes de enviar, e mede a duração.
+// É essa capa em JPEG que faz o feed abrir rápido: o card mostra a imagem na
+// hora, sem baixar o vídeo inteiro só para desenhar o primeiro quadro.
+function prepararCapa(file){
+  return new Promise(function(ok){
+    var url = URL.createObjectURL(file);
+    var v = document.createElement('video');
+    var entregou = false, dur = null, relogio = null;
+    var entregar = function(blob){
+      if(entregou) return;
+      entregou = true;
+      clearTimeout(relogio);
+      try { URL.revokeObjectURL(url); } catch(e){}
+      ok((dur || blob) ? { blob: blob || null, dur: dur } : null);
+    };
+    v.preload = 'metadata'; v.muted = true; v.setAttribute('playsinline','');
+    v.onerror = function(){ entregar(null); };
+    relogio = setTimeout(function(){ entregar(null); }, 8000);   // vídeo que não abre aqui
+    v.onloadedmetadata = function(){
+      dur = Math.round(v.duration) || null;
+      // Um quadro pouco depois do começo: evita a tela preta do primeiro instante.
+      var alvo = Math.min(Math.max((v.duration || 2) * 0.1, 0.1), 1.5);
+      v.onseeked = function(){
+        try {
+          var c = document.createElement('canvas');
+          c.width = 480;
+          c.height = (v.videoWidth ? Math.round(480 * v.videoHeight / v.videoWidth) : 270) || 270;
+          c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+          c.toBlob(function(b){ entregar(b); }, 'image/jpeg', 0.72);
+        } catch(e){ entregar(null); }
+      };
+      try { v.currentTime = alvo; } catch(e){ entregar(null); }
+    };
+    v.src = url;
+  });
+}
+
+// Sobe o vídeo e, junto, a capa. Se a capa não subir, o vídeo vai do mesmo jeito
+// (aí o card mostra o quadro do próprio vídeo, como antes).
+function enviaVideoComCapa(file, ext, capa){
+  var dur = (capa && capa.dur) || null;
+  return SYNC.upload(file, ext).then(function(r){
+    var pronto = { url:r.url, poster:null, dur:dur || r.dur || null };
+    if(!capa || !capa.blob) return pronto;
+    return SYNC.upload(capa.blob, 'jpg').then(function(rc){
+      pronto.poster = rc.url;
+      return pronto;
+    }).catch(function(){ return pronto; });
+  });
+}
+
+// "extra" é o que o servidor devolve no envio: a capa pronta e a duração do
+// vídeo, para o feed abrir rápido sem baixar o arquivo inteiro em cada card.
+function publicarVideo(url, type, desc, extra){
   var u = curUser();
   desc = desc || document.getElementById('postDesc').value.trim() || 'Sem descrição';
+  extra = extra || {};
   var vids = DB.videos();
-  var vid = { id:'vid'+Date.now(), userId:u.id, userName:u.name, userPhoto:u.photo, url:url, description:desc, type:type, likes:0, views:0, comments:[], timestamp:Date.now(), likedBy:[], dislikedBy:[] };
+  var vid = { id:'vid'+Date.now(), userId:u.id, userName:u.name, userPhoto:u.photo, url:url, poster:extra.poster||null, dur:extra.dur||null, description:desc, type:type, likes:0, views:0, comments:[], timestamp:Date.now(), likedBy:[], dislikedBy:[] };
   vids.unshift(vid);
   DB.saveVideos(vids);
   postFile = null;
@@ -1722,7 +1800,9 @@ function publishVideo(){
       // aqui — ele ficaria preto e ninguém mais veria.
       showNotif('Enviando o vídeo... ⬆️');
       var ext = (String(postFile.name||'').split('.').pop() || 'mp4').toLowerCase();
-      SYNC.upload(postFile, ext).then(function(r){ publicarVideo(r.url, type, desc); })
+      prepararCapa(postFile).then(function(capa){
+        return enviaVideoComCapa(postFile, ext, capa);
+      }).then(function(r){ publicarVideo(r.url, type, desc, r); })
         .catch(function(){ showNotif('Não deu para enviar o vídeo 📴 Confira a internet e tente de novo.'); });
       return;
     }
@@ -1744,12 +1824,14 @@ function subirVideosLocais(){
     fetch(v.url).then(function(r){ return r.blob(); }).then(function(b){
       var t = String(b.type||'');
       var ext = t.indexOf('webm')>=0 ? 'webm' : (t.indexOf('quicktime')>=0 ? 'mov' : 'mp4');
-      return SYNC.upload(b, ext);
+      return prepararCapa(b).then(function(capa){ return enviaVideoComCapa(b, ext, capa); });
     }).then(function(r){
       var vids = DB.videos();
       var alvo = vids.find(function(x){ return x.id===v.id; });
       if(!alvo) return;
       alvo.url = r.url;
+      alvo.poster = r.poster || alvo.poster || null;
+      alvo.dur = r.dur || alvo.dur || null;
       DB.saveVideos(vids);
       if(view==='home'||view==='shorts') render();
     }).catch(function(){
@@ -1953,6 +2035,34 @@ function banDurationLabel(u){
   if(horas >= 1) return 'Banido por '+horas+(horas===1?' hora':' horas');
   var min = Math.max(1, Math.round(ms/60000));
   return 'Banido por '+min+(min===1?' minuto':' minutos');
+}
+
+// Banimento por idade: quem declara ter 10 anos ou menos. Nesses casos o app
+// mostra o recado da lei na tela e a conta fica banida de verdade.
+var avisoIdadeVisto = false;
+
+function banPorIdade(u){
+  u = u || curUser();
+  if(!u || !isBanned(u)) return false;
+  return u.banTipo==='idade' || /maiores de 10 anos/i.test(u.banReason||'');
+}
+
+function mostrarAvisoIdade(){
+  if(avisoIdadeVisto || document.getElementById('avisoIdade')) return;
+  document.body.insertAdjacentHTML('beforeend',
+    '<div class="edit-modal show" id="avisoIdade">'+
+      '<div class="aviso-idade">'+
+        '<div class="x" onclick="fecharAvisoIdade()">×</div>'+
+        '<div class="ic">🚫</div>'+
+        '<p>Esse app é para maiores de 10 anos e nós temos que seguir essa lei.</p>'+
+      '</div>'+
+    '</div>');
+}
+
+function fecharAvisoIdade(){
+  avisoIdadeVisto = true;
+  var m = document.getElementById('avisoIdade');
+  if(m) m.remove();
 }
 
 // O banido só pode ver o próprio perfil e a conversa com quem atende: a
@@ -2409,6 +2519,7 @@ function checarIdade(text){
   if(!x) return false;
   x.banned = true;
   x.banUntil = -1;   // -1 = permanente
+  x.banTipo = 'idade';
   x.banReason = 'Declarou ter menos de ' + IDADE_MINIMA + ' anos — o app é para maiores de 10 anos';
   DB.saveUsers(users);
   showNotif('Banimento permanente 🚫 O app é para maiores de 10 anos');
