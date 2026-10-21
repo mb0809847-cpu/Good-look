@@ -74,9 +74,9 @@ body{background:#000;color:#fff}
 /* Profile (visual claro, conforme a referência enviada) */
 .pf-view{height:100%;overflow-y:auto;background:#f4f4f5;color:#18181b;padding-bottom:24px}
 .pf-view::-webkit-scrollbar{display:none}
-.banbar{display:flex;align-items:center;gap:10px;background:#e11900;color:#fff;padding:15px 16px}
-.banbar .tx{flex:1;font-size:14px;font-weight:700;line-height:1.3}
-.banbar .tx small{display:block;font-size:11.5px;font-weight:500;opacity:.92;margin-top:2px}
+.banbar{display:flex;align-items:center;gap:10px;background:#e60000;color:#fff;padding:14px 16px}
+.banbar .tx{flex:1;font-size:14px;font-weight:600;line-height:1.3}
+.banbar .tx small{display:block;font-size:12px;font-weight:500;opacity:.94;margin-top:2px}
 .banbar .go{font-size:22px;line-height:1;font-weight:700}
 .pf-head{background:#fff;padding:18px 16px 16px;border-bottom:1px solid #e7e7ea}
 .pf-top{display:flex;align-items:center;gap:14px}
@@ -1306,8 +1306,8 @@ function respostaSuporte(texto){
     return 'Obrigada pelas desculpas 🙏 Você não está banido agora, então está tudo em ordem. Continue seguindo as regras da comunidade: respeito e nada de palavrões. 💙';
   if(/idade|quantos anos|menor de idade|crian[çc]a/.test(t))
     return 'O Good Look é para maiores de 10 anos 🚫 Quem diz que tem 10 anos ou menos toma banimento permanente na hora, com o motivo registrado no perfil. Nesse caso só o criador pode liberar, e é nesta conversa que ele entra para decidir.';
-  if(/banid|banir|banimento|bloquead|penaliz|sem acesso/.test(t))
-    return 'Sobre banimento 🚫: a conta banida não posta, não conversa e não assiste vídeos — só vê o próprio perfil e esta conversa. Para pedir a liberação, mande as suas desculpas aqui mesmo: eu não libero mais na hora, eu chamo o criador para entrar nesta conversa (só nós três) e ele decide se libera. Nas regras, respeito sempre e nada de palavrões: juntando 6 a conta toma ban de 24h (na conversa com o criador, 2 já bastam). 🙏';
+  if(/banid|banir|banimento|bloquead|penaliz|sem acesso|quantas horas|quantos dias|quanto tempo/.test(t))
+    return 'Sobre banimento 🚫: '+(isBanned()?banDurationLabel(curUser())+' — só o criador pode liberar a sua conta. ':'')+'A conta banida não posta, conversa nem assiste vídeos — só vê o próprio perfil e esta conversa. Para pedir a liberação, mande as suas desculpas aqui mesmo: eu não libero mais na hora, eu chamo o criador para entrar nesta conversa (só nós três) e ele decide se libera. Nas regras, respeito sempre e nada de palavrões: juntando 6 a conta toma ban de 24h (na conversa com o criador, 2 já bastam). 🙏';
   if(/postar|publicar|enviar.*video|manda.*video|galeria|link do video/.test(t))
     return 'Para postar é só tocar no botão "+" no meio do rodapé: escolha "Pública por link" (cola o endereço do vídeo), "Vídeo" (pega da galeria do celular) ou "Shorts" para os vídeos curtos. Escreva a descrição e toque em Publicar 🚀. O vídeo vai para o servidor e aparece para todo mundo.';
   if(/short/.test(t))
@@ -1471,11 +1471,12 @@ function renderProfile(){
 
   var html = '<div class="pf-view">';
 
-  // Aviso vermelho: para o dono da conta o texto é "Sua conta foi banida" e abre a conversa
-  // com o administrador; para quem está visitando aparece "Esta conta foi banida".
+  // Aviso vermelho do banimento: uma faixa só, com o tempo que falta (horas, dias
+  // ou permanente) e a conversa com a assistente abrindo no toque. Nada além disso
+  // aparece para quem está banido.
   if(banned){
     html += isMe
-      ? '<div class="banbar" onclick="openSupportChat()"><div class="tx">Você foi banido.<small>Motivo: '+escapeHtml(target.banReason||'palavras ofensivas')+'<br>'+banUntilLabel(target)+' · toque para falar com a assistente do suporte</small></div><div class="go">›</div></div>'
+      ? '<div class="banbar" onclick="openSupportChat()"><div class="tx">Sua conta foi banida. Veja detalhes...<small>'+banDurationLabel(target)+'</small></div><div class="go">›</div></div>'
       : '<div class="banbar"><div class="tx">Esta conta foi banida</div></div>';
   }
 
@@ -1512,9 +1513,8 @@ function renderProfile(){
   if(!isMe) rows += '<div class="pf-row" onclick="startPrivateChat(\''+target.id+'\')"><div class="ic">💬</div>Conversar com '+escapeHtml(target.name)+'<div class="ar">›</div></div>';
   if(rows) html += '<div class="pf-rows">'+rows+'</div>';
 
-  if(banned){
-    html += '<div class="pf-note">🚫 '+(isMe?'Sua conta está banida: você não pode postar, conversar nem assistir vídeos até o banimento acabar.':'Este perfil está banido e os vídeos ficaram indisponíveis.')+'</div>';
-  } else {
+  // Banido vê apenas o aviso vermelho: sem os vídeos e sem mais nenhum recado na tela.
+  if(!banned){
     html += vids.length
       ? '<div class="pf-grid">'+vids.map(function(v){
           return '<div class="pf-cell" onclick="playProfileVideo(\''+v.id+'\')">'+
@@ -1939,6 +1939,20 @@ function banUntilLabel(u){
   var ms = u.banUntil - Date.now();
   var h = Math.floor(ms/3600000), m = Math.floor((ms%3600000)/60000);
   return 'banido · '+(h>0?h+'h ':'')+m+'min restantes';
+}
+
+// Tempo do banimento no aviso vermelho do perfil: horas, dias ou permanente.
+function banDurationLabel(u){
+  if(!u) return 'Banimento permanente';
+  if(u.banUntil===-1 || !u.banUntil) return 'Banimento permanente';
+  var ms = Math.max(0, u.banUntil - Date.now());
+  // Arredonda para cima no dia: ban de 3 dias não pode aparecer como 2.
+  var horas = Math.round(ms/3600000);
+  var dias = Math.round(horas/24);
+  if(dias >= 2) return 'Banido por '+dias+' dias';
+  if(horas >= 1) return 'Banido por '+horas+(horas===1?' hora':' horas');
+  var min = Math.max(1, Math.round(ms/60000));
+  return 'Banido por '+min+(min===1?' minuto':' minutos');
 }
 
 // O banido só pode ver o próprio perfil e a conversa com quem atende: a
