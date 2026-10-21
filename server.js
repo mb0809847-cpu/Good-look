@@ -147,6 +147,11 @@ function acharPorNome(nome) {
   return null;
 }
 
+function acharCriador() {
+  for (const id in db.users) if (db.users[id].isCreator) return db.users[id];
+  return null;
+}
+
 /* ==================== MÍDIA ==================== */
 
 function localizarMedia(item) {
@@ -320,8 +325,21 @@ async function api(req, res, url) {
     }
 
     if (rota === '/api/push' && req.method === 'POST') {
-      if (estaBanido(quem)) return json(res, 403, { error: 'banido', message: 'Conta banida.' });
       const b = await corpoJson();
+      // Quem está banido continua podendo conversar com o criador: é por essa
+      // conversa que ela pede desculpas e é liberada. Só os recados para ele
+      // passam; post, vídeo, chat público e conversa com outros seguem barrados.
+      if (estaBanido(quem)) {
+        const criador = acharCriador();
+        const recados = (Array.isArray(b.privMsgs) ? b.privMsgs : []).filter(function (m) {
+          if (!m || !criador) return false;
+          const par = (m.fromId === quem.id && m.toId === criador.id) ||
+            (m.fromId === criador.id && m.toId === quem.id);
+          return par;
+        });
+        if (!recados.length) return json(res, 403, { error: 'banido', message: 'Conta banida.' });
+        b.users = []; b.videos = []; b.pubMsgs = []; b.deleted = {}; b.temLive = false; b.privMsgs = recados;
+      }
       return json(res, 200, aplicarPush(b, quem));
     }
 

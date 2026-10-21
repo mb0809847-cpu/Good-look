@@ -93,6 +93,9 @@ var SYNC = (function () {
         lista(kind).forEach(function (it) { if (it && it.id) porId[it.id] = it; });
         (Array.isArray(res[kind]) ? res[kind] : []).forEach(function (item) {
           if (!item || !item.id) return;
+          // Mudança local que ainda não subiu (o servidor está atrás): a cópia
+          // dele não pode apagar o que acabou de acontecer neste aparelho.
+          if (dirty[kind] && porId[item.id]) return;
           if (JSON.stringify(porId[item.id]) !== JSON.stringify(item)) mudouAqui = true;
           porId[item.id] = item;
         });

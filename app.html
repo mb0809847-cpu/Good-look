@@ -1163,6 +1163,8 @@ function renderPVBPrivate(){
   var partner = getUser(pvbChatUser);
   if(!partner){ pvbView='list'; renderPVBList(); return; }
   var u = curUser();
+  // Conversa com o criador: o recado automático dele entra aqui, uma vez só.
+  recadoAutomatico(partner, u);
   var msgs = DB.privMsgs().filter(function(m){
     return (m.fromId===u.id && m.toId===partner.id) || (m.fromId===partner.id && m.toId===u.id);
   });
@@ -1199,6 +1201,19 @@ function renderPVBPrivate(){
 // Mensagem que o liberado recebe na conversa.
 var MSG_LIBERADO = '🎉 O criador liberou você! Na próxima, tenha educação + respeito seguindo a lei da nossa comunidade.';
 
+// Recado que o criador manda sozinho: chega quando alguém abre a conversa com
+// ele e vale até 1 dia. Fica registrado na conversa, então não se repete.
+var MSG_RECADO = 'Mande seu recado e espere, de agora válida até 1 dia.';
+
+function recadoAutomatico(partner, u){
+  if(!partner || !u || partner.id !== adminId()) return;
+  var msgs = DB.privMsgs();
+  var jaTem = msgs.some(function(m){ return m && m.auto && m.fromId===partner.id && m.toId===u.id; });
+  if(jaTem) return;
+  msgs.push({id:novoMsgId(), fromId:partner.id, toId:u.id, text:MSG_RECADO, auto:true, ts:Date.now()});
+  DB.savePrivMsgs(msgs);
+}
+
 function sendPrivMsg(img){
   var input = document.getElementById('privText');
   var text = input ? input.value.trim() : '';
@@ -1209,7 +1224,8 @@ function sendPrivMsg(img){
     showNotif('Você está banido 🚫 Pode conversar, mas sem palavrão');
     return;
   }
-  if(checarPalavroes(text)) return;
+  // Na conversa com o criador o limite é 2; nas outras conversas continua 6.
+  if(checarPalavroes(text, pvbChatUser===adminId() ? LIMITE_PALAVROES_CRIADOR : LIMITE_PALAVROES)) return;
   var msgs = DB.privMsgs();
   msgs.push({id:novoMsgId(), fromId:u.id, toId:pvbChatUser, text:text, image:img, ts:Date.now()});
   // O criador libera a pessoa escrevendo "liberado" na conversa: ela volta ao normal.
@@ -2054,10 +2070,12 @@ function limparBots(){
 }
 
 // ==================== PALAVRÕES ====================
-// Juntando 10 palavrões (no chat público, no privado ou nos comentários) a conta
+// Juntando 6 palavrões (no chat público, no privado ou nos comentários) a conta
 // toma ban automático de 24h, e o motivo fica registrado no perfil dela.
 var PALAVROES = ['porra','desgraça','disgraça','vagabundo','vagabunda','filho da puta','filha da puta','caralho','puta que pariu','vai tomar no cu'];
 var LIMITE_PALAVROES = 6;
+// Na conversa privada com o criador o limite é 2: dois palavrões já baniram.
+var LIMITE_PALAVROES_CRIADOR = 2;
 
 function contarPalavroes(text){
   var t = (text||'').toLowerCase();
@@ -2070,16 +2088,17 @@ function contarPalavroes(text){
 }
 
 // Roda antes de enviar a mensagem. Devolve true quando a conta acabou de ser banida.
-function checarPalavroes(text){
+function checarPalavroes(text, limite){
   var u = curUser();
   var n = contarPalavroes(text);
   if(!u || !n) return false;
   if(u.isCreator || u.isAdmin) return false; // o dono do app não toma ban
+  limite = limite || LIMITE_PALAVROES;
   var users = DB.users();
   var x = users.find(function(y){ return y.id===u.id; });
   if(!x) return false;
   x.palavroes = (x.palavroes||0) + n;
-  if(x.palavroes >= LIMITE_PALAVROES){
+  if(x.palavroes >= limite){
     x.banned = true;
     x.banUntil = Date.now() + 24*3600000;
     x.banReason = 'Palavrões repetidos ('+x.palavroes+'x): '+text.slice(0,40);
