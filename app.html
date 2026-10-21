@@ -363,6 +363,9 @@ body.hw .vd-cmt-head .cnt{color:#a78bfa}
    são só enfeite, e ficam abaixo do rodapé. */
 #hwDeco{position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;overflow:hidden;display:none;z-index:260}
 body.hw #hwDeco{display:block}
+/* Na hora de assistir (Home, Shorts, player e live) os enfeites soltos saem da
+   tela: o vídeo fica limpo. O resto do visual de Halloween continua. */
+body.hw.hw-assistindo #hwDeco{display:none}
 #hwDeco span{position:absolute;opacity:.5;filter:drop-shadow(0 2px 6px rgba(0,0,0,.7));animation:hwFloat 8s ease-in-out infinite}
 @keyframes hwFloat{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-16px) rotate(7deg)}}
 </style>
@@ -426,6 +429,8 @@ function verificado(u){
 // cadastro, então o nome sai enfeitado em qualquer tela — feed, chat, lista e
 // perfil.
 function temHalloween(u){ return !!((u||curUser()||{}).tema==='halloween'); }
+// Telas em que o vídeo está na frente: ali os enfeites soltos do Halloween saem.
+var TELAS_DE_VIDEO = ['home', 'shorts', 'detail', 'live'];
 function userNameDisplay(u){ return '<span style="display:flex;align-items:center;gap:3px">'+(temHalloween(u)?'🎃 ':'')+escapeHtml(u.name)+(u.isCreator?'👑':'')+verifiedBadge(verificado(u))+'</span>'; }
 function avatarHtml(u, sz, cls){
   var s=sz||44;
@@ -497,6 +502,8 @@ function render(){
   // Visual Halloween: o tema vive no cadastro da conta, então a classe entra no
   // body a cada desenho da tela (e sai na hora se a conta não tem o tema).
   document.body.classList.toggle('hw', temHalloween(u));
+  // Nas telas de assistir os enfeites soltos somem (ver .hw-assistindo no CSS).
+  document.body.classList.toggle('hw-assistindo', TELAS_DE_VIDEO.indexOf(view) >= 0);
   // Banido não posta, não conversa e não assiste vídeo: cai sempre no próprio perfil.
   var banido = isBanned(u);
   if(banido && !bannedViewAllowed(u)){
