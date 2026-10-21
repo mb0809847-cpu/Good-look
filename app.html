@@ -257,6 +257,27 @@ body{background:#000;color:#fff}
 .vd-player video{width:100%;height:100%;object-fit:contain}
 .vd-back{position:absolute;top:12px;left:12px;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:5}
 .vd-back svg{width:22px;height:22px;color:#fff}
+
+/* ===== Vídeo só para membros =====
+   Quem não é membro do canal não recebe nem o link do vídeo (quem corta é o
+   servidor): no lugar do player aparece a tela do cadeado, que leva ao
+   pagamento. O nome de quem é membro fica verde nos comentários daquele canal. */
+.membro-view{height:100%;overflow-y:auto;background:#0a0a0a;color:#fff}
+.membro-cover{position:relative;width:100%;height:200px;background:#111;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.membro-cover img{width:100%;height:100%;object-fit:cover;opacity:.5}
+.membro-cover .lock{position:absolute;font-size:44px}
+.membro-body{padding:18px 16px 30px;display:flex;flex-direction:column;gap:12px}
+.membro-body h2{font-size:19px;font-weight:800;line-height:1.3}
+.membro-sub{font-size:13.5px;color:#a1a1aa;line-height:1.45}
+.membro-preco{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#18181b;border:1px solid #2a2a2e;border-radius:14px;padding:14px 16px}
+.membro-preco b{font-size:20px;color:#22C55E}
+.membro-btn{width:100%;padding:15px;border:none;border-radius:12px;background:#22C55E;color:#052e16;font-size:16px;font-weight:800;cursor:pointer}
+.membro-pill{position:absolute;top:10px;left:10px;background:rgba(6,46,23,.92);border:1px solid #22C55E;color:#bbf7d0;font-size:10.5px;font-weight:800;padding:3px 8px;border-radius:999px;z-index:4}
+.capa-lock{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#111;color:#52525b;font-size:30px}
+.nome-membro{color:#22C55E}
+.pag-linha{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13.5px;color:#d4d4d8;margin-bottom:8px;text-align:left}
+.pag-linha b{color:#fff;text-align:right}
+.pag-nota{font-size:11.5px;color:#a1a1aa;line-height:1.4;margin-top:10px;text-align:center}
 .vd-body{padding:12px 14px}
 .vd-title{font-size:17px;font-weight:700;color:#fff;line-height:1.3;margin-bottom:6px}
 .vd-stats{font-size:13px;color:#aaa;margin-bottom:12px}
@@ -462,7 +483,17 @@ function temHalloween(u){
 // Halloween nenhum (nem enfeite, nem rodapé enfeitado, nem 🎃 no nome).
 var TELAS_DE_VIDEO = ['home', 'shorts', 'detail', 'live'];
 function halloweenNaTela(){ return TELAS_DE_VIDEO.indexOf(view) < 0 && temHalloween(curUser()); }
-function userNameDisplay(u){ return '<span style="display:flex;align-items:center;gap:3px">'+((temHalloween(u) && TELAS_DE_VIDEO.indexOf(view)<0)?'🎃 ':'')+escapeHtml(u.name)+(u.isCreator?'👑':'')+verifiedBadge(verificado(u))+'</span>'; }
+// Membresia (do servidor): o dono do canal e quem é membro dele. Quem é membro
+// aparece com o nome verde nos comentários daquele canal — e só nele.
+function ehMembroDe(u, canalId){ return !!(u && canalId && (u.id===canalId || (u.membroDe||[]).indexOf(canalId)>=0)); }
+// Vídeo de membro: só abre para o dono do canal e para quem é membro dele.
+function podeVerVideo(v, u){ if(!v || !v.membro) return true; return ehMembroDe(u, v.userId); }
+function videoTrancado(v, u){ return !!(v && v.membro && !podeVerVideo(v, u)); }
+function precoMembresia(v){ return Number(v && v.preco) > 0 ? Number(v.preco) : 9.9; }
+function precoTxt(valor){ return 'R$ '+Number(valor).toFixed(2).replace('.', ','); }
+// O nome verde só entra quando a tela é de um canal (canalId), tipo os
+// comentários de um vídeo.
+function userNameDisplay(u, canalId){ return '<span class="'+(ehMembroDe(u, canalId)?'nome-membro':'')+'" style="display:flex;align-items:center;gap:3px">'+((temHalloween(u) && TELAS_DE_VIDEO.indexOf(view)<0)?'🎃 ':'')+escapeHtml(u.name)+(u.isCreator?'👑':'')+verifiedBadge(verificado(u))+'</span>'; }
 function avatarHtml(u, sz, cls){
   var s=sz||44;
   var c=cls?(' '+cls):'';
@@ -594,6 +625,9 @@ function attachLazyVideo(el){
 // quadro. Vídeo sem capa (link de fora ou enviado antes disso) usa o do próprio.
 function capaHtml(v){
   if(v.poster) return '<img class="capa" src="'+v.poster+'" alt="" loading="lazy">';
+  // Vídeo de membro chega sem link para quem não é membro: sem capa, o card
+  // mostra o cadeado em vez de um quadro preto.
+  if(!v.url) return '<div class="capa-lock">🔒</div>';
   return '<video data-src="'+v.url+'" data-thumb="1" data-dur="1" muted playsinline preload="none"></video>';
 }
 
@@ -673,6 +707,7 @@ function renderHome(){
     html += '<div class="hcard">'+
       '<div class="hthumb" ontouchstart="aquecerVideo(\''+v.url+'\')" onmousedown="aquecerVideo(\''+v.url+'\')" onclick="openVideoDetail(\''+v.id+'\')">'+
         capaHtml(v)+
+        (v.membro?'<span class="membro-pill">🔒 MEMBRO</span>':'')+
         '<div class="scrim"></div>'+
         '<div class="htitle">'+escapeHtml(v.description||'')+'</div>'+
         duracaoHtml(v)+
@@ -709,7 +744,8 @@ function openVideoDetail(vid){
   vdVideoId = vid;
   view = 'detail';
   var v = DB.videos().find(function(x){return x.id===vid;});
-  if(v){ v.views = (v.views||0)+1; DB.saveVideos(DB.videos()); }
+  // Vídeo de membro trancado não conta visualização: a tela é só a do cadeado.
+  if(v && !videoTrancado(v, curUser())){ v.views = (v.views||0)+1; DB.saveVideos(DB.videos()); }
   render();
 }
 
@@ -724,6 +760,13 @@ function renderVideoDetail(){
   var isFollowing = u.following && u.following.indexOf(owner.id)>=0;
   var previewCmt = v.comments && v.comments.length>0 ? v.comments[v.comments.length-1] : null;
   var pcu = previewCmt ? (getUser(previewCmt.userId) || {name:previewCmt.userName, photo:null, verifiedType:null}) : null;
+
+  // Vídeo de membro: quem não é membro do canal não vê o player — vê a tela do
+  // cadeado, e é ela que leva ao pagamento.
+  if(videoTrancado(v, u)){
+    document.getElementById('app').innerHTML = membroGateHtml(v, owner);
+    return;
+  }
 
   var html = '<div class="vd-view">'+
     '<div class="vd-player">'+
@@ -772,7 +815,7 @@ function renderVideoDetail(){
       (previewCmt?
         '<div class="vd-cmt-preview" onclick="openComments(\''+v.id+'\')">'+
           '<div class="ca">'+(pcu.photo?'<img src="'+pcu.photo+'">':escapeHtml((pcu.name||'?')[0]))+'</div>'+
-          '<div class="ct"><div class="cn">'+userNameDisplay(pcu)+'</div><div class="cc">'+escapeHtml(previewCmt.text)+'</div></div>'+
+          '<div class="ct"><div class="cn">'+userNameDisplay(pcu, v.userId)+'</div><div class="cc">'+escapeHtml(previewCmt.text)+'</div></div>'+
         '</div>'
       :'<div style="color:#666;font-size:14px;margin-bottom:8px">Nenhum comentário ainda</div>')+
     '</div>'+
@@ -1026,7 +1069,7 @@ function commentsListHtml(v){
     return '<div class="cp-item">'+
       '<div class="ca" onclick="commentOptions(\''+v.id+'\',\''+c.id+'\')" style="cursor:pointer">'+(cu.photo?'<img src="'+cu.photo+'">':escapeHtml((cu.name||'?')[0]))+'</div>'+
       '<div class="ct">'+
-        '<div class="cn" onclick="commentOptions(\''+v.id+'\',\''+c.id+'\')" style="cursor:pointer">'+userNameDisplay(cu)+(c.pinned?'<span class="cp-pin">📌 Fixado</span>':'')+'</div>'+
+        '<div class="cn" onclick="commentOptions(\''+v.id+'\',\''+c.id+'\')" style="cursor:pointer">'+userNameDisplay(cu, v.userId)+(c.pinned?'<span class="cp-pin">📌 Fixado</span>':'')+'</div>'+
         (c.replyTo?'<div class="cp-rep">↳ '+escapeHtml(c.replyTo.userName)+'</div>':'')+
         '<div class="cc" onclick="startReply(\''+v.id+'\',\''+c.id+'\')" style="cursor:pointer">'+escapeHtml(c.text)+'</div>'+
       '</div>'+
@@ -1626,6 +1669,86 @@ function sortearGanhador(btn){
     });
 }
 
+// ==================== MEMBRESIA (vídeo só para membro) ====================
+// Pagou a membresia do canal, o vídeo abre. Quem grava a membresia é o servidor
+// (/api/membro) e é ele quem manda o link dos vídeos de membro do canal — os
+// outros aparelhos nem recebem esse link.
+function membroGateHtml(v, owner){
+  var canal = owner || {};
+  var valor = precoMembresia(v);
+  return '<div class="membro-view">'+
+    '<div class="membro-cover">'+
+      (v.poster?'<img src="'+v.poster+'" alt="">':'')+
+      '<div class="lock">🔒</div>'+
+      '<div class="vd-back" onclick="view=\'home\';render()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></div>'+
+    '</div>'+
+    '<div class="membro-body">'+
+      '<h2>Seja membro para assistir a esse vídeo</h2>'+
+      '<div class="membro-sub">'+escapeHtml(v.description||'Sem descrição')+'</div>'+
+      '<div style="display:flex;align-items:center;gap:10px">'+avatarHtml(canal,40)+
+        '<div><div style="font-size:14px;font-weight:700">'+userNameDisplay(canal)+'</div>'+
+        '<div class="membro-sub">'+fmt(canal.followers||0)+' inscritos</div></div>'+
+      '</div>'+
+      '<div class="membro-preco"><div><div class="membro-sub">Membresia do canal</div>'+
+        '<div style="font-size:13.5px;font-weight:700">'+escapeHtml(canal.name||'')+'</div></div><b>'+precoTxt(valor)+'</b></div>'+
+      '<button class="membro-btn" onclick="abrirPagamento(\''+canal.id+'\','+valor+',\''+v.id+'\')">🔓 Seja membro para assistir</button>'+
+      '<div class="membro-sub">Como membro você assiste a todos os vídeos de membro deste canal e o seu nome fica verde nos comentários dele.</div>'+
+    '</div>'+
+  '</div>';
+}
+
+// A forma de pagamento do canal: o resumo do que a pessoa está comprando e o
+// botão que paga. Aqui o pagamento roda em modo de teste (não cobra nada).
+function abrirPagamento(canalId, valor, videoId){
+  var canal = getUser(canalId) || {};
+  var txt = precoTxt(valor);
+  document.body.insertAdjacentHTML('beforeend',
+    '<div class="edit-modal show" id="pagModal"><div class="edit-card">'+
+      '<h3>💳 Forma de pagamento</h3>'+
+      '<div class="pag-linha"><span>Canal</span><b>'+escapeHtml(canal.name||'')+'</b></div>'+
+      '<div class="pag-linha"><span>Membresia</span><b>'+txt+'</b></div>'+
+      '<div class="pag-linha"><span>O que você recebe</span><b>Vídeos de membro e nome verde no canal</b></div>'+
+      '<button class="post-btn" id="pagBtn" onclick="pagarMembresia(\''+canalId+'\','+Number(valor)+',\''+(videoId||'')+'\')">Pagar '+txt+'</button>'+
+      '<button class="post-btn" style="background:#333;margin-top:8px" onclick="document.getElementById(\'pagModal\').remove()">Cancelar</button>'+
+      '<div class="pag-nota">Pagamento em modo de teste: nenhuma cobrança é feita.</div>'+
+    '</div></div>');
+}
+
+function pagarMembresia(canalId, valor, videoId){
+  var btn = document.getElementById('pagBtn');
+  if(btn){ btn.disabled = true; btn.textContent = 'Pagando...'; }
+  fetch('/api/membro', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','Authorization':'Bearer ' + (window.SYNC ? SYNC.token() : '')},
+    body: JSON.stringify({canalId: canalId, valor: valor})
+  }).then(function(r){
+    return r.json().then(function(j){
+      if(!r.ok) throw new Error((j && j.message) || 'Não deu para concluir o pagamento.');
+      return j;
+    });
+  }).then(function(j){
+    var users = DB.users();
+    users.forEach(function(x){ if(x.id === j.user.id) Object.assign(x, j.user); });
+    DB.saveUsers(users);
+    // Os vídeos de membro do canal vêm completos agora (com o link): é isso que
+    // abre o vídeo logo depois do pagamento.
+    var vids = DB.videos();
+    (j.videos||[]).forEach(function(nv){
+      var i = -1; vids.forEach(function(x,k){ if(x.id===nv.id) i = k; });
+      if(i>=0) vids[i] = nv; else vids.unshift(nv);
+    });
+    if((j.videos||[]).length) DB.saveVideos(vids);
+    var m = document.getElementById('pagModal');
+    if(m) m.remove();
+    showNotif('Membresia ativada! 🟢');
+    if(videoId){ vdVideoId = videoId; view = 'detail'; }
+    render();
+  }).catch(function(e){
+    if(btn){ btn.disabled = false; btn.textContent = 'Pagar'; }
+    showNotif((e && e.message) || 'Não deu para pagar 😕');
+  });
+}
+
 function copiarCodigo(code){
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(code).then(function(){ showNotif('Código copiado! 📋'); }, function(){ showNotif('Toque no código para copiar 📋'); });
@@ -1768,6 +1891,9 @@ function toggleFollow(uid){
 function playProfileVideo(vid){
   var v = DB.videos().find(function(x){return x.id===vid;});
   if(!v) return;
+  // Vídeo de membro trancado não abre no player direto: vai para a tela do
+  // cadeado, que é onde o pagamento da membresia acontece.
+  if(videoTrancado(v, curUser())){ vdVideoId = vid; view='detail'; render(); return; }
   v.views = (v.views||0)+1;
   DB.saveVideos(DB.videos());
   var html = '<div style="position:fixed;top:0;left:0;right:0;bottom:0;background:#000;z-index:500;display:flex;align-items:center;justify-content:center" id="pvModal">'+
@@ -1825,6 +1951,17 @@ function logout(){
 
 // ==================== POST ====================
 var postMode = 'link';
+// Opção nova do postar vídeo: vídeo só para membro (ver renderPost) e o valor
+// da membresia que a pessoa paga para assistir.
+var postMembro = false;
+var postDescVal = '';
+
+// O valor digitado no postar (aceita "9,90" e "9.90"); sem valor, fica o padrão.
+function valorMembresia(){
+  var el = document.getElementById('postPreco');
+  var n = Number(String(el ? el.value : '').replace(',', '.'));
+  return n > 0 ? n : 9.9;
+}
 var postFileUrl = null;
 var postFile = null;
 
@@ -1851,6 +1988,20 @@ function renderPost(){
         '<div class="t">Live</div>'+
       '</div>'+
     '</div>'+
+    // Vídeo só para membro: a opção nova do postar vídeo. Ligada, o vídeo só
+    // abre para quem pagar a membresia do canal, e o valor é o do campo abaixo.
+    (postMode==='video'?
+      '<div class="post-opts" style="margin-top:10px">'+
+        '<div class="post-opt '+(postMembro?'active':'')+'" onclick="postMembro=!postMembro;renderPost()">'+
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>'+
+          '<div class="t">Membro</div>'+
+        '</div>'+
+      '</div>'+
+      (postMembro?
+        '<input class="post-field" id="postPreco" inputmode="decimal" value="9,90" placeholder="Valor da membresia (R$)">'+
+        '<div class="pf-note">🔒 Só quem for membro do seu canal assiste a esse vídeo. Quem pagar a membresia vê todos os seus vídeos de membro e fica com o nome verde nos comentários do seu canal.</div>'
+      :'')
+    :'')+
     (isLive?
       '<input class="post-field" id="liveTitle" placeholder="Título da sua live">'+
       '<div class="pf-note">🔴 Escolha como quer transmitir. A live começa na hora e a <b>bolinha flutuante</b> fica na tela enquanto você navega — toque nela para encerrar.</div>'+
@@ -1870,6 +2021,14 @@ function renderPost(){
     )+
   '</div>';
   document.getElementById('app').innerHTML = html;
+
+  // A descrição digitada não pode sumir quando a pessoa troca de opção (tipo
+  // ligar "Membro"): ela fica guardada e volta para o campo.
+  var descEl = document.getElementById('postDesc');
+  if(descEl){
+    descEl.value = postDescVal;
+    descEl.addEventListener('input', function(){ postDescVal = descEl.value; });
+  }
 
   // No modo Live, quem começa a transmissão são os botões de modo (comecarLive).
 
@@ -1942,10 +2101,15 @@ function publicarVideo(url, type, desc, extra){
   extra = extra || {};
   var vids = DB.videos();
   var vid = { id:'vid'+Date.now(), userId:u.id, userName:u.name, userPhoto:u.photo, url:url, poster:extra.poster||null, dur:extra.dur||null, description:desc, type:type, likes:0, views:0, comments:[], timestamp:Date.now(), likedBy:[], dislikedBy:[] };
+  // Vídeo de membro: sem o pagamento da membresia do canal ninguém assiste (o
+  // servidor não manda nem o link do vídeo para quem não é membro).
+  if(extra.membro){ vid.membro = true; vid.preco = Number(extra.preco) > 0 ? Number(extra.preco) : 9.9; }
   vids.unshift(vid);
   DB.saveVideos(vids);
   postFile = null;
   postFileUrl = null;
+  postMembro = false;
+  postDescVal = '';
   showNotif(type==='short'?'Short publicado! ⚡🎉':'Vídeo publicado! 🎉');
   setTimeout(function(){ view=(type==='short'?'shorts':'home'); render(); }, 800);
 }
@@ -1954,6 +2118,8 @@ function publishVideo(){
   if(blockedAction()) return;
   var url, desc;
   var type = postMode==='shorts' ? 'short' : 'video';
+  // Só vídeo pode ser de membro (short não passa por pagamento).
+  var extra = { membro: postMembro && type === 'video', preco: postMembro && type === 'video' ? valorMembresia() : null };
   if(postMode==='link'){
     url = document.getElementById('postUrl').value.trim();
     if(!url){ showNotif('Cole o link do vídeo! 🔗'); return; }
@@ -1968,13 +2134,13 @@ function publishVideo(){
       var ext = (String(postFile.name||'').split('.').pop() || 'mp4').toLowerCase();
       prepararCapa(postFile).then(function(capa){
         return enviaVideoComCapa(postFile, ext, capa);
-      }).then(function(r){ publicarVideo(r.url, type, desc, r); })
+      }).then(function(r){ publicarVideo(r.url, type, desc, Object.assign(extra, r)); })
         .catch(function(){ showNotif('Não deu para enviar o vídeo 📴 Confira a internet e tente de novo.'); });
       return;
     }
     url = postFileUrl;
   }
-  publicarVideo(url, type, desc);
+  publicarVideo(url, type, desc, extra);
 }
 
 // Vídeos publicados antes de existir o servidor ficaram guardados só neste

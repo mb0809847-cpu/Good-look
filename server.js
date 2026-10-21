@@ -302,12 +302,46 @@ async function prepararVideo(caminho, ext) {
 
 /* ==================== SINCRONIA ==================== */
 
-function deltasDe(since) {
+// Membresia: quem manda no vídeo de membro é o dono do canal e quem é membro
+// dele. A lista de canais de que a pessoa é membro é do servidor (ver
+// /api/membro) — o aparelho não assina canal nenhum sozinho.
+function ehMembroDe(u, canalId) {
+  if (!u || !canalId) return false;
+  if (u.id === canalId) return true;
+  return (u.membroDe || []).indexOf(canalId) >= 0;
+}
+function podeVerVideo(v, quem) {
+  if (!v || !v.membro) return true;
+  return ehMembroDe(quem, v.userId);
+}
+// Vídeo de membro sai daqui SEM o link para quem não é membro do canal: assim
+// ninguém assiste sem pagar, nem abrindo o endereço do vídeo por fora. A capa
+// vai junto, para o card mostrar o vídeo trancado com o cadeado.
+function videoParaFora(v, quem) {
+  if (podeVerVideo(v, quem)) return v;
+  const o = Object.assign({}, v);
+  delete o.url;
+  return o;
+}
+// Os vídeos de membro de um canal, completos (com o link): é o que volta para o
+// aparelho logo depois do pagamento, e é assim que o vídeo abre.
+function videosDeMembroDoCanal(canalId) {
+  return Object.keys(db.videos)
+    .filter(function (id) { return db.videos[id].userId === canalId && !!db.videos[id].membro; })
+    .map(function (id) { return db.videos[id]; });
+}
+
+function deltasDe(since, quem) {
   const out = { now: clock, users: [], videos: [], pubMsgs: [], privMsgs: [], deleted: {}, live: db.live, liveU: db.liveU };
   KINDS.forEach(function (kind) {
     const bag = db[kind], del = db.del[kind] || {};
     out.deleted[kind] = [];
-    for (const id in bag) if ((bag[id]._u || 0) > since) out[kind].push(kind === 'users' ? usuarioPublico(bag[id]) : bag[id]);
+    for (const id in bag) {
+      if ((bag[id]._u || 0) <= since) continue;
+      if (kind === 'users') out[kind].push(usuarioPublico(bag[id]));
+      else if (kind === 'videos') out[kind].push(videoParaFora(bag[id], quem));
+      else out[kind].push(bag[id]);
+    }
     for (const id in del) if (del[id] > since) out.deleted[kind].push(id);
   });
   return out;
@@ -328,8 +362,10 @@ function aplicarPush(body, quem) {
         if (novo.id !== quem.id && !podeBanir(quem)) return;
         const antigo = db.users[novo.id];
         delete novo.password;
-        // Prêmio não se inventa pelo aparelho: ele é do servidor (ver premioDe).
+        // Prêmio do sorteio e membresia não se inventam pelo aparelho: os dois
+        // são do servidor (ver premioDe e /api/membro).
         delete novo.premio;
+        novo.membroDe = (antigo && antigo.membroDe) || [];
         novo._server = true;
         novo = localizarMedia(novo);
         if (antigo && antigo.password) novo.password = antigo.password;
@@ -362,6 +398,9 @@ function aplicarPush(body, quem) {
           // baixar o vídeo inteiro só para desenhar um quadro.
           if (antigo.poster && !novo.poster) novo.poster = antigo.poster;
           if (antigo.dur && !novo.dur) novo.dur = antigo.dur;
+          // O link do vídeo de membro não volta de um aparelho que não é membro:
+          // ele chega sem o link, e sem isso a cópia de lá apagaria o vídeo.
+          if (antigo.url) novo.url = antigo.url;
         }
       }
       novo._u = ++clock;
@@ -707,6 +746,25 @@ async function api(req, res, url) {
       return json(res, 200, { user: usuarioPublico(quem) });
     }
 
+    // Membresia do canal: é o pagamento do vídeo de membro. Pagou, virou membro
+    // do canal — e é isso que abre os vídeos de membro dele e deixa o nome da
+    // pessoa verde nos comentários desse canal. A membresia fica na conta (no
+    // servidor), então ela vale em qualquer aparelho em que a pessoa entrar.
+    if (rota === '/api/membro' && req.method === 'POST') {
+      const b = await corpoJson();
+      const canal = db.users[String(b.canalId || '')];
+      if (!canal) return json(res, 404, { error: 'canal', message: 'Não achei esse canal.' });
+      if (canal.id === quem.id) return json(res, 400, { error: 'canal', message: 'Este canal é seu.' });
+      const valor = Number(b.valor);
+      if (!(valor > 0)) return json(res, 400, { error: 'valor', message: 'Valor do pagamento inválido.' });
+      if (!quem.membroDe) quem.membroDe = [];
+      if (quem.membroDe.indexOf(canal.id) < 0) quem.membroDe.push(canal.id);
+      quem._u = ++clock;
+      saveDb();
+      console.log('membresia: ' + quem.name + ' virou membro de ' + canal.name + ' (R$ ' + valor.toFixed(2) + ')');
+      return json(res, 200, { user: usuarioPublico(quem), videos: videosDeMembroDoCanal(canal.id) });
+    }
+
     // Códigos do app: o criador é quem espalha os códigos, então só ele vê a
     // lista (com o código pronto para copiar) e quantos entraram no sorteio.
     if (rota === '/api/codes' && req.method === 'GET') {
@@ -757,7 +815,7 @@ async function api(req, res, url) {
 
     if (rota === '/api/sync' && req.method === 'GET') {
       const since = Number(url.searchParams.get('since') || 0) || 0;
-      return json(res, 200, deltasDe(since));
+      return json(res, 200, deltasDe(since, quem));
     }
 
     if (rota === '/api/push' && req.method === 'POST') {
