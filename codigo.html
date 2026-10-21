@@ -46,11 +46,13 @@
     </div>
 
     <div class="box" id="box">
-      <div class="ok">Você está no sorteio! 🎟</div>
+      <div class="ok">Você tem 20% de chance de ganhar! 🎟</div>
       <div class="line">Nome<b id="nomeOk">—</b></div>
-      <div class="line">Sua chance<b id="chance">0%</b></div>
+      <div class="line">Sua chance<b id="chance">20%</b></div>
       <div class="line">No sorteio<b id="total">—</b></div>
-      <div class="small">O código não cria mais conta: quem resgata entra no sorteio e começa com 0% de chance.</div>
+      <div class="line">Prêmio<b>Selo verde + painel de banimentos</b></div>
+      <div class="line">Sorteio<b>12 de novembro</b></div>
+      <div class="small">O prêmio do ganhador vale até 27 de novembro. O código não cria conta: quem resgata entra no sorteio com 20% de chance de ganhar.</div>
     </div>
     <div style="margin-top:14px;font-size:12.5px;color:#94a3b8;line-height:1.45">🎃 O código do visual Halloween é ativado dentro do app, no seu perfil.</div>
     <div class="foot"><a href="app.html">← Voltar</a></div>
@@ -58,7 +60,7 @@
 
   <script>
     // O código é conferido no servidor: quem resgata entra no sorteio — não sai
-    // conta nenhuma, só a entrada no sorteio, começando com 0% de chance.
+    // conta nenhuma, só a entrada no sorteio, com 20% de chance de ganhar.
     function resgatar(){
       var nome = document.getElementById('nomeEnt').value.trim();
       var code = document.getElementById('code').value.trim();

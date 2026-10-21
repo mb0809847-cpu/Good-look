@@ -33,15 +33,20 @@ const KINDS = ['users', 'videos', 'pubMsgs', 'privMsgs'];
 const EXT_OK = ['mp4', 'mov', 'webm', 'm4v', 'jpg', 'jpeg', 'png', 'webp', 'gif'];
 const IMG_OK = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
 // Códigos do app: cada um faz uma coisa.
-//   • o do sorteio não cria conta nenhuma: quem digita entra no sorteio com 0%
-//     de chance, e é o criador quem sorteia depois;
+//   • o do sorteio não cria conta nenhuma: quem digita entra no sorteio com 20%
+//     de chance de ganhar, e é o criador quem sorteia, no dia marcado;
 //   • o do visual liga o tema de Halloween na conta de quem digita. O tema fica
 //     gravado no cadastro, então ele volta em qualquer aparelho.
 const CODIGO_SORTEIO = 'publslinks22';
 const CODIGO_HALLOWEEN = 'halloween77';
-const CHANCE_INICIAL = 0;
+const CHANCE_INICIAL = 20;
+// O sorteio é do criador e tem data marcada: 12 de novembro de 2026. Quem ganha
+// leva o selo verde junto com o painel de banimentos, e isso vale até 27 de
+// novembro de 2026 — depois dessa data o prêmio sai sozinho, sem ninguém
+// precisar tirar nada da conta de quem ganhou.
+const PREMIO_ATE = new Date(2026, 10, 27, 23, 59, 59, 999).getTime();
 const CODIGOS_DO_APP = [
-  { code: CODIGO_SORTEIO, nome: 'Sorteio', desc: 'Quem resgata entra no sorteio, sem criar conta' },
+  { code: CODIGO_SORTEIO, nome: 'Sorteio', desc: 'Quem resgata entra no sorteio com ' + CHANCE_INICIAL + '% de chance, sem criar conta' },
   { code: CODIGO_HALLOWEEN, nome: 'Visual Halloween', desc: 'Liga o visual de Halloween na conta' }
 ];
 
@@ -50,7 +55,7 @@ fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 /* ==================== BANCO ==================== */
 
 let clock = Date.now();
-let db = { users: {}, videos: {}, pubMsgs: {}, privMsgs: {}, live: null, liveU: 0, del: {}, tokens: {}, sorteio: [] };
+let db = { users: {}, videos: {}, pubMsgs: {}, privMsgs: {}, live: null, liveU: 0, del: {}, tokens: {}, sorteio: [], premio: null };
 
 function loadDb() {
   try {
@@ -60,8 +65,13 @@ function loadDb() {
     db.liveU = raw.liveU || 0;
     db.del = raw.del || {};
     db.tokens = raw.tokens || {};
-    // Quem entrou no sorteio resgatando o código (ver Códigos do app).
+    // Quem entrou no sorteio resgatando o código (ver Códigos do app). A chance
+    // é a mesma para todo mundo que está no sorteio, então ela é acertada aqui —
+    // quem entrou quando a chance era outra entra no mesmo páreo que os outros.
     db.sorteio = raw.sorteio || [];
+    db.sorteio.forEach(function (p) { p.chance = CHANCE_INICIAL; });
+    // Quem ganhou o sorteio (nome + quando), e até quando o prêmio vale.
+    db.premio = raw.premio || null;
     const marcas = [Date.now()];
     KINDS.forEach(function (k) { for (const id in db[k]) marcas.push(db[k][id]._u || 0); });
     db.liveU && marcas.push(db.liveU);
@@ -121,10 +131,24 @@ function estaBanido(u) {
 
 /* ==================== CONTAS ==================== */
 
+// Quem ganhou o sorteio leva o selo verde e o painel de banimentos até a data
+// marcada (27/11/2026). O prêmio não fica gravado na conta: ele é conferido a
+// cada resposta, então quando a data passa o selo e o painel saem sozinhos.
+function premioDe(u) {
+  if (!u || !db.premio || !db.premio.nome) return false;
+  if (Date.now() >= PREMIO_ATE) return false;
+  const alvo = String(db.premio.nome).trim().toLowerCase();
+  return String(u.name || '').trim().toLowerCase() === alvo || String(u.username || '').trim().toLowerCase() === alvo;
+}
+// Quem manda no painel de banimentos: o criador, a conta liberada por código e
+// quem está com o prêmio do sorteio na mão.
+function podeBanir(u) { return !!u && (!!u.isCreator || !!u.modOnly || premioDe(u)); }
+
 function usuarioPublico(u) {
   const o = Object.assign({}, u);
   delete o.password;
   o._server = true;
+  o.premio = premioDe(u);
   return o;
 }
 
@@ -299,10 +323,13 @@ function aplicarPush(body, quem) {
       if (kind === 'users') {
         // Cada um edita o próprio perfil; o criador mexe na conta de todos e a
         // conta liberada por código (painel de banimentos) também precisa banir
-        // e desbanir os outros.
-        if (novo.id !== quem.id && !quem.isCreator && !quem.modOnly) return;
+        // e desbanir os outros — e quem ganhou o sorteio tem o mesmo painel até
+        // o prêmio vencer.
+        if (novo.id !== quem.id && !podeBanir(quem)) return;
         const antigo = db.users[novo.id];
         delete novo.password;
+        // Prêmio não se inventa pelo aparelho: ele é do servidor (ver premioDe).
+        delete novo.premio;
         novo._server = true;
         novo = localizarMedia(novo);
         if (antigo && antigo.password) novo.password = antigo.password;
@@ -644,8 +671,8 @@ async function api(req, res, url) {
     }
 
     // Resgate do código: não sai mais conta nenhuma. Quem digita o código entra
-    // no sorteio com 0% de chance — o sorteio é do criador, que sorteia depois
-    // (ele vê quantos entraram no painel de códigos do perfil).
+    // no sorteio com 20% de chance de ganhar — o sorteio é do criador, que vê a
+    // lista de quem entrou no perfil e sorteia o ganhador.
     if (rota === '/api/code' && req.method === 'POST') {
       const b = await corpoJson();
       if (String(b.code || '').trim().toLowerCase() !== CODIGO_SORTEIO) {
@@ -655,7 +682,7 @@ async function api(req, res, url) {
       if (!nome) return json(res, 400, { error: 'nome', message: 'Digite seu nome para entrar no sorteio.' });
       const ja = db.sorteio.filter(function (p) { return p.nome.toLowerCase() === nome.toLowerCase(); });
       if (ja.length) {
-        return json(res, 200, { nome: ja[0].nome, chance: ja[0].chance, participantes: db.sorteio.length, repetido: true });
+        return json(res, 200, { nome: ja[0].nome, chance: CHANCE_INICIAL, participantes: db.sorteio.length, repetido: true });
       }
       db.sorteio.push({ nome: nome, chance: CHANCE_INICIAL, ts: Date.now() });
       saveDb();
@@ -693,6 +720,38 @@ async function api(req, res, url) {
             participantes: c.code === CODIGO_SORTEIO ? db.sorteio.length : null
           };
         })
+      });
+    }
+
+    // Sorteio: é do criador. Ele vê quem entrou e é ele quem aperta o botão que
+    // escolhe o ganhador (sorteio marcado para 12 de novembro). Quem ganha leva
+    // o selo verde com o painel de banimentos até 27 de novembro — depois dessa
+    // data o prêmio sai da conta sozinho (ver premioDe).
+    if (rota === '/api/sorteio' && req.method === 'GET') {
+      if (!quem.isCreator) return json(res, 403, { error: 'so_criador', message: 'Só o criador vê o sorteio.' });
+      return json(res, 200, {
+        participantes: db.sorteio.map(function (p) { return { nome: p.nome, chance: CHANCE_INICIAL, ts: p.ts || 0 }; }),
+        ganhador: db.premio ? { nome: db.premio.nome, ts: db.premio.ts || 0 } : null,
+        premioAte: PREMIO_ATE
+      });
+    }
+
+    if (rota === '/api/sorteio/sortear' && req.method === 'POST') {
+      if (!quem.isCreator) return json(res, 403, { error: 'so_criador', message: 'Só o criador sorteia.' });
+      if (!db.sorteio.length) return json(res, 400, { error: 'vazio', message: 'Ninguém entrou no sorteio ainda.' });
+      // Um ganhador só, sorteado entre todos os que entraram.
+      const ganhador = db.sorteio[sorteio(db.sorteio.length)];
+      db.premio = { nome: ganhador.nome, ts: Date.now() };
+      saveDb();
+      // O prêmio é do nome sorteado: se já existe uma conta com esse nome, o
+      // selo verde e o painel aparecem nela na hora; se ainda não existe, o
+      // prêmio entra quando essa conta aparecer.
+      const conta = acharPorNome(ganhador.nome);
+      console.log('sorteio: ganhou ' + ganhador.nome + (conta ? ' (conta ' + conta.name + ')' : ' (sem conta ainda)'));
+      return json(res, 200, {
+        ganhador: { nome: db.premio.nome, ts: db.premio.ts },
+        conta: conta ? usuarioPublico(conta) : null,
+        premioAte: PREMIO_ATE
       });
     }
 
