@@ -475,6 +475,21 @@ function lazyLoadEls(els){
   list.forEach(function(el){ io.observe(el); });
 }
 
+// O toque no card já começa a baixar o vídeo: quando o player abre, o começo do
+// arquivo já está no aparelho e o vídeo começa a tocar quase na hora.
+var aquecendo = {};
+function aquecerVideo(url){
+  url = String(url||'');
+  if(url.indexOf('/') !== 0 || aquecendo[url]) return;   // só o que está no servidor
+  aquecendo[url] = true;
+  var v = document.createElement('video');
+  v.preload = 'auto'; v.muted = true; v.setAttribute('playsinline','');
+  v.style.display = 'none'; v.src = url;
+  document.body.appendChild(v);
+  try { v.load(); } catch(e){}
+  setTimeout(function(){ if(v.parentNode) v.parentNode.removeChild(v); }, 20000);
+}
+
 // Deixa o próximo short já carregando (troca instantânea) — só em rede boa.
 function preloadNeighbour(el){
   var slides = document.querySelectorAll('.video-slide video');
@@ -517,7 +532,7 @@ function renderHome(){
   vids.forEach(function(v){
     var owner = getUser(v.userId) || {name:v.userName, photo:v.userPhoto, verifiedType:null, isCreator:false};
     html += '<div class="hcard">'+
-      '<div class="hthumb" onclick="openVideoDetail(\''+v.id+'\')">'+
+      '<div class="hthumb" ontouchstart="aquecerVideo(\''+v.url+'\')" onmousedown="aquecerVideo(\''+v.url+'\')" onclick="openVideoDetail(\''+v.id+'\')">'+
         '<video data-src="'+v.url+'" data-thumb="1" data-dur="1" muted playsinline preload="none"></video>'+
         '<div class="scrim"></div>'+
         '<div class="htitle">'+escapeHtml(v.description||'')+'</div>'+
@@ -573,7 +588,7 @@ function renderVideoDetail(){
 
   var html = '<div class="vd-view">'+
     '<div class="vd-player">'+
-      '<video src="'+v.url+'" autoplay controls playsinline style="width:100%;height:100%;object-fit:contain"></video>'+
+      '<video src="'+v.url+'" autoplay preload="auto" controls playsinline style="width:100%;height:100%;object-fit:contain"></video>'+
       '<div class="vd-back" onclick="view=\'home\';render()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></div>'+
     '</div>'+
     '<div class="vd-body">'+
@@ -704,7 +719,7 @@ function renderShorts(){
     var owner = getUser(v.userId) || {name:v.userName, photo:v.userPhoto, verifiedType:null, isCreator:false};
     var liked = v.likedBy && v.likedBy.indexOf(u.id)>=0;
     var saved = u.savedVideos && u.savedVideos.indexOf(v.id)>=0;
-    html += '<div class="video-slide" data-vid="'+v.id+'">'+
+    html += '<div class="video-slide" data-vid="'+v.id+'" ontouchstart="aquecerVideo(\''+v.url+'\')" onmousedown="aquecerVideo(\''+v.url+'\')">'+
       '<video data-src="'+v.url+'" loop playsinline muted preload="none"></video>'+
       '<div class="tap-area" onclick="togglePause(this)"></div>'+
       '<div class="pause-icon">⏸</div>'+
@@ -966,7 +981,7 @@ function addComment(){
   var inp = document.getElementById('cpText');
   var text = inp ? inp.value.trim() : '';
   if(!text) return;
-  if(checarPalavroes(text)) return;
+  if(checarTexto(text)) return;
   var u = curUser();
   var r = loadVideoWithIds(currentVideoId);
   if(!r.v) return;
@@ -1145,7 +1160,7 @@ function sendPubMsg(img){
   var input = document.getElementById('pubText');
   var text = input ? input.value.trim() : '';
   if(!text && !img) return;
-  if(checarPalavroes(text)) return;
+  if(checarTexto(text)) return;
   var u = curUser();
   var msgs = DB.pubMsgs();
   msgs.push({id:novoMsgId(), userId:u.id, userName:u.name, text:text, image:img, ts:Date.now()});
@@ -1168,11 +1183,15 @@ function renderPVBPrivate(){
   // Conversa com a assistente de suporte: ela se apresenta sozinha.
   boasVindasSuporte(partner, u);
   var msgs = DB.privMsgs().filter(function(m){
-    return (m.fromId===u.id && m.toId===partner.id) || (m.fromId===partner.id && m.toId===u.id);
+    if((m.fromId===u.id && m.toId===partner.id) || (m.fromId===partner.id && m.toId===u.id)) return true;
+    // Conversa dos três: a assistente chama o criador para a conversa do banido,
+    // e o que é dito nela aparece para os três.
+    return !!m.trio && (m.trio===u.id || m.trio===partner.id);
   });
   var html = '<div class="chat-view">'+
     '<div class="chat-header"><div class="back" onclick="pvbView=\'list\';render()">←</div><div class="title">'+userNameDisplay(partner)+'</div><div style="cursor:pointer;color:#F97316;font-size:13px" onclick="viewProfile(\''+partner.id+'\')">Perfil</div></div>'+
-    (isBanned(u) && (partner.id===adminId() || partner.id===suporteId())?'<div class="cp-repbar">🙏 Peça desculpas para ser liberado<b style="cursor:pointer;margin-left:auto" onclick="sendApology()">Pedir desculpas</b></div>':'')+
+    (isBanned(u) && (partner.id===adminId() || partner.id===suporteId())?'<div class="cp-repbar">🙏 Peça desculpas e aguarde o criador liberar<b style="cursor:pointer;margin-left:auto" onclick="sendApology()">Pedir desculpas</b></div>':'')+
+    (u.isCreator && isBanned(partner)?'<div class="cp-repbar">🚫 '+escapeHtml(partner.name)+' está banido<b style="cursor:pointer;margin-left:auto" onclick="liberarPeloCriador(\''+partner.id+'\')">Liberar conta</b></div>':'')+
     '<div class="chat-messages" id="privMsgs">'+
       (msgs.length===0?'<div class="msg them">Início da conversa privada! 🔒💬</div>':'')+
       msgs.map(function(m){
@@ -1227,14 +1246,14 @@ function sendPrivMsg(img){
     return;
   }
   // Na conversa com o criador o limite é 2; nas outras conversas continua 6.
-  if(checarPalavroes(text, pvbChatUser===adminId() ? LIMITE_PALAVROES_CRIADOR : LIMITE_PALAVROES)) return;
+  if(checarTexto(text, pvbChatUser===adminId() ? LIMITE_PALAVROES_CRIADOR : LIMITE_PALAVROES)) return;
   var msgs = DB.privMsgs();
   msgs.push({id:novoMsgId(), fromId:u.id, toId:pvbChatUser, text:text, image:img, ts:Date.now()});
   // O criador libera a pessoa escrevendo "liberado" na conversa: ela volta ao normal.
   if((u.isCreator || u.isAdmin) && text.toLowerCase().indexOf('liberado') >= 0){
     var alvo = getUser(pvbChatUser);
     if(alvo && isBanned(alvo)){
-      banUser(alvo.id, 0);
+      liberarUsuario(alvo.id);   // liberar aqui não pode jogar a tela no painel
       msgs.push({id:novoMsgId(), fromId:alvo.id, toId:u.id, text:MSG_LIBERADO, sys:true, ts:Date.now()+1});
       showNotif('Você liberou '+alvo.name+' ✅');
     }
@@ -1248,12 +1267,19 @@ function sendPrivMsg(img){
 
 // ==================== ASSISTENTE DE SUPORTE ====================
 // A conta "suporte good look" é a assistente oficial do app: ela conhece o Good
-// Look de ponta a ponta (postar, Shorts, live, selos, regras, chat) e responde
-// sozinha quem manda mensagem. Se a pessoa está banida e pede desculpas, a
-// assistente libera a conta na hora e a pessoa volta ao normal.
-var MSG_BOAS_VINDAS = 'Oi! 👋 Eu sou a suporte good look, a assistente oficial do app. Pergunte o que quiser sobre o Good Look: como postar vídeo, Shorts, live, selo verificado, chat PVB, as regras da comunidade e como sair de um banimento. Estou aqui para ajudar! 💬';
+// Look de ponta a ponta (postar, Shorts, live, selos, regras, chat). Duas coisas
+// importantes no jeito dela:
+//   • ela só responde quando é chamada pelo nome — "assistente";
+//   • ela não libera mais ninguém na hora: quem está banido pede desculpas,
+//     espera 1 minuto e ela chama o criador para a conversa dos três (assistente,
+//     criador e banido). Quem decide liberar é o criador.
+var MSG_BOAS_VINDAS = 'Oi! 👋 Eu sou a suporte good look, a assistente oficial do app. Me chame pelo meu nome — "assistente" — que eu respondo na hora: postar vídeo, Shorts, live, selo verificado, chat PVB, regras da comunidade e banimento. 💬';
 
-var MSG_LIBERADO_SUPORTE = '🎉 Prontinho! Pedido de desculpas aceito: sua conta está liberada e você já pode postar, conversar e assistir vídeos normalmente. Só lembre das regras da comunidade — respeito sempre e nada de palavrões. Bom Good Look! 💙';
+var MSG_AGUARDE = 'Recebi o seu pedido de desculpas 🙏 Agora eu não libero mais na hora. Aguarde 1 minuto que eu vou chamar o criador para entrar nesta conversa com a gente — só nós três: eu, você e ele. Fique por aqui. ⏳';
+
+var MSG_CONVITE = '📨 Convite enviado ao criador! Ele entra nesta conversa (só nós três: eu, você e o criador) para ler o seu pedido e decidir se libera a sua conta. 🙏';
+
+var MSG_ESPERA_CRIADOR = 'O criador foi convidado para esta conversa dos três. Enquanto ele decide, sua conta continua banida. Você pode explicar o que aconteceu por aqui que ele vai ler. 💬';
 
 var TOPICOS_SUPORTE = 'postar vídeo, Shorts e live · selo verificado · regras da comunidade · banimento e como sair dele · chat PVB e mensagens · conta, perfil e senha · baixar o app';
 
@@ -1278,8 +1304,10 @@ function respostaSuporte(texto){
   var t = (texto||'').toLowerCase();
   if(/desculp|perd[aã]o|me perdoa|foi mal|sinto muito|prometo|arrepend/.test(t))
     return 'Obrigada pelas desculpas 🙏 Você não está banido agora, então está tudo em ordem. Continue seguindo as regras da comunidade: respeito e nada de palavrões. 💙';
+  if(/idade|quantos anos|menor de idade|crian[çc]a/.test(t))
+    return 'O Good Look é para maiores de 10 anos 🚫 Quem diz que tem 10 anos ou menos toma banimento permanente na hora, com o motivo registrado no perfil. Nesse caso só o criador pode liberar, e é nesta conversa que ele entra para decidir.';
   if(/banid|banir|banimento|bloquead|penaliz|sem acesso/.test(t))
-    return 'Sobre banimento 🚫: a conta banida não posta, não conversa e não assiste vídeos — só vê o próprio perfil e esta conversa. Para voltar ao normal é simples: peça desculpas aqui mesmo, nesta conversa, que eu libero na hora. Nas regras, respeito sempre e nada de palavrões: juntando 6 a conta toma ban de 24h (na conversa com o criador, 2 já bastam). 🙏';
+    return 'Sobre banimento 🚫: a conta banida não posta, não conversa e não assiste vídeos — só vê o próprio perfil e esta conversa. Para pedir a liberação, mande as suas desculpas aqui mesmo: eu não libero mais na hora, eu chamo o criador para entrar nesta conversa (só nós três) e ele decide se libera. Nas regras, respeito sempre e nada de palavrões: juntando 6 a conta toma ban de 24h (na conversa com o criador, 2 já bastam). 🙏';
   if(/postar|publicar|enviar.*video|manda.*video|galeria|link do video/.test(t))
     return 'Para postar é só tocar no botão "+" no meio do rodapé: escolha "Pública por link" (cola o endereço do vídeo), "Vídeo" (pega da galeria do celular) ou "Shorts" para os vídeos curtos. Escreva a descrição e toque em Publicar 🚀. O vídeo vai para o servidor e aparece para todo mundo.';
   if(/short/.test(t))
@@ -1328,28 +1356,90 @@ function liberarUsuario(uid){
   return u;
 }
 
-// Uma mensagem minha para a assistente: ela responde sozinha e, se eu estiver
-// banido e pedir desculpas, a conta volta ao normal na hora.
+// Uma mensagem minha para a assistente. Ela só responde quando eu falo o nome
+// dela ("assistente"). Se eu estou banido e peço desculpas, ela não libera nada
+// na hora: avisa que tem espera e, um minuto depois, chama o criador.
 function falarComSuporte(texto){
   var u = curUser();
   var sid = suporteId();
   if(!u || !sid) return;
-  var t = (texto||'').toLowerCase();
-  var banidoAgora = isBanned(u);
-  var liberado = banidoAgora && /desculp|perd[aã]o|me perdoa|foi mal|sinto muito|prometo|arrepend|nunca mais/.test(t);
-  if(liberado) liberarUsuario(u.id);
-  var resposta = liberado ? MSG_LIBERADO_SUPORTE : respostaSuporte(texto);
+  var t = (texto||'').toLowerCase().trim();
+  if(!t) return;
+  var desculpa = /desculp|perd[aã]o|me perdoa|foi mal|sinto muito|prometo|arrepend|nunca mais/.test(t);
+  if(isBanned(u) && desculpa){ pedirLiberacao(u, sid); return; }
+  if(t.indexOf('assistente') < 0) return;   // sem chamar pelo nome, ela fica quieta
+  responderSuporte(u, sid, respostaSuporte(texto));
+}
+
+// A resposta sai daqui, com um instante de espera para parecer uma conversa.
+function responderSuporte(u, sid, texto){
   setTimeout(function(){
     var msgs = DB.privMsgs();
-    msgs.push({id:novoMsgId(), fromId:sid, toId:u.id, text:resposta, auto:true, ts:Date.now()});
+    msgs.push({id:novoMsgId(), fromId:sid, toId:u.id, text:texto, auto:true, ts:Date.now()});
     DB.savePrivMsgs(msgs);
-    if(liberado){
-      showNotif('Conta liberada 🎉 Você já pode usar o app normalmente');
-      render();
-      return;
-    }
     if(view==='pvb' && pvbView==='private' && pvbChatUser===sid) renderPVBPrivate();
-  }, 700);
+  }, 600);
+}
+
+// Quanto a assistente espera antes de chamar o criador.
+var ESPERA_LIBERACAO = 60000;
+var pedidosAbertos = {};
+
+// Pedido de liberação: a assistente avisa que agora tem espera e, passado o
+// minuto, convida o criador para a conversa dos três.
+function pedirLiberacao(u, sid){
+  responderSuporte(u, sid, MSG_AGUARDE);
+  if(pedidosAbertos[u.id]) return;
+  pedidosAbertos[u.id] = setTimeout(function(){
+    delete pedidosAbertos[u.id];
+    convidarCriadorParaConversa(u.id, sid);
+  }, ESPERA_LIBERACAO);
+}
+
+// O convite: o criador recebe o aviso no topo do app e a conversa com o banido
+// passa a ser dos três — as mensagens do convite aparecem para os dois lados.
+function convidarCriadorParaConversa(uid, sid){
+  var criador = adminId();
+  if(!criador) return;
+  var msgs = DB.privMsgs();
+  // Um convite por pedido: o do relógio e o de quem abre o app depois não se somam.
+  if(msgs.some(function(m){ return m && m.convite && m.trio===uid; })) return;
+  var agora = Date.now();
+  msgs.push({id:novoMsgId(), fromId:sid, toId:criador, trio:uid, convite:true, text:MSG_CONVITE, ts:agora});
+  msgs.push({id:novoMsgId(), fromId:sid, toId:uid, trio:uid, text:MSG_ESPERA_CRIADOR, ts:agora+1});
+  DB.savePrivMsgs(msgs);
+  if(view==='pvb' && pvbView==='private' && (pvbChatUser===sid || pvbChatUser===criador)) renderPVBPrivate();
+  showNotif('Convite enviado ao criador 📨');
+}
+
+// A espera não se perde se o app for fechado no meio: quem pediu desculpas há
+// mais de 1 minuto, continua banido e ainda não teve o convite enviado ganha o
+// convite assim que o app abre de novo.
+function checarConvitePendente(u){
+  if(!u || !isBanned(u)) return;
+  var sid = suporteId();
+  if(!sid || pedidosAbertos[u.id]) return;
+  var msgs = DB.privMsgs();
+  if(msgs.some(function(m){ return m && m.convite && m.trio===u.id; })) return;
+  var pedido = null;
+  msgs.forEach(function(m){
+    if(!m || m.fromId!==u.id || m.toId!==sid) return;
+    if(/desculp|perd[aã]o|me perdoa|foi mal|sinto muito|prometo|arrepend|nunca mais/.test(String(m.text||'').toLowerCase())) pedido = m;
+  });
+  if(!pedido || Date.now() - (pedido.ts||0) < ESPERA_LIBERACAO) return;
+  convidarCriadorParaConversa(u.id, sid);
+}
+
+// Quem libera é o criador: ele tira o banimento pela conversa, pelo painel ou
+// pelo perfil, e o liberado recebe o recado na hora.
+function liberarPeloCriador(uid){
+  var livre = liberarUsuario(uid);
+  if(!livre) return;
+  var msgs = DB.privMsgs();
+  msgs.push({id:novoMsgId(), fromId:adminId(), toId:uid, text:MSG_LIBERADO, sys:true, ts:Date.now()});
+  DB.savePrivMsgs(msgs);
+  showNotif(livre.name+' está livre de novo ✅');
+  if(view==='pvb' && pvbView==='private') renderPVBPrivate(); else render();
 }
 
 // "Ver detalhes" do aviso vermelho: abre direto a conversa privada com a
@@ -1945,7 +2035,7 @@ function sendLiveComment(){
   var el = document.getElementById('liveChatInput');
   var text = el ? el.value.trim() : '';
   if(!chatLiveId || !u || !text) return;
-  if(checarPalavroes(text)) return;
+  if(checarTexto(text)) return;
   liveChat.push({name:u.name, text:text, ts:Date.now()});
   if(liveChat.length>60) liveChat = liveChat.slice(-60);
   localStorage.setItem('gl_livechat_'+chatLiveId, JSON.stringify(liveChat));
@@ -2137,28 +2227,39 @@ function sendApology(){
   msgs.push({id:novoMsgId(), fromId:u.id, toId:id, text:texto, ts:Date.now()});
   DB.savePrivMsgs(msgs);
   renderPVBPrivate();
-  // A assistente responde na hora e, com o pedido de desculpas, libera a conta.
+  // A assistente não libera mais na hora: ela avisa da espera de 1 minuto e
+  // chama o criador para a conversa dos três, e é ele quem libera.
   if(id===suporteId()) falarComSuporte(texto);
 }
 
 // ==================== MENSAGENS RECEBIDAS ====================
 // Chegou mensagem privada? Aparece um aviso no topo com o nome de quem mandou
 // (de quem está banido também) e, tocando nele, abre a conversa com a pessoa.
+// Quem está banido só recebe aviso de quem atende: a assistente e o criador —
+// é por aí que o pedido de liberação acontece.
 function checarMensagensNovas(){
   var u = curUser();
-  if(!u || isBanned(u)) return;
-  var msgs = DB.privMsgs().filter(function(m){ return m.toId===u.id && !m.sys; });
+  if(!u) return;
+  checarConvitePendente(u);
+  var banido = isBanned(u);
+  var atendem = [adminId(), suporteId()];
+  var msgs = DB.privMsgs().filter(function(m){
+    if(!m || m.toId!==u.id || m.sys) return false;
+    return !banido || atendem.indexOf(m.fromId) >= 0;
+  });
   if(!msgs.length) return;
   var ultima = msgs[msgs.length-1];
   var chave = 'gl_msgvista_'+u.id;
   var visto = parseInt(localStorage.getItem(chave) || '0', 10);
   if(!ultima.ts || ultima.ts <= visto) return;
   localStorage.setItem(chave, String(ultima.ts));
+  // No convite para a conversa dos três eu abro a conversa com o banido, não
+  // com quem mandou o aviso.
+  var id = (ultima.trio && ultima.trio!==u.id) ? ultima.trio : ultima.fromId;
   // Se já estou na conversa com essa pessoa, não preciso de aviso.
-  if(view==='pvb' && pvbView==='private' && pvbChatUser===ultima.fromId) return;
-  var quem = getUser(ultima.fromId);
+  if(view==='pvb' && pvbView==='private' && pvbChatUser===id) return;
+  var quem = getUser(id) || getUser(ultima.fromId);
   var nome = quem ? quem.name : 'Alguém';
-  var id = ultima.fromId;
   showNotif('💬 '+nome+' te mandou mensagem'+(quem && isBanned(quem)?' · banido 🚫':''), function(){ abrirConversa(id); });
 }
 
@@ -2263,6 +2364,50 @@ function checarPalavroes(text, limite){
   // O contador fica em silêncio: ninguém vê o aviso de palavrão, mas o ban continua valendo.
   DB.saveUsers(users);
   return false;
+}
+
+// ==================== IDADE MÍNIMA ====================
+// O Good Look é para maiores de 10 anos. Quem diz que tem 10 anos ou menos (ou
+// uma data de nascimento que dá essa idade) toma banimento permanente na hora,
+// sem contador e sem aviso de advertência: o motivo aparece no perfil e só o
+// criador pode liberar depois.
+var IDADE_MINIMA = 11;
+
+function idadeDeclarada(text){
+  var t = (text||'').toLowerCase(), m;
+  if((m = t.match(/(?:eu\s+)?tenho\s+(\d{1,3})\s*(?:anos?|aninhos)/))) return Number(m[1]);
+  if((m = t.match(/(?:minha\s+)?idade\s*(?:é|e|:)?\s*(\d{1,3})/))) return Number(m[1]);
+  if((m = t.match(/(\d{1,3})\s*(?:anos?|aninhos)\s+de\s+idade/))) return Number(m[1]);
+  if((m = t.match(/(?:eu\s+)?(?:fiz|completei|acabei\s+de\s+fazer)\s+(\d{1,3})\s*(?:anos?|aninhos)/))) return Number(m[1]);
+  if((m = t.match(/(?:nasci|nascido|nascida)\s+(?:em|no\s+ano\s+(?:de\s+)?)\s*((?:19|20)\d{2})/))) return new Date().getFullYear() - Number(m[1]);
+  if(/sou\s+(?:um\s+|uma\s+)?(?:beb[eê]|crian[çc]a|menor\s+de\s+idade)/.test(t)) return 0;
+  return null;
+}
+
+// Devolve true quando a conta acabou de ser banida por idade.
+function checarIdade(text){
+  var u = curUser();
+  if(!u || u.isCreator || u.isAdmin) return false;
+  var idade = idadeDeclarada(text);
+  if(idade===null || idade >= IDADE_MINIMA) return false;
+  var users = DB.users();
+  var x = users.find(function(y){ return y.id===u.id; });
+  if(!x) return false;
+  x.banned = true;
+  x.banUntil = -1;   // -1 = permanente
+  x.banReason = 'Declarou ter menos de ' + IDADE_MINIMA + ' anos — o app é para maiores de 10 anos';
+  DB.saveUsers(users);
+  showNotif('Banimento permanente 🚫 O app é para maiores de 10 anos');
+  view = 'profile'; profileUserId = x.id;
+  render();
+  return true;
+}
+
+// O que vale para tudo que eu escrevo: chat público, conversa privada,
+// comentário e comentário da live.
+function checarTexto(text, limite){
+  if(checarIdade(text)) return true;
+  return checarPalavroes(text, limite);
 }
 
 // ==================== STORAGE SYNC ====================
