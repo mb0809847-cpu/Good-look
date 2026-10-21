@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Good Look — Código de liberação</title>
+  <title>Good Look — Resgatar código</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -34,64 +34,67 @@
 </head>
 <body>
   <div class="card">
-    <div class="key">🔑</div>
+    <div class="key">🎟️</div>
     <div class="brand">Good Look</div>
-    <div class="lead">Código de liberação</div>
+    <div class="lead">Resgatar código</div>
 
     <div id="formArea">
+      <input class="field" id="nomeEnt" type="text" placeholder="Seu nome" autocomplete="off" />
       <input class="field" id="code" type="text" placeholder="Digite o código" autocomplete="off" />
       <div class="err" id="err"></div>
-      <button class="btn" onclick="liberar()">Liberar conta</button>
+      <button class="btn" onclick="resgatar()">Entrar no sorteio</button>
     </div>
 
     <div class="box" id="box">
-      <div class="ok">Conta liberada! 🎉</div>
-      <div class="line">Nome do perfil<b id="nome">—</b></div>
-      <div class="line">Senha<b id="senha">—</b></div>
-      <div class="small">O código já solta junto uma conta com 50 mil seguidores e o painel só de banimentos.</div>
+      <div class="ok">Você está no sorteio! 🎟</div>
+      <div class="line">Nome<b id="nomeOk">—</b></div>
+      <div class="line">Sua chance<b id="chance">0%</b></div>
+      <div class="line">No sorteio<b id="total">—</b></div>
+      <div class="small">O código não cria mais conta: quem resgata entra no sorteio e começa com 0% de chance.</div>
     </div>
-
-    <button class="btn btn-sec" id="entrar" style="display:none" onclick="window.location.href='home.html'">Entrar com essa conta →</button>
     <div style="margin-top:14px;font-size:12.5px;color:#94a3b8;line-height:1.45">🎃 O código do visual Halloween é ativado dentro do app, no seu perfil.</div>
     <div class="foot"><a href="app.html">← Voltar</a></div>
   </div>
 
   <script>
-    // O código é conferido no servidor: ele cria a conta (nome e senha
-    // aleatórios, 50 mil seguidores e o painel só de banimentos) e devolve o
-    // nome e a senha para entrar.
-    function liberar(){
+    // O código é conferido no servidor: quem resgata entra no sorteio — não sai
+    // conta nenhuma, só a entrada no sorteio, começando com 0% de chance.
+    function resgatar(){
+      var nome = document.getElementById('nomeEnt').value.trim();
       var code = document.getElementById('code').value.trim();
       var err = document.getElementById('err');
       var btn = document.querySelector('#formArea .btn');
       err.style.display = 'none';
+      if(!nome){ err.textContent = 'Digite seu nome.'; err.style.display = 'block'; return; }
       if(!code){ err.textContent = 'Digite o código.'; err.style.display = 'block'; return; }
       btn.disabled = true;
-      btn.textContent = 'Liberando...';
+      btn.textContent = 'Entrando...';
       fetch('/api/code', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({code: code})
+        body: JSON.stringify({code: code, name: nome})
       }).then(function(r){
         return r.json().then(function(j){
           if(!r.ok) throw new Error((j && j.message) || 'Código inválido.');
           return j;
         });
       }).then(function(j){
-        document.getElementById('nome').textContent = j.name;
-        document.getElementById('senha').textContent = j.pass;
+        document.getElementById('nomeOk').textContent = j.nome;
+        document.getElementById('chance').textContent = (j.chance || 0) + '%';
+        document.getElementById('total').textContent = j.participantes + (j.participantes === 1 ? ' pessoa' : ' pessoas');
         document.getElementById('formArea').style.display = 'none';
         document.getElementById('box').style.display = 'block';
-        document.getElementById('entrar').style.display = 'block';
       }).catch(function(e){
         btn.disabled = false;
-        btn.textContent = 'Liberar conta';
-        err.textContent = (e && e.message) ? e.message : 'Não deu para liberar agora. Tente de novo.';
+        btn.textContent = 'Entrar no sorteio';
+        err.textContent = (e && e.message) ? e.message : 'Não deu para resgatar agora. Tente de novo.';
         err.style.display = 'block';
       });
     }
-    document.getElementById('code').addEventListener('keydown', function(e){
-      if(e.key === 'Enter') liberar();
+    ['nomeEnt','code'].forEach(function(id){
+      document.getElementById(id).addEventListener('keydown', function(e){
+        if(e.key === 'Enter') resgatar();
+      });
     });
   </script>
 </body>

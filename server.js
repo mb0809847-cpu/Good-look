@@ -32,20 +32,25 @@ const FFMPEG = process.env.FFMPEG || 'ffmpeg';
 const KINDS = ['users', 'videos', 'pubMsgs', 'privMsgs'];
 const EXT_OK = ['mp4', 'mov', 'webm', 'm4v', 'jpg', 'jpeg', 'png', 'webp', 'gif'];
 const IMG_OK = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
-// Código de liberação: quem entra com ele recebe na hora uma conta nova, com
-// nome e senha aleatórios, 50 mil seguidores e o painel só de banimentos.
-const CODIGO_LIBERA = 'publslinks22';
-const SEGUIDORES_LIBERADOS = 50000;
-// Código do visual: quem tem o código liga o tema de Halloween na própria
-// conta. O tema fica gravado no cadastro, então ele volta em qualquer aparelho.
+// Códigos do app: cada um faz uma coisa.
+//   • o do sorteio não cria conta nenhuma: quem digita entra no sorteio com 0%
+//     de chance, e é o criador quem sorteia depois;
+//   • o do visual liga o tema de Halloween na conta de quem digita. O tema fica
+//     gravado no cadastro, então ele volta em qualquer aparelho.
+const CODIGO_SORTEIO = 'publslinks22';
 const CODIGO_HALLOWEEN = 'halloween77';
+const CHANCE_INICIAL = 0;
+const CODIGOS_DO_APP = [
+  { code: CODIGO_SORTEIO, nome: 'Sorteio', desc: 'Quem resgata entra no sorteio, sem criar conta' },
+  { code: CODIGO_HALLOWEEN, nome: 'Visual Halloween', desc: 'Liga o visual de Halloween na conta' }
+];
 
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 /* ==================== BANCO ==================== */
 
 let clock = Date.now();
-let db = { users: {}, videos: {}, pubMsgs: {}, privMsgs: {}, live: null, liveU: 0, del: {}, tokens: {} };
+let db = { users: {}, videos: {}, pubMsgs: {}, privMsgs: {}, live: null, liveU: 0, del: {}, tokens: {}, sorteio: [] };
 
 function loadDb() {
   try {
@@ -55,6 +60,8 @@ function loadDb() {
     db.liveU = raw.liveU || 0;
     db.del = raw.del || {};
     db.tokens = raw.tokens || {};
+    // Quem entrou no sorteio resgatando o código (ver Códigos do app).
+    db.sorteio = raw.sorteio || [];
     const marcas = [Date.now()];
     KINDS.forEach(function (k) { for (const id in db[k]) marcas.push(db[k][id]._u || 0); });
     db.liveU && marcas.push(db.liveU);
@@ -181,28 +188,6 @@ function salvarUsuario(extra) {
   saveDb();
   return u;
 }
-
-// Conta liberada pelo código: nome e senha aleatórios, sem letras que se
-// confundem na hora de digitar (o/i/l/1 e 0/o). O nome é sorteado até sair um
-// que ninguém usa — dois perfis com o mesmo nome embaralhariam a entrada.
-const LETRAS_LIBERADAS = 'abcdefghjkmnpqrstuvwxyz23456789';
-const NOMES_LIBERADOS = ['ana', 'nina', 'lara', 'davi', 'caio', 'bruna', 'tom', 'lia'];
-
-function sorteiaLetras(quantos) {
-  let s = '';
-  for (let i = 0; i < quantos; i++) s += LETRAS_LIBERADAS[crypto.randomInt(LETRAS_LIBERADAS.length)];
-  return s;
-}
-
-function nomeLiberado() {
-  for (let i = 0; i < 40; i++) {
-    const nome = escolha(NOMES_LIBERADOS) + crypto.randomInt(100, 1000);
-    if (!acharPorNome(nome)) return nome;
-  }
-  return 'good_' + sorteiaLetras(5);
-}
-
-function senhaLiberada() { return sorteiaLetras(8); }
 
 function acharPorNome(nome) {
   const alvo = String(nome || '').trim().toLowerCase();
@@ -658,26 +643,24 @@ async function api(req, res, url) {
       return json(res, 200, { token: novoToken(u.id), user: usuarioPublico(u) });
     }
 
-    // Código de liberação: com o código certo sai uma conta nova — nome e senha
-    // aleatórios, 50 mil seguidores e o painel só de banimentos. A conta nasce
-    // aqui, no servidor, então ela entra em qualquer aparelho.
+    // Resgate do código: não sai mais conta nenhuma. Quem digita o código entra
+    // no sorteio com 0% de chance — o sorteio é do criador, que sorteia depois
+    // (ele vê quantos entraram no painel de códigos do perfil).
     if (rota === '/api/code' && req.method === 'POST') {
       const b = await corpoJson();
-      if (String(b.code || '').trim().toLowerCase() !== CODIGO_LIBERA) {
+      if (String(b.code || '').trim().toLowerCase() !== CODIGO_SORTEIO) {
         return json(res, 403, { error: 'codigo', message: 'Código inválido.' });
       }
-      const nome = nomeLiberado();
-      const senha = senhaLiberada();
-      const conta = salvarUsuario({
-        name: nome,
-        username: nome.toLowerCase(),
-        password: novaSenha(senha),
-        followers: SEGUIDORES_LIBERADOS,
-        bio: 'Conta liberada por código 🛡',
-        modOnly: true
-      });
-      console.log('conta liberada pelo código: ' + nome);
-      return json(res, 200, { id: conta.id, name: nome, pass: senha, followers: SEGUIDORES_LIBERADOS });
+      const nome = String(b.name || '').trim().slice(0, 40);
+      if (!nome) return json(res, 400, { error: 'nome', message: 'Digite seu nome para entrar no sorteio.' });
+      const ja = db.sorteio.filter(function (p) { return p.nome.toLowerCase() === nome.toLowerCase(); });
+      if (ja.length) {
+        return json(res, 200, { nome: ja[0].nome, chance: ja[0].chance, participantes: db.sorteio.length, repetido: true });
+      }
+      db.sorteio.push({ nome: nome, chance: CHANCE_INICIAL, ts: Date.now() });
+      saveDb();
+      console.log('sorteio: entrou ' + nome);
+      return json(res, 200, { nome: nome, chance: CHANCE_INICIAL, participantes: db.sorteio.length });
     }
 
     const quem = logado(req);
@@ -695,6 +678,22 @@ async function api(req, res, url) {
       saveDb();
       console.log('visual halloween ligado em: ' + quem.name);
       return json(res, 200, { user: usuarioPublico(quem) });
+    }
+
+    // Códigos do app: o criador é quem espalha os códigos, então só ele vê a
+    // lista (com o código pronto para copiar) e quantos entraram no sorteio.
+    if (rota === '/api/codes' && req.method === 'GET') {
+      if (!quem.isCreator) return json(res, 403, { error: 'so_criador', message: 'Só o criador vê os códigos.' });
+      return json(res, 200, {
+        codigos: CODIGOS_DO_APP.map(function (c) {
+          return {
+            code: c.code,
+            nome: c.nome,
+            desc: c.desc,
+            participantes: c.code === CODIGO_SORTEIO ? db.sorteio.length : null
+          };
+        })
+      });
     }
 
     if (rota === '/api/sync' && req.method === 'GET') {
