@@ -25,7 +25,7 @@ const DB_FILE = path.join(DATA_DIR, 'db.json');
 const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST || '0.0.0.0';
 const MAX_BODY = 30 * 1024 * 1024;     // pushes (perfil, conversas)
-const MAX_UPLOAD = 80 * 1024 * 1024;   // vídeo escolhido na galeria
+const MAX_UPLOAD = 300 * 1024 * 1024;  // vídeo escolhido na galeria (vídeo de celular é grande)
 const MAX_DATA_URL = 8 * 1024 * 1024;  // foto em base64 que vira arquivo
 const KINDS = ['users', 'videos', 'pubMsgs', 'privMsgs'];
 const EXT_OK = ['mp4', 'mov', 'webm', 'm4v', 'jpg', 'jpeg', 'png', 'webp', 'gif'];
@@ -122,6 +122,23 @@ function seedCriador() {
   };
   saveDb();
   console.log('conta do criador criada: tex_tt');
+}
+
+// Conta de suporte: é o canal oficial para tirar dúvidas e ajudar quem usa o
+// app. Vive no servidor, então ela existe para todo mundo e pode ser acessada
+// de qualquer aparelho com o nome "suporte good look".
+function seedSuporte() {
+  if (db.users.suporte) return;
+  db.users.suporte = {
+    id: 'suporte', name: 'suporte good look', username: 'suporte_good_look',
+    bio: '💬 Suporte oficial do Good Look — tire suas dúvidas aqui',
+    photo: null, followers: 0, following: [], likes: 0,
+    verified: false, verifiedType: null, isCreator: false, isAdmin: false,
+    banned: false, banUntil: null, savedVideos: [],
+    password: novaSenha('54321'), _u: ++clock
+  };
+  saveDb();
+  console.log('conta de suporte criada: suporte good look');
 }
 
 function salvarUsuario(extra) {
@@ -259,16 +276,45 @@ const TIPOS = {
   '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.txt': 'text/plain; charset=utf-8'
 };
 
-function enviarArquivo(res, arquivo, cache) {
+// Range = "me manda só este pedaço do arquivo". É o que o navegador usa para
+// abrir o vídeo, pular para um tempo e mostrar o quadro da capa. Sem isso o
+// player fica na tela preta (ou não anda) em vários celulares.
+function pedacoPedido(req, tamanho) {
+  const m = /^bytes=(\d*)-(\d*)$/.exec(String(req.headers.range || '').trim());
+  if (!m || (!m[1] && !m[2])) return null;
+  let inicio, fim;
+  if (!m[1]) {                                   // bytes=-500 → os últimos 500
+    const n = Number(m[2]);
+    if (!n) return null;
+    inicio = Math.max(0, tamanho - n);
+    fim = tamanho - 1;
+  } else {
+    inicio = Number(m[1]);
+    fim = m[2] ? Number(m[2]) : tamanho - 1;
+  }
+  if (!isFinite(inicio) || !isFinite(fim) || inicio > fim || inicio >= tamanho) return null;
+  return { inicio: inicio, fim: Math.min(fim, tamanho - 1) };
+}
+
+function enviarArquivo(req, res, arquivo, cache) {
   fs.stat(arquivo, function (err, st) {
     if (err || !st.isFile()) { res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); res.end('não encontrado'); return; }
     const tipo = TIPOS[path.extname(arquivo).toLowerCase()] || 'application/octet-stream';
-    res.writeHead(200, {
+    const cabecalhos = {
       'Content-Type': tipo,
-      'Content-Length': st.size,
       'Cache-Control': cache ? 'public, max-age=3600' : 'no-cache',
       'Accept-Ranges': 'bytes'
-    });
+    };
+    const pedaco = pedacoPedido(req, st.size);
+    if (pedaco) {
+      cabecalhos['Content-Range'] = 'bytes ' + pedaco.inicio + '-' + pedaco.fim + '/' + st.size;
+      cabecalhos['Content-Length'] = pedaco.fim - pedaco.inicio + 1;
+      res.writeHead(206, cabecalhos);
+      fs.createReadStream(arquivo, { start: pedaco.inicio, end: pedaco.fim }).pipe(res);
+      return;
+    }
+    cabecalhos['Content-Length'] = st.size;
+    res.writeHead(200, cabecalhos);
     fs.createReadStream(arquivo).pipe(res);
   });
 }
@@ -368,16 +414,17 @@ const server = http.createServer(function (req, res) {
 
   if (p.indexOf('/uploads/') === 0) {
     const nome = path.basename(p);
-    return enviarArquivo(res, path.join(UPLOAD_DIR, nome), true);
+    return enviarArquivo(req, res, path.join(UPLOAD_DIR, nome), true);
   }
 
   const arquivo = arquivoDoSite(p);
   if (!arquivo) { res.writeHead(404); res.end('não encontrado'); return; }
-  return enviarArquivo(res, arquivo, /\.(mp4|webm|mov|png|jpg|jpeg|gif|webp)$/i.test(arquivo));
+  return enviarArquivo(req, res, arquivo, /\.(mp4|webm|mov|png|jpg|jpeg|gif|webp)$/i.test(arquivo));
 });
 
 loadDb();
 seedCriador();
+seedSuporte();
 server.listen(PORT, HOST, function () {
   console.log('Good Look no ar em http://' + HOST + ':' + PORT);
 });

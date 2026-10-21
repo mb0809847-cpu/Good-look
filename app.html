@@ -1505,17 +1505,47 @@ function publishVideo(){
     if(!postFile && !postFileUrl){ showNotif('Escolha um '+(type==='short'?'short':'vídeo')+' primeiro! 📹'); return; }
     desc = document.getElementById('postDesc').value.trim() || 'Sem descrição';
     if(postFile && window.SYNC && SYNC.logged()){
-      // Sobe o vídeo para o servidor: assim ele abre no celular de qualquer pessoa.
+      // O vídeo sobe para o servidor: é isso que faz ele abrir no celular de
+      // qualquer pessoa. Se o envio falhar, não publica um vídeo que só existe
+      // aqui — ele ficaria preto e ninguém mais veria.
       showNotif('Enviando o vídeo... ⬆️');
       var ext = (String(postFile.name||'').split('.').pop() || 'mp4').toLowerCase();
-      var arquivo = postFile, preview = postFileUrl, legenda = desc;
-      SYNC.upload(arquivo, ext).then(function(r){ url = r.url; publicarVideo(url, type, legenda); })
-        .catch(function(){ url = preview; publicarVideo(url, type, legenda); showNotif('Publicado só neste aparelho (sem conexão com o servidor) 📴'); });
+      SYNC.upload(postFile, ext).then(function(r){ publicarVideo(r.url, type, desc); })
+        .catch(function(){ showNotif('Não deu para enviar o vídeo 📴 Confira a internet e tente de novo.'); });
       return;
     }
     url = postFileUrl;
   }
   publicarVideo(url, type, desc);
+}
+
+// Vídeos publicados antes de existir o servidor ficaram guardados só neste
+// aparelho (url blob:/data:) — eles nunca abrem no celular de outra pessoa.
+// Aqui eles sobem para o servidor; o que já não abre mais sai do feed, para
+// ninguém ver um quadro preto no lugar do vídeo.
+function subirVideosLocais(){
+  if(!window.SYNC || !SYNC.logged()) return;
+  var locais = DB.videos().filter(function(v){ return v.url && /^(blob:|data:)/.test(String(v.url)); });
+  if(!locais.length) return;
+  showNotif('Enviando '+locais.length+' vídeo(s) que ainda estavam só neste aparelho... ⬆️');
+  locais.forEach(function(v){
+    fetch(v.url).then(function(r){ return r.blob(); }).then(function(b){
+      var t = String(b.type||'');
+      var ext = t.indexOf('webm')>=0 ? 'webm' : (t.indexOf('quicktime')>=0 ? 'mov' : 'mp4');
+      return SYNC.upload(b, ext);
+    }).then(function(r){
+      var vids = DB.videos();
+      var alvo = vids.find(function(x){ return x.id===v.id; });
+      if(!alvo) return;
+      alvo.url = r.url;
+      DB.saveVideos(vids);
+      if(view==='home'||view==='shorts') render();
+    }).catch(function(){
+      var restantes = DB.videos().filter(function(x){ return x.id!==v.id; });
+      DB.saveVideos(restantes);
+      if(view==='home'||view==='shorts') render();
+    });
+  });
 }
 
 // ==================== PANEL (Creator) ====================
@@ -2151,6 +2181,8 @@ window.addEventListener('storage', function(e){
   // Contas, vídeos, shorts e conversas ficam no servidor: o que acontece aqui
   // aparece no celular das outras pessoas (e o que elas fazem aparece aqui).
   if(window.SYNC) SYNC.start();
+  // Sobe para o servidor os vídeos que ficaram presos neste aparelho.
+  subirVideosLocais();
   // Se a página foi recarregada durante a MINHA live, a bolinha volta com ela.
   var liveAtual = DB.live();
   if(liveAtual && liveAtual.userId===curUser().id){ overlayOn = true; startLiveTick(); }
