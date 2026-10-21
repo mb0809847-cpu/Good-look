@@ -1304,7 +1304,7 @@ function sendPrivMsg(img){
 //   • ela não libera mais ninguém na hora: quem está banido pede desculpas,
 //     espera 1 minuto e ela chama o criador para a conversa dos três (assistente,
 //     criador e banido). Quem decide liberar é o criador.
-var MSG_BOAS_VINDAS = 'Oi! 👋 Eu sou a suporte good look, a assistente oficial do app. Fala comigo à vontade — eu respondo na hora: postar vídeo, Shorts, live, selo verificado, chat PVB, regras da comunidade e banimento. 💬';
+var MSG_BOAS_VINDAS = 'Oi! 👋 Eu sou a suporte good look, a assistente oficial do app. Fala comigo à vontade — eu respondo na hora: postar vídeo, Shorts, live, selo verificado, chat PVB, regras da comunidade e banimento. E se você quiser conversar de outro assunto, também pode: música, comida, o seu dia... eu falo de tudo um pouco. 💬';
 
 var MSG_AGUARDE = [
   'Recebi o seu pedido de desculpas 🙏 Agora eu não libero mais na hora. Aguarde 1 minuto que eu vou chamar o criador para entrar nesta conversa com a gente — só nós três: eu, você e ele. Fique por aqui. ⏳',
@@ -1436,6 +1436,53 @@ function respostaSuporte(texto, usuario){
       'Que bom que gostou 💙 Qualquer dúvida do app, é só chamar por aqui.',
       '😄 Anotei o elogio! E se topar, te explico os Shorts e a live — é o que mais bomba por aqui.']);
 
+  // Assunto que não é do app: ela conversa como gente — música, comida, filme,
+  // futebol, o dia, brincadeira — em vez de só repetir os tópicos do aplicativo.
+  if(/m[uú]sica|cantar|banda|playlist|sertanej|pagode|gospel|\brap\b|\bfunk\b|viol[aã]o|som do momento/.test(t))
+    return r(['Música é bom demais 🎵 Eu escuto de tudo, do sertanejo ao rap. Qual é a sua do momento?',
+      'Aí você me pegou num assunto que eu adoro 🎶 Me conta o que você está ouvindo que eu comento!',
+      'Boa 🎵 Se quiser postar um vídeo com essa música, eu te ensino no "+" — mas primeiro me diz qual é 🤗']);
+
+  if(/comida|fome|comer|almo[çc]|jantar|pizza|lanche|caf[eé]|doce|bolo|churrasco/.test(t))
+    return r(['Fome eu não sinto, mas de conversa eu entendo 😄 Pizza ou churrasco, o que salva o seu dia?',
+      'Hmm, agora deu vontade 🍕 Eu não como, mas gosto de ouvir: qual é a sua comida favorita?',
+      'Comida boa deixa tudo melhor 😋 E se você gravar comendo na live, é sucesso garantido!']);
+
+  if(/filme|s[eé]rie|novela|cinema|assistir|desenho/.test(t))
+    return r(['Filme e série são ótimos assuntos 🎬 Eu gosto de tudo que é história boa. Qual você está vendo?',
+      'Boa pedida 🍿 Me diz o que você assistiu por último que eu guardo a dica!',
+      'Série boa é maratona, né? 🎬 Conta qual é a sua que eu comento com você 😄']);
+
+  if(/futebol|\bjogo\b|meu time|flamengo|corinthians|palmeiras|s[aã]o paulo|vasco|gr[eê]mio|gol do/.test(t))
+    return r(['Futebol é assunto sério por aqui ⚽ Qual é o seu time?',
+      'Ah, futebol 😄 Eu torço por conversa boa. Me conta: qual time você defende?',
+      'Jogo hoje? ⚽ Se for do seu time, me diz o placar que eu comento com você!']);
+
+  if(/chuva|calor|frio|clima|tempo a[ií]|t[áa] chovendo|sol quente/.test(t))
+    return r(['Aqui dentro do app o tempo é sempre bom 😄 Mas me conta como está aí na sua cidade!',
+      'Chuva combina com celular na mão e vídeo no Good Look 🌧️ Como está o tempo por aí?',
+      'Calor ou frio, o app continua funcionando 📱 Como está o dia aí, {nome}?']);
+
+  if(/piada|brincadeira|zoeira|rir|engra[çc]ad|humor|kkk|rsrs|haha/.test(t))
+    return r(['Adoro uma zoeira 😂 Manda a sua que eu rio aqui do meu jeito robótico!',
+      'kkkk eu rio até sem entender 😄 Conta outra, {nome}!',
+      'Humor é comigo 😂 Só cuidado com os palavrões, que aí a conta conta palavrão e não vale a pena 🤝']);
+
+  if(/cansad|cansa[çc]o|sono|dormir|estou exaust|desanimad/.test(t))
+    return r(['Descansa um pouco, {nome} 😴 Eu fico por aqui, quando voltar é só chamar.',
+      'Cansaço é normal, viu? 🤗 Bebe uma água, tira um cochilo, e depois volta para ver os vídeos.',
+      'Vai com calma 🙂 Dorme bem que amanhã o app continua aqui te esperando.']);
+
+  if(/namorad|paix[aã]o|crush|beij|amor|casament/.test(t))
+    return r(['Amor é bom demais 💙 Me conta: é crush, namoro ou só conversa? 😄',
+      'Aí sim, romance 💙 Eu não namoro, mas fico feliz por você! Como está indo?',
+      'Assunto do coração 💖 Espero que esteja dando certo. E o Good Look é ótimo para postar sobre isso 😄']);
+
+  if(/o que voc[eê] (gosta|faz|curte|acha)|seu hobby|voc[eê] (joga|assiste|ouve)|gosta de/.test(t))
+    return r(['Eu curto é isso aqui: conversar com você e explicar o app 😄 Música, comida e futebol também entram na conversa.',
+      'Meu hobby é ficar de plantão aqui respondendo todo mundo 🤖 E o seu, qual é?',
+      'Gosto de música, de conversa boa e de app funcionando 😄 Qual assunto você quer puxar?']);
+
   if(/obrigad|valeu|vlw|brigad/.test(t))
     return r(['De nada, {nome}! 💙 Estou aqui sempre que precisar: app, regras, banimento — é só chamar.',
       'Imagina 💙 Qualquer coisa, me chama: eu respondo na hora.']);
@@ -1445,13 +1492,15 @@ function respostaSuporte(texto, usuario){
       'Até mais 👋 Qualquer dúvida do app, me chama por aqui.']);
 
   if(/(^|\s)(oi|ola|olá|opa|eai|e ai|hey|bom dia|boa tarde|boa noite)([\s!.?,]|$)/.test(t) || t.indexOf('tudo bem')>=0 || t.indexOf('como vai')>=0)
-    return r(['Oi, {nome}! 👋 Tudo ótimo por aqui! Sou a assistente do Good Look: pergunte de vídeo, Shorts, live, selo, chat PVB, regras ou banimento que eu explico na hora. 😊',
+    return r(['Oi, {nome}! 👋 Tudo ótimo por aqui! Sou a assistente do Good Look: pergunte de vídeo, Shorts, live, selo, chat PVB, regras ou banimento que eu explico na hora. 😊 E se quiser puxar outro assunto, eu converso também!',
       'Oi, {nome}! 😄 Tudo joia? Manda a dúvida: postar, Shorts, live, selo verificado, banimento... eu sei de tudo por aqui.',
       '{nome}! 👋 Bem-vindo de volta! Como posso ajudar hoje — vídeo, live, selo ou alguma regra?']);
 
   return r(['Anotei, {nome} 📝 Sobre o que você quer saber? Eu explico tudo do Good Look: '+TOPICOS_SUPORTE+'.',
     'Hmm, conta mais 🙂 Se for de app, eu sei de tudo: '+TOPICOS_SUPORTE+'. Qual desses?',
-    'Quer ajuda com o quê, {nome}? '+TOPICOS_SUPORTE+' — escolhe um que eu já te explico.']);
+    'Quer ajuda com o quê, {nome}? '+TOPICOS_SUPORTE+' — escolhe um que eu já te explico.',
+    'Fala, {nome} 😊 Dúvida do app ('+TOPICOS_SUPORTE+') eu resolvo na hora — e se quiser conversar de outra coisa, tipo música, comida ou o seu dia, eu topo também!',
+    'Manda que eu te acompanho 🙂 Se for do app eu explico ('+TOPICOS_SUPORTE+'), e se for assunto de outro tipo eu converso com você numa boa.']);
 }
 
 // Liberação da conta: banimento, motivo e contador de palavrões zerados.
@@ -1486,22 +1535,84 @@ function falarComSuporte(texto){
 // (pt-BR). Cada mensagem é falada uma vez só — o mesmo id não repete.
 var ultimaVozSuporte = null;
 
-function falarVozSuporte(texto, id){
-  if(!texto || !window.speechSynthesis || typeof SpeechSynthesisUtterance !== 'function') return;
-  if(id && id === ultimaVozSuporte) return;
-  ultimaVozSuporte = id || null;
+// A voz padrão do navegador (aquela sem nome) é a mais feia de todas. Então a
+// assistente escolhe a melhor voz em português que existe no aparelho: as vozes
+// novas (naturais/neurais) e as de nome feminino primeiro, e nunca as
+// masculinas e antigas. Se o aparelho não tiver nenhuma, ela fica com a padrão.
+var VOZ_RUIM = /(maria|daniel|felipe|ricardo|joaquim|ant[oô]nio|marcos|eddy|grandpa|rocko|shelley|flo|henrique)/i;
+var VOZ_BOA = /(francisca|thalita|brenda|luciana|fernanda|camila|vit[oó]ria|marina|joana|ingrid|female|mulher|feminin|google portugu)/i;
+var vozSuporteEscolhida = null;
+var falaEsperandoVoz = null;   // fala guardada enquanto o navegador carrega a lista
+
+function escolherVozSuporte(){
+  if(!window.speechSynthesis || typeof speechSynthesis.getVoices !== 'function') return null;
+  var vozes = (speechSynthesis.getVoices() || []).filter(function(v){
+    return v && /^pt([-_]|$)/i.test(v.lang || '');
+  });
+  if(!vozes.length) return null;   // a lista ainda não chegou
+  var nota = function(v){
+    var nome = String(v.name || '').toLowerCase();
+    var p = /pt-?br/i.test(v.lang || '') ? 2 : 0;
+    if(/natural|neural|online/.test(nome)) p += 6;   // as vozes novas são as bonitas
+    if(VOZ_BOA.test(nome)) p += 4;
+    if(VOZ_RUIM.test(nome)) p -= 8;
+    if(v.localService) p -= 1;
+    return p;
+  };
+  vozes.sort(function(a,b){ return nota(b) - nota(a); });
+  return vozes[0];
+}
+
+function vozSuporte(){
+  if(!vozSuporteEscolhida) vozSuporteEscolhida = escolherVozSuporte();
+  return vozSuporteEscolhida;
+}
+
+// A lista de vozes do aparelho já chegou? (No primeiro acesso o navegador ainda
+// está carregando, e a fala precisa esperar.)
+function vozesCarregadas(){
+  return !!(window.speechSynthesis && typeof speechSynthesis.getVoices === 'function' && (speechSynthesis.getVoices()||[]).length);
+}
+
+// A lista de vozes chega depois no primeiro acesso: quando o navegador avisa,
+// a escolha é refeita e a fala que ficou esperando sai na voz boa.
+if(window.speechSynthesis && speechSynthesis.addEventListener){
+  speechSynthesis.addEventListener('voiceschanged', function(){
+    vozSuporteEscolhida = escolherVozSuporte();
+    var esperando = falaEsperandoVoz;
+    falaEsperandoVoz = null;
+    if(esperando && vozesCarregadas()) dizVozSuporte(esperando.fala, esperando.id);
+  });
+}
+
+// Fala de verdade, já na voz escolhida. Ritmo e tom calmos: a voz natural não
+// precisa de voz fina nem acelerada para soar bem.
+function dizVozSuporte(fala, id){
   try {
-    var fala = String(texto)
-      .replace(/[\u{1F000}-\u{1FFFF}\u2600-\u27BF\uFE0F\u200D]/gu, '')
-      .replace(/\s+/g, ' ').trim();
-    if(!fala) return;
     var voz = new SpeechSynthesisUtterance(fala);
-    voz.lang = 'pt-BR';
-    voz.rate = 1.05;
-    voz.pitch = 1.1;
+    var escolhida = vozSuporte();
+    voz.lang = (escolhida && escolhida.lang) || 'pt-BR';
+    if(escolhida) voz.voice = escolhida;
+    voz.rate = 1.0;
+    voz.pitch = 1.05;
+    ultimaVozSuporte = id || null;
     speechSynthesis.cancel();
     speechSynthesis.speak(voz);
   } catch(e){}
+}
+
+function falarVozSuporte(texto, id){
+  if(!texto || !window.speechSynthesis || typeof SpeechSynthesisUtterance !== 'function') return;
+  if(id && id === ultimaVozSuporte) return;
+  var fala = String(texto)
+    .replace(/[\u{1F000}-\u{1FFFF}\u2600-\u27BF\uFE0F\u200D]/gu, '')
+    .replace(/\s+/g, ' ').trim();
+  if(!fala) return;
+  // Sem voz de português ainda (o navegador carrega a lista depois)? A mensagem
+  // fica guardada e sai falada assim que as vozes chegam. Em aparelho que não
+  // tem voz em português, ela fala na voz padrão mesmo — como antes.
+  if(!vozSuporte() && !vozesCarregadas()){ falaEsperandoVoz = {fala:fala, id:id}; return; }
+  dizVozSuporte(fala, id);
 }
 
 // A resposta sai daqui, com um instante de espera para parecer uma conversa.
