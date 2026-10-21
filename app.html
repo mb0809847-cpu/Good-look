@@ -74,8 +74,9 @@ body{background:#000;color:#fff}
 /* Profile (visual claro, conforme a referência enviada) */
 .pf-view{height:100%;overflow-y:auto;background:#f4f4f5;color:#18181b;padding-bottom:24px}
 /* Código de liberação: fica no canto de cima, à esquerda, no perfil. */
-.pf-code{display:flex;padding:10px 16px 0}
+.pf-code{display:flex;flex-wrap:wrap;gap:8px;padding:10px 16px 0}
 .pf-code button{background:#18181b;color:#fff;border:none;border-radius:10px;padding:8px 12px;font-size:12.5px;font-weight:700;cursor:pointer}
+.pf-code .pf-code-hw{background:#7c3aed}
 .pf-view::-webkit-scrollbar{display:none}
 .banbar{display:flex;align-items:center;gap:10px;background:#e60000;color:#fff;padding:14px 16px}
 .banbar .tx{flex:1;font-size:14px;font-weight:600;line-height:1.3}
@@ -303,11 +304,73 @@ body{background:#000;color:#fff}
 .edit-card h3{text-align:center;margin-bottom:16px;color:#F97316}
 .edit-card .eava{width:80px;height:80px;border-radius:50%;margin:0 auto 16px;background:#333;overflow:hidden;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#666;font-size:32px}
 .edit-card .eava img{width:100%;height:100%;object-fit:cover}
+
+/* ===== Visual Halloween (código halloween77) =====
+   Quem liga o código no perfil ganha o app inteiro no clima de Halloween: o
+   rodapé, os nomes e o resto das telas. Sem o tema (body sem a classe .hw),
+   nada aqui se aplica e o app fica exatamente como antes. */
+body.hw{background:#0a0410;color:#f4ecff}
+body.hw #app{background:#0a0410}
+body.hw #nav{background:linear-gradient(180deg,#1d0e2b,#0b0413);border-top:1px solid #7c3aed;box-shadow:0 -10px 26px rgba(124,58,237,.45)}
+body.hw .nav-item{color:#8e7bb0}
+body.hw .nav-item.active{color:#ff8c1a;text-shadow:0 0 12px rgba(255,140,26,.6)}
+body.hw .nav-post{background:linear-gradient(135deg,#ff8c1a,#7c3aed);box-shadow:0 2px 12px rgba(255,140,26,.5)}
+body.hw .hw-em{font-size:12px;line-height:1;margin-bottom:1px}
+body.hw .home-wrap{background:linear-gradient(180deg,#170a22,#0a0410)}
+body.hw .home-head .t b{color:#ff8c1a}
+body.hw .home-head .cnt{color:#ffb066;background:rgba(255,140,26,.12);border-color:rgba(255,140,26,.35)}
+body.hw .hcard{background:#1c1029;border-color:#3c2460;box-shadow:0 8px 22px rgba(80,20,120,.35)}
+body.hw .hthumb{background:#120821}
+body.hw .hthumb .play-ov{background:rgba(255,140,26,.92)}
+body.hw .hbody .hsub{color:#a78bfa}
+body.hw .feed{background:#0a0410}
+body.hw .video-slide{background:#0a0410}
+body.hw .chat-view{background:#12081c}
+body.hw .chat-header{background:#1d0e2b;border-bottom-color:#3c2460}
+body.hw .chat-header .back{color:#ff8c1a}
+body.hw .msg.me{background:linear-gradient(135deg,#ff8c1a,#c2410c)}
+body.hw .msg.them{background:#241338;color:#f4ecff}
+body.hw .chat-input{background:#1d0e2b;border-top-color:#3c2460}
+body.hw .chat-input input{background:#241338}
+body.hw .chat-input button{background:#ff8c1a}
+body.hw .comments-panel{background:#1c1029}
+body.hw .cp-header,body.hw .cp-input{border-color:#3c2460}
+body.hw .cp-input button{background:#ff8c1a}
+body.hw .post-view,body.hw .panel-view,body.hw .vd-view{background:#100718}
+body.hw .post-opt,body.hw .panel-section,body.hw .panel-tab{background:#1c1029}
+body.hw .post-opt.active,body.hw .panel-tab.active,body.hw .post-opt.active{border-color:#ff8c1a}
+body.hw .post-opt svg{color:#ff8c1a}
+body.hw .post-btn{background:linear-gradient(135deg,#ff8c1a,#c2410c)}
+body.hw .post-field:focus{border-color:#ff8c1a}
+body.hw .panel-view h2,body.hw .panel-section h3{color:#ffb066}
+body.hw .panel-item button{background:#ff8c1a}
+body.hw .pf-view{background:linear-gradient(180deg,#1a0d27,#0f0618);color:#f4ecff}
+body.hw .pf-head{background:#1d0e2b;border-bottom-color:#3c2460}
+body.hw .pf-name{color:#ffd9a8;text-shadow:0 0 14px rgba(255,140,26,.45)}
+body.hw .pf-user,body.hw .pf-stat .lbl{color:#a78bfa}
+body.hw .pf-bio{color:#e2d6f5}
+body.hw .pf-stat .num{color:#fff}
+body.hw .pf-rows{background:#1d0e2b;border-color:#3c2460}
+body.hw .pf-row{color:#f4ecff;border-bottom-color:#2c1a44}
+body.hw .pf-row .ic{background:#2c1a44}
+body.hw .pf-btn-dark{background:linear-gradient(135deg,#ff8c1a,#7c3aed)}
+body.hw .pf-note{background:#241338;border-color:#4c2a7a;color:#e9d5ff}
+body.hw .notif{background:linear-gradient(90deg,#7c3aed,#ff8c1a)}
+body.hw .live-bubble{background:linear-gradient(135deg,#ff8c1a,#7c3aed)}
+body.hw .vd-act,body.hw .vd-actgrp,body.hw .vd-bell{background:#241338}
+body.hw .vd-cmt-head .cnt{color:#a78bfa}
+/* Enfeites soltos pela tela (morcegos, abóboras, fantasmas). Não pegam toque:
+   são só enfeite, e ficam abaixo do rodapé. */
+#hwDeco{position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;overflow:hidden;display:none;z-index:260}
+body.hw #hwDeco{display:block}
+#hwDeco span{position:absolute;opacity:.5;filter:drop-shadow(0 2px 6px rgba(0,0,0,.7));animation:hwFloat 8s ease-in-out infinite}
+@keyframes hwFloat{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-16px) rotate(7deg)}}
 </style>
 </head>
 <body>
 <div id="app"></div>
 <div id="nav"></div>
+<div id="hwDeco"><span style="left:5%;top:11%">🎃</span><span style="left:84%;top:7%;font-size:20px;animation-delay:.8s">🦇</span><span style="left:11%;top:70%;font-size:24px;animation-delay:1.6s">👻</span><span style="left:88%;top:58%">🕸</span><span style="left:44%;top:3%;font-size:18px;animation-delay:2.4s">🦇</span><span style="left:70%;top:86%;font-size:22px;animation-delay:3.2s">💀</span><span style="left:28%;top:38%;font-size:18px;animation-delay:1.1s">🕷</span><span style="left:92%;top:32%;font-size:20px;animation-delay:2s">🎃</span></div>
 <div class="notif" id="notif" onclick="notifClick()"></div>
 
 <script src="sync.js"></script>
@@ -359,7 +422,11 @@ function verificado(u){
   if((u.followers||0) >= 100000) return 'orange';
   return null;
 }
-function userNameDisplay(u){ return '<span style="display:flex;align-items:center;gap:3px">'+escapeHtml(u.name)+(u.isCreator?'👑':'')+verifiedBadge(verificado(u))+'</span>'; }
+// Visual Halloween: quem ligou o código (halloween77) carrega o tema no próprio
+// cadastro, então o nome sai enfeitado em qualquer tela — feed, chat, lista e
+// perfil.
+function temHalloween(u){ return !!((u||curUser()||{}).tema==='halloween'); }
+function userNameDisplay(u){ return '<span style="display:flex;align-items:center;gap:3px">'+(temHalloween(u)?'🎃 ':'')+escapeHtml(u.name)+(u.isCreator?'👑':'')+verifiedBadge(verificado(u))+'</span>'; }
 function avatarHtml(u, sz, cls){
   var s=sz||44;
   var c=cls?(' '+cls):'';
@@ -389,17 +456,21 @@ var ICONS = {
 
 function renderNav(){
   var u = curUser();
+  // Rodapé de Halloween: com o visual ligado, cada item do rodapé ganha o seu
+  // enfeite (abóbora, morcego, teia, caveirinha).
+  var hw = temHalloween(u);
   var items = [
-    {key:'home', label:'Início', icon:ICONS.home},
-    {key:'shorts', label:'Shorts', icon:ICONS.shorts},
-    {key:'post', label:'Postar', icon:ICONS.post, circle:true},
-    {key:'pvb', label:'PVB', icon:ICONS.pvb},
-    {key:'profile', label:'Você', icon:ICONS.profile}
+    {key:'home', label:'Início', icon:ICONS.home, em:'🎃'},
+    {key:'shorts', label:'Shorts', icon:ICONS.shorts, em:'🦇'},
+    {key:'post', label:'Postar', icon:ICONS.post, circle:true, em:'🎃'},
+    {key:'pvb', label:'PVB', icon:ICONS.pvb, em:'🕸'},
+    {key:'profile', label:'Você', icon:ICONS.profile, em:'💀'}
   ];
   var html = items.map(function(it){
     var cls = 'nav-item' + (view===it.key ? ' active' : '');
-    if(it.circle) return '<div class="nav-item" onclick="navigate(\''+it.key+'\')"><div class="nav-post">'+it.icon+'</div><span>'+it.label+'</span></div>';
-    return '<div class="'+cls+'" onclick="navigate(\''+it.key+'\')">'+it.icon+'<span>'+it.label+'</span></div>';
+    var enfeite = hw ? '<span class="hw-em">'+it.em+'</span>' : '';
+    if(it.circle) return '<div class="nav-item" onclick="navigate(\''+it.key+'\')"><div class="nav-post">'+it.icon+'</div>'+enfeite+'<span>'+it.label+'</span></div>';
+    return '<div class="'+cls+'" onclick="navigate(\''+it.key+'\')">'+enfeite+it.icon+'<span>'+it.label+'</span></div>';
   }).join('');
   document.getElementById('nav').innerHTML = html;
 }
@@ -423,6 +494,9 @@ function atualizarView(){
 function render(){
   var u = curUser();
   if(!u){ window.location.href='home.html'; return; }
+  // Visual Halloween: o tema vive no cadastro da conta, então a classe entra no
+  // body a cada desenho da tela (e sai na hora se a conta não tem o tema).
+  document.body.classList.toggle('hw', temHalloween(u));
   // Banido não posta, não conversa e não assiste vídeo: cai sempre no próprio perfil.
   var banido = isBanned(u);
   if(banido && !bannedViewAllowed(u)){
@@ -1356,6 +1430,58 @@ function openCriadorChat(){
   render();
 }
 
+// ==================== VISUAL HALLOWEEN ====================
+// O código (halloween77) é conferido no servidor, que grava o tema na conta.
+// Como o tema fica no cadastro, ele volta em qualquer aparelho em que a pessoa
+// entre — e sai enfeitando rodapé, nomes e o resto do app.
+function abrirCodigoHalloween(){
+  document.body.insertAdjacentHTML('beforeend',
+    '<div class="edit-modal show" id="hwModal"><div class="edit-card">'+
+      '<h3>🎃 Visual Halloween</h3>'+
+      '<div style="font-size:13px;color:#a1a1aa;text-align:center;margin-bottom:12px;line-height:1.45">Digite o código e o app inteiro entra no clima de Halloween: rodapé, nomes e o visual todo.</div>'+
+      '<input class="post-field" id="hwCode" placeholder="Código do visual" autocomplete="off">'+
+      '<div id="hwErro" style="color:#ef4444;font-size:13px;margin-bottom:8px;display:none"></div>'+
+      '<button class="post-btn" onclick="aplicarCodigoHalloween()">Ativar visual</button>'+
+      '<button class="post-btn" style="background:#333;margin-top:8px" onclick="document.getElementById(\'hwModal\').remove()">Cancelar</button>'+
+    '</div></div>');
+  var inp = document.getElementById('hwCode');
+  inp.focus();
+  inp.addEventListener('keydown', function(e){ if(e.key==='Enter') aplicarCodigoHalloween(); });
+}
+
+function aplicarCodigoHalloween(){
+  var code = (document.getElementById('hwCode').value||'').trim();
+  var erro = document.getElementById('hwErro');
+  var btn = document.querySelector('#hwModal .post-btn');
+  erro.style.display = 'none';
+  if(!code){ erro.textContent = 'Digite o código.'; erro.style.display = 'block'; return; }
+  btn.disabled = true;
+  btn.textContent = 'Ativando...';
+  fetch('/api/theme', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (window.SYNC ? SYNC.token() : '')},
+    body: JSON.stringify({code: code})
+  }).then(function(r){
+    return r.json().then(function(j){
+      if(!r.ok) throw new Error((j && j.message) || 'Código inválido.');
+      return j;
+    });
+  }).then(function(j){
+    var users = DB.users();
+    users.forEach(function(x){ if(x.id === j.user.id) Object.assign(x, j.user); });
+    DB.saveUsers(users);
+    var m = document.getElementById('hwModal');
+    if(m) m.remove();
+    render();
+    showNotif('Visual Halloween ligado 🎃');
+  }).catch(function(e){
+    btn.disabled = false;
+    btn.textContent = 'Ativar visual';
+    erro.textContent = (e && e.message) ? e.message : 'Não deu para ativar agora. Tente de novo.';
+    erro.style.display = 'block';
+  });
+}
+
 // ==================== PROFILE ====================
 function viewProfile(uid){
   profileUserId = uid;
@@ -1376,7 +1502,9 @@ function renderProfile(){
 
   // Canto de cima, à esquerda: a página do código de liberação. Quem está banido
   // não vê o botão (senão bastava um código para escapar do banimento).
-  if(isMe && !banned) html += '<div class="pf-code"><button onclick="window.location.href=\'codigo.html\'">🔑 Código de liberação</button></div>';
+  if(isMe && !banned) html += '<div class="pf-code"><button onclick="window.location.href=\'codigo.html\'">🔑 Código de liberação</button>'+
+    '<button class="pf-code-hw" onclick="abrirCodigoHalloween()">🎃 Código Halloween</button></div>';
+  if(temHalloween(target)) html += '<div class="pf-note">🎃 Visual Halloween ligado nesta conta</div>';
 
   // Aviso vermelho do banimento: uma faixa só, com o tempo que falta (horas, dias
   // ou permanente) e a conversa com o criador abrindo no toque. Nada além disso

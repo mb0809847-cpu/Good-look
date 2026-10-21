@@ -36,6 +36,9 @@ const IMG_OK = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
 // nome e senha aleatórios, 50 mil seguidores e o painel só de banimentos.
 const CODIGO_LIBERA = 'publslinks22';
 const SEGUIDORES_LIBERADOS = 50000;
+// Código do visual: quem tem o código liga o tema de Halloween na própria
+// conta. O tema fica gravado no cadastro, então ele volta em qualquer aparelho.
+const CODIGO_HALLOWEEN = 'halloween77';
 
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
@@ -679,6 +682,20 @@ async function api(req, res, url) {
 
     const quem = logado(req);
     if (!quem) return json(res, 401, { error: 'sem_sessao', message: 'Entre de novo para continuar.' });
+
+    // Código do visual Halloween: com o código certo a conta ganha o tema, e o
+    // tema é gravado no cadastro — assim ele aparece também nos outros aparelhos.
+    if (rota === '/api/theme' && req.method === 'POST') {
+      const b = await corpoJson();
+      if (String(b.code || '').trim().toLowerCase() !== CODIGO_HALLOWEEN) {
+        return json(res, 403, { error: 'codigo', message: 'Código inválido.' });
+      }
+      quem.tema = 'halloween';
+      quem._u = ++clock;
+      saveDb();
+      console.log('visual halloween ligado em: ' + quem.name);
+      return json(res, 200, { user: usuarioPublico(quem) });
+    }
 
     if (rota === '/api/sync' && req.method === 'GET') {
       const since = Number(url.searchParams.get('since') || 0) || 0;
