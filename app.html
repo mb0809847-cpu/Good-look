@@ -1304,7 +1304,7 @@ function sendPrivMsg(img){
 //   • ela não libera mais ninguém na hora: quem está banido pede desculpas,
 //     espera 1 minuto e ela chama o criador para a conversa dos três (assistente,
 //     criador e banido). Quem decide liberar é o criador.
-var MSG_BOAS_VINDAS = 'Oi! 👋 Eu sou a suporte good look, a assistente oficial do app. Me chame pelo meu nome — "assistente" — que eu respondo na hora: postar vídeo, Shorts, live, selo verificado, chat PVB, regras da comunidade e banimento. 💬';
+var MSG_BOAS_VINDAS = 'Oi! 👋 Eu sou a suporte good look, a assistente oficial do app. Fala comigo à vontade — eu respondo na hora: postar vídeo, Shorts, live, selo verificado, chat PVB, regras da comunidade e banimento. 💬';
 
 var MSG_AGUARDE = [
   'Recebi o seu pedido de desculpas 🙏 Agora eu não libero mais na hora. Aguarde 1 minuto que eu vou chamar o criador para entrar nesta conversa com a gente — só nós três: eu, você e ele. Fique por aqui. ⏳',
@@ -1467,9 +1467,10 @@ function liberarUsuario(uid){
   return u;
 }
 
-// Uma mensagem minha para a assistente. Ela só responde quando eu falo o nome
-// dela ("assistente"). Se eu estou banido e peço desculpas, ela não libera nada
-// na hora: avisa que tem espera e, um minuto depois, chama o criador.
+// Uma mensagem minha para a assistente. Ela responde tudo o que chega na
+// conversa dela, como gente — não fica esperando eu chamar pelo nome. Se eu
+// estou banido e peço desculpas, ela não libera nada na hora: avisa que tem
+// espera e, um minuto depois, chama o criador.
 function falarComSuporte(texto){
   var u = curUser();
   var sid = suporteId();
@@ -1478,8 +1479,29 @@ function falarComSuporte(texto){
   if(!t) return;
   var desculpa = /desculp|perd[aã]o|me perdoa|foi mal|sinto muito|prometo|arrepend|nunca mais/.test(t);
   if(isBanned(u) && desculpa){ pedirLiberacao(u, sid); return; }
-  if(t.indexOf('assistente') < 0) return;   // sem chamar pelo nome, ela fica quieta
   responderSuporte(u, sid, respostaSuporte(texto, u));
+}
+
+// A assistente tem voz: além do texto, a mensagem dela sai falada em voz alta
+// (pt-BR). Cada mensagem é falada uma vez só — o mesmo id não repete.
+var ultimaVozSuporte = null;
+
+function falarVozSuporte(texto, id){
+  if(!texto || !window.speechSynthesis || typeof SpeechSynthesisUtterance !== 'function') return;
+  if(id && id === ultimaVozSuporte) return;
+  ultimaVozSuporte = id || null;
+  try {
+    var fala = String(texto)
+      .replace(/[\u{1F000}-\u{1FFFF}\u2600-\u27BF\uFE0F\u200D]/gu, '')
+      .replace(/\s+/g, ' ').trim();
+    if(!fala) return;
+    var voz = new SpeechSynthesisUtterance(fala);
+    voz.lang = 'pt-BR';
+    voz.rate = 1.05;
+    voz.pitch = 1.1;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(voz);
+  } catch(e){}
 }
 
 // A resposta sai daqui, com um instante de espera para parecer uma conversa.
@@ -1492,6 +1514,7 @@ function responderSuporte(u, sid, texto, marca){
     if(marca) m[marca] = true;
     msgs.push(m);
     DB.savePrivMsgs(msgs);
+    falarVozSuporte(texto, m.id);   // ela responde por escrito e também falando
     if(view==='pvb' && pvbView==='private' && pvbChatUser===sid) renderPVBPrivate();
   }, 600);
 }
@@ -2434,6 +2457,9 @@ function checarMensagensNovas(){
   // acabou de escrever, e não a de uma mensagem antiga que ficou no meio da lista.
   var ultima = msgs[0];
   msgs.forEach(function(m){ if((m.ts||0) > (ultima.ts||0)) ultima = m; });
+  // Mensagem que a assistente mandou pelo servidor (o convite dos três, por
+  // exemplo) também fala: ela tem voz em qualquer tela do app.
+  if(ultima.fromId===suporteId()) falarVozSuporte(ultima.text, ultima.id);
   var chave = 'gl_msgvista_'+u.id;
   var visto = parseInt(localStorage.getItem(chave) || '0', 10);
   if(!ultima.ts || ultima.ts <= visto) return;
@@ -2445,7 +2471,18 @@ function checarMensagensNovas(){
   if(view==='pvb' && pvbView==='private' && pvbChatUser===id) return;
   var quem = getUser(id) || getUser(ultima.fromId);
   var nome = quem ? quem.name : 'Alguém';
-  showNotif('💬 '+nome+' te mandou mensagem'+(quem && isBanned(quem)?' · banido 🚫':''), function(){ abrirConversa(id); });
+  // O convite da conversa dos três é o recado mais importante que a assistente
+  // manda: o aviso do topo diz que é ele e abre a conversa certa no toque —
+  // para quem pediu a liberação, a conversa com a assistente; para o criador,
+  // a conversa com quem está pedindo.
+  var convite = !!(ultima.trio && ultima.fromId===suporteId());
+  var dono = ultima.trio ? getUser(ultima.trio) : null;
+  var aviso = convite
+    ? (ultima.trio===u.id
+      ? '📨 suporte good look: convite dos três enviado ao criador'
+      : '📨 suporte good look chamou '+(dono?dono.name:nome)+' para a conversa dos três')
+    : '💬 '+nome+' te mandou mensagem'+(quem && isBanned(quem)?' · banido 🚫':'');
+  showNotif(aviso, function(){ abrirConversa(id); });
 }
 
 function abrirConversa(uid){
