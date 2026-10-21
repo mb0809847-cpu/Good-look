@@ -1301,10 +1301,6 @@ var MSG_BOAS_VINDAS = 'Oi! 👋 Eu sou a suporte good look, a assistente oficial
 
 var MSG_AGUARDE = 'Recebi o seu pedido de desculpas 🙏 Agora eu não libero mais na hora. Aguarde 1 minuto que eu vou chamar o criador para entrar nesta conversa com a gente — só nós três: eu, você e ele. Fique por aqui. ⏳';
 
-var MSG_CONVITE = '📨 Convite enviado ao criador! Ele entra nesta conversa (só nós três: eu, você e o criador) para ler o seu pedido e decidir se libera a sua conta. 🙏';
-
-var MSG_ESPERA_CRIADOR = 'O criador foi convidado para esta conversa dos três. Enquanto ele decide, sua conta continua banida. Você pode explicar o que aconteceu por aqui que ele vai ler. 💬';
-
 var TOPICOS_SUPORTE = 'postar vídeo, Shorts e live · selo verificado · regras da comunidade · banimento e como sair dele · chat PVB e mensagens · conta, perfil e senha · baixar o app';
 
 // Id da assistente (a conta "suporte good look").
@@ -1405,53 +1401,13 @@ function responderSuporte(u, sid, texto){
   }, 600);
 }
 
-// Quanto a assistente espera antes de chamar o criador.
-var ESPERA_LIBERACAO = 60000;
-var pedidosAbertos = {};
-
-// Pedido de liberação: a assistente avisa que agora tem espera e, passado o
-// minuto, convida o criador para a conversa dos três.
+// Pedido de liberação: a assistente avisa que a liberação não é na hora. Quem
+// conta o minuto de espera e manda o convite para a conversa dos três é o
+// servidor — é a própria assistente que convida (ver "CONVITE DA CONVERSA DOS
+// TRÊS" em server.js). Assim o convite sai mesmo que o app seja fechado no meio
+// da espera, e o criador o recebe em qualquer aparelho.
 function pedirLiberacao(u, sid){
   responderSuporte(u, sid, MSG_AGUARDE);
-  if(pedidosAbertos[u.id]) return;
-  pedidosAbertos[u.id] = setTimeout(function(){
-    delete pedidosAbertos[u.id];
-    convidarCriadorParaConversa(u.id, sid);
-  }, ESPERA_LIBERACAO);
-}
-
-// O convite: o criador recebe o aviso no topo do app e a conversa com o banido
-// passa a ser dos três — as mensagens do convite aparecem para os dois lados.
-function convidarCriadorParaConversa(uid, sid){
-  var criador = adminId();
-  if(!criador) return;
-  var msgs = DB.privMsgs();
-  // Um convite por pedido: o do relógio e o de quem abre o app depois não se somam.
-  if(msgs.some(function(m){ return m && m.convite && m.trio===uid; })) return;
-  var agora = Date.now();
-  msgs.push({id:novoMsgId(), fromId:sid, toId:criador, trio:uid, convite:true, text:MSG_CONVITE, ts:agora});
-  msgs.push({id:novoMsgId(), fromId:sid, toId:uid, trio:uid, text:MSG_ESPERA_CRIADOR, ts:agora+1});
-  DB.savePrivMsgs(msgs);
-  if(view==='pvb' && pvbView==='private' && (pvbChatUser===sid || pvbChatUser===criador)) renderPVBPrivate();
-  showNotif('Convite enviado ao criador 📨');
-}
-
-// A espera não se perde se o app for fechado no meio: quem pediu desculpas há
-// mais de 1 minuto, continua banido e ainda não teve o convite enviado ganha o
-// convite assim que o app abre de novo.
-function checarConvitePendente(u){
-  if(!u || !isBanned(u)) return;
-  var sid = suporteId();
-  if(!sid || pedidosAbertos[u.id]) return;
-  var msgs = DB.privMsgs();
-  if(msgs.some(function(m){ return m && m.convite && m.trio===u.id; })) return;
-  var pedido = null;
-  msgs.forEach(function(m){
-    if(!m || m.fromId!==u.id || m.toId!==sid) return;
-    if(/desculp|perd[aã]o|me perdoa|foi mal|sinto muito|prometo|arrepend|nunca mais/.test(String(m.text||'').toLowerCase())) pedido = m;
-  });
-  if(!pedido || Date.now() - (pedido.ts||0) < ESPERA_LIBERACAO) return;
-  convidarCriadorParaConversa(u.id, sid);
 }
 
 // Quem libera é o criador: ele tira o banimento pela conversa, pelo painel ou
@@ -1931,7 +1887,10 @@ function renderPanel(){
 function setVideoStat(vid, type, val){
   var vids = DB.videos();
   var v = vids.find(function(x){return x.id===vid;});
-  if(v){ v[type] = parseInt(val)||0; DB.saveVideos(vids); }
+  // O "statAdj" avisa o servidor de que este número foi ajustado na mão: sem ele
+  // o ajuste do painel poderia ser engolido pelo movimento automático do vídeo
+  // (ver VIDA DO APP, em server.js).
+  if(v){ v[type] = parseInt(val)||0; v.statAdj = Date.now(); DB.saveVideos(vids); }
 }
 
 function setUserStat(uid, type, val){
@@ -2364,7 +2323,6 @@ function sendApology(){
 function checarMensagensNovas(){
   var u = curUser();
   if(!u) return;
-  checarConvitePendente(u);
   var banido = isBanned(u);
   var atendem = [adminId(), suporteId()];
   var msgs = DB.privMsgs().filter(function(m){

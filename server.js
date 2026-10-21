@@ -299,8 +299,25 @@ function aplicarPush(body, quem) {
         novo = localizarMedia(novo);
         if (antigo && antigo.password) novo.password = antigo.password;
         if (antigo && antigo.isCreator && !novo.isCreator) novo.isCreator = true;
+        // O teto de seguidores é do servidor: o perfil editado no aparelho não
+        // pode apagá-lo (ver VIDA DO APP).
+        if (antigo && antigo._limSeg) novo._limSeg = antigo._limSeg;
       }
       if (kind === 'videos' || kind === 'pubMsgs' || kind === 'privMsgs') novo = localizarMedia(novo);
+      if (kind === 'videos') {
+        // O app mexe sozinho nas curtidas e nas visualizações (ver VIDA DO APP):
+        // a cópia de um aparelho que ficou alguns segundos para trás não pode
+        // derrubar o número que já subiu. Um ajuste feito na mão, no painel do
+        // criador, vem marcado (statAdj) e vale como veio.
+        const antigo = db.videos[novo.id];
+        if (antigo) {
+          if (!((novo.statAdj || 0) > (antigo.statAdj || 0))) {
+            novo.likes = Math.max(Number(novo.likes) || 0, Number(antigo.likes) || 0);
+            novo.views = Math.max(Number(novo.views) || 0, Number(antigo.views) || 0);
+          }
+          if (antigo._lim) novo._lim = antigo._lim;
+        }
+      }
       novo._u = ++clock;
       db[kind][novo.id] = novo;
       if (db.del[kind]) delete db.del[kind][novo.id];
@@ -323,6 +340,157 @@ function aplicarPush(body, quem) {
   }
   if (mexeu) saveDb();
   return { ok: true, now: clock, mexeu: mexeu };
+}
+
+/* ==================== CONVITE DA CONVERSA DOS TRÊS ==================== */
+
+// Quem está banido pede desculpas para a assistente, espera 1 minuto e o convite
+// sai para o criador entrar na conversa — só os três: a assistente, o criador e
+// quem pediu. Quem conta esse minuto é o servidor, não o aparelho de quem pediu:
+// o convite sai mesmo se a pessoa fechar o app no meio da espera. E quem convida
+// é a assistente, que é a conta de suporte e vive aqui.
+
+const ESPERA_CONVITE = 60000;
+
+const MSG_CONVITE = '📨 Convite enviado ao criador! Ele entra nesta conversa (só nós três: eu, você e o criador) para ler o seu pedido e decidir se libera a sua conta. 🙏';
+
+const MSG_ESPERA_CRIADOR = 'O criador foi convidado para esta conversa dos três. Enquanto ele decide, sua conta continua banida. Você pode explicar o que aconteceu por aqui que ele vai ler. 💬';
+
+// O mesmo pedido de desculpas que a assistente reconhece no app.
+const PEDIDO_DESCULPA = /desculp|perd[aã]o|me perdoa|foi mal|sinto muito|prometo|arrepend|nunca mais/;
+
+function novoMsgId() {
+  return 'msg' + Date.now().toString(36) + crypto.randomBytes(3).toString('hex');
+}
+
+function passoDoConvite() {
+  const sup = acharSuporte(), criador = acharCriador();
+  if (!sup || !criador) return false;
+  const msgs = db.privMsgs;
+  let mexeu = false;
+  for (const id in db.users) {
+    const u = db.users[id];
+    if (!estaBanido(u)) continue;
+    let pedido = 0, convite = 0;
+    for (const mid in msgs) {
+      const m = msgs[mid];
+      if (!m) continue;
+      // O convite é da conversa dos três (trio); o pedido de desculpas é a
+      // mensagem solta que a pessoa manda para a assistente.
+      if (m.convite && m.trio === u.id) convite = Math.max(convite, m.ts || 0);
+      if (m.fromId === u.id && m.toId === sup.id && PEDIDO_DESCULPA.test(String(m.text || '').toLowerCase())) {
+        pedido = Math.max(pedido, m.ts || 0);
+      }
+    }
+    // Não pediu desculpas, ainda está no minuto de espera, ou já foi convidado
+    // depois deste pedido: não faz nada.
+    if (!pedido || convite > pedido || Date.now() - pedido < ESPERA_CONVITE) continue;
+    const agora = Date.now();
+    const conviteId = novoMsgId(), avisoId = novoMsgId();
+    msgs[conviteId] = { id: conviteId, fromId: sup.id, toId: criador.id, trio: u.id, convite: true, text: MSG_CONVITE, ts: agora, _u: ++clock };
+    msgs[avisoId] = { id: avisoId, fromId: sup.id, toId: u.id, trio: u.id, text: MSG_ESPERA_CRIADOR, ts: agora + 1, _u: ++clock };
+    mexeu = true;
+    console.log('conversa dos três: criador convidado por causa de ' + u.name);
+  }
+  return mexeu;
+}
+
+/* ==================== VIDA DO APP ==================== */
+
+// Vídeo publicado ganha o que ganha vídeo de gente de verdade: com o tempo
+// chegam visualizações, curtidas e comentários, e quem publicou ganha
+// seguidores. Quem faz esse movimento é o servidor, não o aparelho de ninguém,
+// então os números são os mesmos em todo lugar. Duas regras seguram o resto:
+//   • cada vídeo tem o seu teto, sorteado: o número sobe devagar e para;
+//   • dois vídeos nunca ficam com a mesma quantidade de curtidas — é isso que
+//     faz o número parecer de verdade em vez de contador.
+
+const PASSO_MS = 15000;
+const MAX_VIDEOS_POR_PASSO = 25;
+
+const COMENTARISTAS = ['Ana', 'Lucas', 'Bia', 'Pedro', 'Júlia', 'Rafa', 'Carol', 'Mateus', 'Lari', 'Thiago',
+  'Vitor', 'Sofi', 'Duda', 'Bruno', 'Isa', 'Gabriel', 'Léo', 'Nanda', 'Caio', 'Yasmin', 'Rê', 'Marcos', 'Bel', 'Tati'];
+
+const COMENTARIOS = ['top 👏', 'que vídeo bom', 'muito bom mesmo', 'amei 😍', 'boa!!', 'sensacional 🔥', 'adorei',
+  'show demais', 'parabéns 👏', 'curti demais', '🤩🤩', 'que vídeo legal', 'boa demais', 'gostei muito',
+  'esse foi bom 😂', 'simplesmente top', 'olha isso 😱', 'que lindo', 'muito massa', 'melhor vídeo',
+  'continue assim 👏', 'que isso 🔥'];
+
+function sorteio(max) { return Math.floor(Math.random() * max); }
+function escolha(lista) { return lista[sorteio(lista.length)]; }
+
+// O teto de cada vídeo: sorteado uma vez e guardado nele. Nunca fica abaixo do
+// que o vídeo já tem, porque o criador também ajusta esses números no painel.
+function tetosDoVideo(v) {
+  if (!v._lim) v._lim = { views: 120 + sorteio(6000), likes: 15 + sorteio(1200), cmts: 2 + sorteio(50) };
+  v._lim.views = Math.max(v._lim.views, v.views || 0);
+  v._lim.likes = Math.max(v._lim.likes, v.likes || 0);
+  v._lim.cmts = Math.max(v._lim.cmts, (v.comments || []).length);
+  return v._lim;
+}
+
+// Quanto sobe neste passo: pouco, e cada vez menos perto do teto.
+function passoDeCrescimento(atual, teto, maxPasso) {
+  const falta = Math.max(0, teto - atual);
+  return falta ? Math.min(falta, 1 + sorteio(maxPasso)) : 0;
+}
+
+// Um comentário novo: só o nome de quem comentou, como no "Comentário Falso" do
+// painel — nenhuma conta é inventada no app por causa disso.
+function comentarioNovo() {
+  const nome = escolha(COMENTARISTAS);
+  return {
+    id: 'c' + Date.now().toString(36) + crypto.randomBytes(2).toString('hex'),
+    userId: 'auto_' + nome.toLowerCase(), userName: nome,
+    text: escolha(COMENTARIOS), ts: Date.now(), auto: true
+  };
+}
+
+function movimentarVideo(v) {
+  const t = tetosDoVideo(v);
+  v.views = (v.views || 0) + passoDeCrescimento(v.views || 0, t.views, 8);
+  v.likes = (v.likes || 0) + passoDeCrescimento(v.likes || 0, t.likes, 4);
+  const cmts = v.comments || [];
+  if (cmts.length < t.cmts && Math.random() < 0.35) v.comments = cmts.concat([comentarioNovo()]);
+  // Quem publicou ganha seguidores junto. O criador e a assistente não: eles têm
+  // o número que têm.
+  const dono = db.users[v.userId];
+  if (dono && !dono.isCreator && !dono.isSupport) {
+    if (!dono._limSeg) dono._limSeg = (dono.followers || 0) + 25 + sorteio(900);
+    const ganho = passoDeCrescimento(dono.followers || 0, dono._limSeg, 3);
+    if (ganho) {
+      dono.followers = (dono.followers || 0) + ganho;
+      dono._u = ++clock;
+    }
+  }
+  v._u = ++clock;
+}
+
+// Dois vídeos nunca com o mesmo número de curtidas: quando um alcança o outro, o
+// segundo sai um pouco do lugar. Se o vídeo tiver menos visualizações do que
+// curtidas, as visualizações acompanham.
+function curtidasDiferentes() {
+  const ocupados = {};
+  for (const id in db.videos) {
+    const v = db.videos[id];
+    let n = Math.max(0, Number(v.likes) || 0);
+    if (ocupados[n] === undefined) {
+      ocupados[n] = id;
+      v.likes = n;
+      continue;
+    }
+    while (ocupados[n] !== undefined) n += 1 + sorteio(7);
+    v.likes = n;
+    if (n > (v.views || 0)) v.views = n + 1 + sorteio(20);
+    v._u = ++clock;
+    ocupados[n] = id;
+  }
+}
+
+function passoDaVida() {
+  Object.keys(db.videos).slice(0, MAX_VIDEOS_POR_PASSO).forEach(function (id) { movimentarVideo(db.videos[id]); });
+  curtidasDiferentes();
+  saveDb();
 }
 
 /* ==================== HTTP ==================== */
@@ -511,6 +679,11 @@ const server = http.createServer(function (req, res) {
 loadDb();
 seedCriador();
 seedSuporte();
+// A vida do app: curtidas, visualizações, comentários e seguidores andam
+// sozinhos, e o convite para a conversa dos três sai do relógio daqui, não do
+// aparelho de quem pediu.
+setInterval(passoDaVida, PASSO_MS);
+setInterval(function () { if (passoDoConvite()) saveDb(); }, 5000);
 server.listen(PORT, HOST, function () {
   console.log('Good Look no ar em http://' + HOST + ':' + PORT);
 });
