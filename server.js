@@ -124,17 +124,29 @@ function seedCriador() {
   console.log('conta do criador criada: tex_tt');
 }
 
-// Conta de suporte: é o canal oficial para tirar dúvidas e ajudar quem usa o
-// app. Vive no servidor, então ela existe para todo mundo e pode ser acessada
-// de qualquer aparelho com o nome "suporte good look".
+const BIO_SUPORTE = '🤖 Assistente oficial do Good Look — dúvidas, regras e suporte';
+
+// Conta de suporte: é a assistente oficial do app e vive no servidor, então ela
+// existe para todo mundo e é acessada de qualquer aparelho pelo nome "suporte
+// good look". Ela tira dúvidas sobre o app e as regras da comunidade, e é com
+// ela que quem está banido conversa para pedir desculpas e voltar ao normal.
 function seedSuporte() {
-  if (db.users.suporte) return;
+  const antiga = db.users.suporte;
+  if (antiga) {
+    // Conta de uma versão anterior: ganha a marca de assistente e a bio nova.
+    if (antiga.isSupport) return;
+    antiga.isSupport = true;
+    antiga.bio = BIO_SUPORTE;
+    antiga._u = ++clock;
+    saveDb();
+    return;
+  }
   db.users.suporte = {
     id: 'suporte', name: 'suporte good look', username: 'suporte_good_look',
-    bio: '💬 Suporte oficial do Good Look — tire suas dúvidas aqui',
+    bio: BIO_SUPORTE,
     photo: null, followers: 0, following: [], likes: 0,
     verified: false, verifiedType: null, isCreator: false, isAdmin: false,
-    banned: false, banUntil: null, savedVideos: [],
+    isSupport: true, banned: false, banUntil: null, savedVideos: [],
     password: novaSenha('54321'), _u: ++clock
   };
   saveDb();
@@ -167,6 +179,22 @@ function acharPorNome(nome) {
 function acharCriador() {
   for (const id in db.users) if (db.users[id].isCreator) return db.users[id];
   return null;
+}
+
+function acharSuporte() {
+  for (const id in db.users) if (db.users[id].isSupport) return db.users[id];
+  return db.users.suporte || null;
+}
+
+// Quem atende quem está banido: a assistente de suporte e o criador. É por essas
+// conversas que a pessoa se explica e consegue a liberação da conta.
+function contasQueAtendem() {
+  const ids = [];
+  const sup = acharSuporte();
+  if (sup) ids.push(sup.id);
+  const criador = acharCriador();
+  if (criador) ids.push(criador.id);
+  return ids;
 }
 
 /* ==================== MÍDIA ==================== */
@@ -215,6 +243,10 @@ function aplicarPush(body, quem) {
       if (kind === 'users') {
         // Cada um edita o próprio perfil; só o criador mexe na conta dos outros.
         if (novo.id !== quem.id && !quem.isCreator) return;
+        // A conta da assistente de suporte só muda no servidor: um aparelho com
+        // uma cópia antiga dela apagaria a marca de assistente (e a bio) ao
+        // subir essa cópia velha na sincronia.
+        if (novo.id === 'suporte') return;
         const antigo = db.users[novo.id];
         delete novo.password;
         novo._server = true;
@@ -372,19 +404,22 @@ async function api(req, res, url) {
 
     if (rota === '/api/push' && req.method === 'POST') {
       const b = await corpoJson();
-      // Quem está banido continua podendo conversar com o criador: é por essa
-      // conversa que ela pede desculpas e é liberada. Só os recados para ele
-      // passam; post, vídeo, chat público e conversa com outros seguem barrados.
+      // Quem está banido continua podendo conversar com quem atende: a
+      // assistente de suporte e o criador — é por essa conversa que a pessoa
+      // pede desculpas e é liberada. Passam só esses recados e o próprio
+      // cadastro (que guarda a liberação); post, vídeo, chat público e conversa
+      // com outras pessoas seguem barrados.
       if (estaBanido(quem)) {
-        const criador = acharCriador();
+        const atendem = contasQueAtendem();
         const recados = (Array.isArray(b.privMsgs) ? b.privMsgs : []).filter(function (m) {
-          if (!m || !criador) return false;
-          const par = (m.fromId === quem.id && m.toId === criador.id) ||
-            (m.fromId === criador.id && m.toId === quem.id);
-          return par;
+          if (!m) return false;
+          const de = String(m.fromId || ''), para = String(m.toId || '');
+          return (de === quem.id && atendem.indexOf(para) >= 0) ||
+            (para === quem.id && atendem.indexOf(de) >= 0);
         });
-        if (!recados.length) return json(res, 403, { error: 'banido', message: 'Conta banida.' });
-        b.users = []; b.videos = []; b.pubMsgs = []; b.deleted = {}; b.temLive = false; b.privMsgs = recados;
+        const meu = (Array.isArray(b.users) ? b.users : []).filter(function (u) { return u && u.id === quem.id; });
+        if (!recados.length && !meu.length) return json(res, 403, { error: 'banido', message: 'Conta banida.' });
+        b.users = meu; b.videos = []; b.pubMsgs = []; b.deleted = {}; b.temLive = false; b.privMsgs = recados;
       }
       return json(res, 200, aplicarPush(b, quem));
     }

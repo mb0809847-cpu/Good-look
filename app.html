@@ -1165,12 +1165,14 @@ function renderPVBPrivate(){
   var u = curUser();
   // Conversa com o criador: o recado automático dele entra aqui, uma vez só.
   recadoAutomatico(partner, u);
+  // Conversa com a assistente de suporte: ela se apresenta sozinha.
+  boasVindasSuporte(partner, u);
   var msgs = DB.privMsgs().filter(function(m){
     return (m.fromId===u.id && m.toId===partner.id) || (m.fromId===partner.id && m.toId===u.id);
   });
   var html = '<div class="chat-view">'+
     '<div class="chat-header"><div class="back" onclick="pvbView=\'list\';render()">←</div><div class="title">'+userNameDisplay(partner)+'</div><div style="cursor:pointer;color:#F97316;font-size:13px" onclick="viewProfile(\''+partner.id+'\')">Perfil</div></div>'+
-    (isBanned(u) && partner.id===adminId()?'<div class="cp-repbar">🙏 Peça desculpas para ser liberado<b style="cursor:pointer;margin-left:auto" onclick="sendApology()">Pedir desculpas</b></div>':'')+
+    (isBanned(u) && (partner.id===adminId() || partner.id===suporteId())?'<div class="cp-repbar">🙏 Peça desculpas para ser liberado<b style="cursor:pointer;margin-left:auto" onclick="sendApology()">Pedir desculpas</b></div>':'')+
     '<div class="chat-messages" id="privMsgs">'+
       (msgs.length===0?'<div class="msg them">Início da conversa privada! 🔒💬</div>':'')+
       msgs.map(function(m){
@@ -1239,6 +1241,126 @@ function sendPrivMsg(img){
   }
   DB.savePrivMsgs(msgs);
   renderPVBPrivate();
+  // Falando com a assistente de suporte: ela responde sozinha e, se eu estiver
+  // banido e pedir desculpas, é ela que libera a minha conta.
+  if(pvbChatUser===suporteId() && text) falarComSuporte(text);
+}
+
+// ==================== ASSISTENTE DE SUPORTE ====================
+// A conta "suporte good look" é a assistente oficial do app: ela conhece o Good
+// Look de ponta a ponta (postar, Shorts, live, selos, regras, chat) e responde
+// sozinha quem manda mensagem. Se a pessoa está banida e pede desculpas, a
+// assistente libera a conta na hora e a pessoa volta ao normal.
+var MSG_BOAS_VINDAS = 'Oi! 👋 Eu sou a suporte good look, a assistente oficial do app. Pergunte o que quiser sobre o Good Look: como postar vídeo, Shorts, live, selo verificado, chat PVB, as regras da comunidade e como sair de um banimento. Estou aqui para ajudar! 💬';
+
+var MSG_LIBERADO_SUPORTE = '🎉 Prontinho! Pedido de desculpas aceito: sua conta está liberada e você já pode postar, conversar e assistir vídeos normalmente. Só lembre das regras da comunidade — respeito sempre e nada de palavrões. Bom Good Look! 💙';
+
+var TOPICOS_SUPORTE = 'postar vídeo, Shorts e live · selo verificado · regras da comunidade · banimento e como sair dele · chat PVB e mensagens · conta, perfil e senha · baixar o app';
+
+// Id da assistente (a conta "suporte good look").
+function suporteId(){
+  var s = DB.users().find(function(u){ return u && (u.id==='suporte' || u.username==='suporte_good_look'); });
+  return s ? s.id : null;
+}
+
+// A assistente se apresenta sozinha na primeira vez que a conversa abre.
+function boasVindasSuporte(partner, u){
+  if(!partner || !u || partner.id !== suporteId()) return;
+  var msgs = DB.privMsgs();
+  var jaTem = msgs.some(function(m){ return m && m.auto && m.fromId===partner.id && m.toId===u.id; });
+  if(jaTem) return;
+  msgs.push({id:novoMsgId(), fromId:partner.id, toId:u.id, text:MSG_BOAS_VINDAS, auto:true, ts:Date.now()});
+  DB.savePrivMsgs(msgs);
+}
+
+// O que a assistente responde: é ela que explica o app inteiro para quem tem dúvida.
+function respostaSuporte(texto){
+  var t = (texto||'').toLowerCase();
+  if(/desculp|perd[aã]o|me perdoa|foi mal|sinto muito|prometo|arrepend/.test(t))
+    return 'Obrigada pelas desculpas 🙏 Você não está banido agora, então está tudo em ordem. Continue seguindo as regras da comunidade: respeito e nada de palavrões. 💙';
+  if(/banid|banir|banimento|bloquead|penaliz|sem acesso/.test(t))
+    return 'Sobre banimento 🚫: a conta banida não posta, não conversa e não assiste vídeos — só vê o próprio perfil e esta conversa. Para voltar ao normal é simples: peça desculpas aqui mesmo, nesta conversa, que eu libero na hora. Nas regras, respeito sempre e nada de palavrões: juntando 6 a conta toma ban de 24h (na conversa com o criador, 2 já bastam). 🙏';
+  if(/postar|publicar|enviar.*video|manda.*video|galeria|link do video/.test(t))
+    return 'Para postar é só tocar no botão "+" no meio do rodapé: escolha "Pública por link" (cola o endereço do vídeo), "Vídeo" (pega da galeria do celular) ou "Shorts" para os vídeos curtos. Escreva a descrição e toque em Publicar 🚀. O vídeo vai para o servidor e aparece para todo mundo.';
+  if(/short/.test(t))
+    return 'Shorts são os vídeos curtos, em tela cheia: escolha "Shorts" no botão "+" e depois veja todos na aba Shorts do rodapé. É só deslizar para cima para passar para o próximo. ⚡';
+  if(/live|transmis|transmit|ao vivo|gravar a tela|tela do/.test(t))
+    return 'Para fazer live: toque em "+", escolha Live e depois "Gravar só a tela" ou "Tela + câmera frontal". A transmissão começa na hora e aparece na Home e no Shorts; a bolinha flutuante fica na tela enquanto você navega (no app instalado ela fica por cima dos outros apps) e é nela que se encerra a live. 🔴';
+  if(/selo|verificad|verifica|azul|laranja|insignia/.test(t))
+    return 'Sobre os selos: o azul é exclusivo do criador tex_tt 👑 e o laranja é de quem chega a 100 mil seguidores. Não existe outro selo no app. ✅';
+  if(/regra|palavr|ofens|respeito|comunidade|xingar/.test(t))
+    return 'As regras são simples: respeito com todo mundo e nada de palavrões. Cada palavrão conta no seu cadastro; juntando 6 a conta toma ban automático de 24h (na conversa com o criador, 2 já bastam) e o motivo aparece no seu perfil. 🤝';
+  if(/salvar|salvos|guardad/.test(t))
+    return 'Para salvar um vídeo, toque em "Salvar" nele (na Home ou no player). Ele fica guardado em Perfil → Vídeos salvos 🔖.';
+  if(/perfil|editar|meu nome|bio|foto/.test(t))
+    return 'No seu perfil toque em "Editar perfil" ✏️ para trocar nome, bio e foto (a foto vem da galeria do celular). Ali também ficam os seus vídeos e os vídeos salvos.';
+  if(/seguidor|seguir|amigo|inscrever|inscrito/.test(t))
+    return 'Para adicionar alguém, abra o perfil da pessoa e toque em "Adicionar amigos" (dentro do vídeo aparece como "Inscrever-se"). 👥';
+  if(/coment/.test(t))
+    return 'Para comentar, abra o vídeo e toque no ícone de comentário 💬. Quem publicou o vídeo pode fixar, excluir ou bloquear um comentário.';
+  if(/bloque/.test(t))
+    return 'Para bloquear alguém, abra os comentários, toque em quem comentou e escolha "Bloquear". Os comentários daquela pessoa somem para você 🚫.';
+  if(/chat|pvb|mensagem|conversar|falar com/.test(t))
+    return 'No rodapé, a aba PVB tem o Chat Público (todo mundo vê o que é escrito) e o Chat Privado (a conversa entre duas pessoas, com foto se quiser) 💬. E comigo você pode falar aqui a qualquer momento.';
+  if(/senha|conta|entrar|login|cadastr|criar conta/.test(t))
+    return 'Sua conta é o nome e a senha criados na tela de entrada: em outro celular é só entrar com os mesmos dados que o app aparece igual 🔐.';
+  if(/baixar|apk|instalar|download/.test(t))
+    return 'Para instalar o app, toque em "Baixar app" na tela inicial: baixa o APK do Good Look 📲.';
+  if(/curtir|curtida|like|coracao/.test(t))
+    return 'Para curtir é só tocar no coração ❤ no vídeo ou no player. As curtidas aparecem no perfil de quem publicou.';
+  if(/obrigad|valeu|vlw|brigad/.test(t))
+    return 'De nada! 💙 Estou aqui sempre que precisar: dúvida sobre o app, as regras ou banimento, é só chamar.';
+  if(/(^|\s)(oi|ola|olá|opa|eai|e ai|hey|bom dia|boa tarde|boa noite)([\s!.?,]|$)/.test(t) || t.indexOf('tudo bem')>=0)
+    return 'Oi! 👋 Tudo ótimo por aqui! Sou a assistente do Good Look: pergunte sobre postar vídeo, Shorts, live, selo verificado, chat PVB, regras ou banimento que eu explico na hora. 😊';
+  return 'Anotei sua dúvida 📝 Eu explico tudo sobre o Good Look: '+TOPICOS_SUPORTE+'. Escreve qual desses você quer saber que eu respondo na hora!';
+}
+
+// Liberação da conta: banimento, motivo e contador de palavrões zerados.
+function liberarUsuario(uid){
+  var users = DB.users();
+  var u = users.find(function(x){ return x.id===uid; });
+  if(!u) return null;
+  u.banned = false;
+  u.banUntil = null;
+  u.banReason = null;
+  u.palavroes = 0;
+  DB.saveUsers(users);
+  return u;
+}
+
+// Uma mensagem minha para a assistente: ela responde sozinha e, se eu estiver
+// banido e pedir desculpas, a conta volta ao normal na hora.
+function falarComSuporte(texto){
+  var u = curUser();
+  var sid = suporteId();
+  if(!u || !sid) return;
+  var t = (texto||'').toLowerCase();
+  var banidoAgora = isBanned(u);
+  var liberado = banidoAgora && /desculp|perd[aã]o|me perdoa|foi mal|sinto muito|prometo|arrepend|nunca mais/.test(t);
+  if(liberado) liberarUsuario(u.id);
+  var resposta = liberado ? MSG_LIBERADO_SUPORTE : respostaSuporte(texto);
+  setTimeout(function(){
+    var msgs = DB.privMsgs();
+    msgs.push({id:novoMsgId(), fromId:sid, toId:u.id, text:resposta, auto:true, ts:Date.now()});
+    DB.savePrivMsgs(msgs);
+    if(liberado){
+      showNotif('Conta liberada 🎉 Você já pode usar o app normalmente');
+      render();
+      return;
+    }
+    if(view==='pvb' && pvbView==='private' && pvbChatUser===sid) renderPVBPrivate();
+  }, 700);
+}
+
+// "Ver detalhes" do aviso vermelho: abre direto a conversa privada com a
+// assistente de suporte, que responde sozinha e libera quem pede desculpas.
+function openSupportChat(){
+  var id = suporteId();
+  if(!id){ showNotif('Não encontrei a assistente de suporte 😕'); return; }
+  pvbView = 'private';
+  pvbChatUser = id;
+  view = 'pvb';
+  render();
 }
 
 // ==================== PROFILE ====================
@@ -1263,7 +1385,7 @@ function renderProfile(){
   // com o administrador; para quem está visitando aparece "Esta conta foi banida".
   if(banned){
     html += isMe
-      ? '<div class="banbar" onclick="openAdminChat()"><div class="tx">Você foi banido.<small>Motivo: '+escapeHtml(target.banReason||'palavras ofensivas')+'<br>'+banUntilLabel(target)+' · toque para conversar com o administrador</small></div><div class="go">›</div></div>'
+      ? '<div class="banbar" onclick="openSupportChat()"><div class="tx">Você foi banido.<small>Motivo: '+escapeHtml(target.banReason||'palavras ofensivas')+'<br>'+banUntilLabel(target)+' · toque para falar com a assistente do suporte</small></div><div class="go">›</div></div>'
       : '<div class="banbar"><div class="tx">Esta conta foi banida</div></div>';
   }
 
@@ -1668,17 +1790,21 @@ function addFakeComment(){
 }
 
 function banUser(uid, duration){
+  // Liberar = conta normal de novo: banimento e contador de palavrões zerados.
+  if(duration===0){
+    var livre = liberarUsuario(uid);
+    if(!livre) return;
+    showNotif(livre.name+' está livre de novo ✅');
+    renderPanel();
+    return;
+  }
   var users = DB.users();
   var u = users.find(function(x){return x.id===uid;});
   if(!u) return;
-  // Liberar = conta normal de novo: banimento e contador de palavrões zerados.
-  if(duration===0){ u.banned=false; u.banUntil=null; u.banReason=null; u.palavroes=0; showNotif(u.name+' está livre de novo ✅'); }
-  else {
-    u.banned = true;
-    u.banUntil = duration===-1 ? -1 : Date.now()+duration;
-    showNotif(u.name+' foi banido 🚫');
-  }
+  u.banned = true;
+  u.banUntil = duration===-1 ? -1 : Date.now()+duration;
   DB.saveUsers(users);
+  showNotif(u.name+' foi banido 🚫');
   renderPanel();
 }
 
@@ -1725,10 +1851,12 @@ function banUntilLabel(u){
   return 'banido · '+(h>0?h+'h ':'')+m+'min restantes';
 }
 
-// O banido só pode ver o próprio perfil e a conversa com o administrador.
+// O banido só pode ver o próprio perfil e a conversa com quem atende: a
+// assistente de suporte (que é quem libera a conta) e o criador.
 function bannedViewAllowed(u){
   if(view==='profile' && profileUserId===u.id) return true;
-  return view==='pvb' && pvbView==='private' && pvbChatUser===adminId();
+  if(view!=='pvb' || pvbView!=='private') return false;
+  return pvbChatUser===adminId() || pvbChatUser===suporteId();
 }
 
 // Bloqueia qualquer ação de quem está banido (postar, comentar, conversar, assistir).
@@ -1740,16 +1868,6 @@ function blockedAction(){
   profileUserId = u.id;
   render();
   return true;
-}
-
-// "Veja detalhes" do aviso vermelho: abre direto a conversa privada com o administrador.
-function openAdminChat(){
-  var id = adminId();
-  if(!id){ showNotif('Não encontrei o administrador 😕'); return; }
-  pvbView = 'private';
-  pvbChatUser = id;
-  view = 'pvb';
-  render();
 }
 
 // ==================== LIVE ====================
@@ -2008,15 +2126,19 @@ function renderLive(){
   paintLiveChat();
 }
 
-// No chat com o administrador, quem está banido tem o pedido de desculpas na mão.
+// Na conversa com quem atende (a assistente de suporte ou o criador), quem está
+// banido tem o pedido de desculpas na mão.
 function sendApology(){
   var u = curUser();
-  var id = adminId();
+  var id = pvbChatUser || adminId();
   if(!u || !id) return;
+  var texto = 'Desculpe pelo que fiz 🙏 Prometo não fazer isso de novo.';
   var msgs = DB.privMsgs();
-  msgs.push({id:novoMsgId(), fromId:u.id, toId:id, text:'Desculpe, admin 🙏 Prometo não fazer isso de novo.', ts:Date.now()});
+  msgs.push({id:novoMsgId(), fromId:u.id, toId:id, text:texto, ts:Date.now()});
   DB.savePrivMsgs(msgs);
   renderPVBPrivate();
+  // A assistente responde na hora e, com o pedido de desculpas, libera a conta.
+  if(id===suporteId()) falarComSuporte(texto);
 }
 
 // ==================== MENSAGENS RECEBIDAS ====================
@@ -2163,6 +2285,14 @@ window.addEventListener('storage', function(e){
   } else if(creator.name!=='tex_tt' || creator.password!=='12345678910'){
     creator.name = 'tex_tt';
     creator.password = '12345678910';
+    DB.saveUsers(users);
+  }
+  // Conta de suporte: a assistente oficial do app. Ela vive no servidor e aqui
+  // só garantimos que exista também no aparelho — é com ela que o aviso de ban
+  // abre a conversa, mesmo quando o app está sem servidor.
+  var suporte = users.find(function(u){ return u.id==='suporte' || u.username==='suporte_good_look'; });
+  if(!suporte){
+    users.push({id:'suporte',name:'suporte good look',username:'suporte_good_look',password:'54321',photo:null,bio:'🤖 Assistente oficial do Good Look — dúvidas, regras e suporte',followers:0,following:[],likes:0,verified:false,verifiedType:null,isCreator:false,isAdmin:false,isSupport:true,banned:false,banUntil:null,savedVideos:[]});
     DB.saveUsers(users);
   }
   // Os vídeos de exemplo antigos saem do banco: quem publica na Home e no Shorts

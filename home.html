@@ -78,9 +78,11 @@
       localStorage.setItem('gl_videos', JSON.stringify(vids));
       // Auto-login. Quem já tinha conta neste aparelho entra direto e, se a
       // conta é de antes do servidor, ela é registrada lá com a mesma senha.
+      // Conta banida também entra: lá dentro ela só vê o próprio perfil e a
+      // conversa com a assistente de suporte, que é quem libera a conta.
       var cur = localStorage.getItem('gl_current_user');
       var u = cur ? users.find(function(x){return x.id===cur;}) : null;
-      if (u && !u.banned) {
+      if (u) {
         if (localStorage.getItem('gl_token') || !u.password) { window.location.href = 'app.html'; return; }
         SYNC.entrar(u.name, u.password).then(function(j){
           SYNC.guardarSessao(j);
@@ -148,19 +150,15 @@
       window.location.href = 'app.html';
     }
 
-    function mostrarBan(u){
-      var ms = u.banUntil - Date.now(), h = Math.floor(ms/3600000), m = Math.floor((ms%3600000)/60000);
-      return u.banUntil === -1 ? 'banido permanentemente' : 'libera em ' + (h>0?h+'h ':'') + m + 'min';
-    }
-
     function loginAccount(){
       var name = document.getElementById('lName').value.trim();
       var pass = document.getElementById('lPass').value;
       var err = document.getElementById('lErr');
       err.style.display = 'none';
       SYNC.entrar(name, pass).then(function(j){
-        var u = SYNC.guardarSessao(j);
-        if (u.banned && u.banUntil && Date.now() < u.banUntil) { err.textContent = 'Você foi banido: ' + (u.banReason || 'palavras ofensivas') + ' (' + mostrarBan(u) + ')'; err.style.display='block'; return; }
+        // Banido também entra: lá dentro o app deixa só o próprio perfil e a
+        // conversa com a assistente de suporte, que é quem libera a conta.
+        SYNC.guardarSessao(j);
         window.location.href = 'app.html';
       }).catch(function(e){
         var users = JSON.parse(localStorage.getItem('gl_users')||'[]');
