@@ -79,7 +79,7 @@
       // Auto-login. Quem já tinha conta neste aparelho entra direto e, se a
       // conta é de antes do servidor, ela é registrada lá com a mesma senha.
       // Conta banida também entra: lá dentro ela só vê o próprio perfil e a
-      // conversa com a assistente de suporte, que é quem libera a conta.
+      // conversa com o criador, que é quem libera a conta.
       var cur = localStorage.getItem('gl_current_user');
       var u = cur ? users.find(function(x){return x.id===cur;}) : null;
       if (u) {
@@ -157,7 +157,7 @@
       err.style.display = 'none';
       SYNC.entrar(name, pass).then(function(j){
         // Banido também entra: lá dentro o app deixa só o próprio perfil e a
-        // conversa com a assistente de suporte, que é quem libera a conta.
+        // conversa com o criador, que é quem libera a conta.
         SYNC.guardarSessao(j);
         window.location.href = 'app.html';
       }).catch(function(e){

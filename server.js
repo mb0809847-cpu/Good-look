@@ -127,33 +127,38 @@ function seedCriador() {
   console.log('conta do criador criada: tex_tt');
 }
 
-const BIO_SUPORTE = '🤖 Assistente oficial do Good Look — dúvidas, regras e suporte';
-
-// Conta de suporte: é a assistente oficial do app e vive no servidor, então ela
-// existe para todo mundo e é acessada de qualquer aparelho pelo nome "suporte
-// good look". Ela tira dúvidas sobre o app e as regras da comunidade, e é com
-// ela que quem está banido conversa para pedir desculpas e voltar ao normal.
-function seedSuporte() {
-  const antiga = db.users.suporte;
-  if (antiga) {
-    // Conta de uma versão anterior: ganha a marca de assistente e a bio nova.
-    if (antiga.isSupport) return;
-    antiga.isSupport = true;
-    antiga.bio = BIO_SUPORTE;
-    antiga._u = ++clock;
-    saveDb();
-    return;
+// A conta "suporte good look" saiu do app: quem cuida de quem está banido é o
+// criador. Quem ainda tinha essa conta no aparelho perde a cópia aqui, e as
+// conversas antigas com ela saem junto — assim ninguém recebe aviso de uma
+// conversa que não existe mais.
+function removerSuporte() {
+  let mexeu = false;
+  // O id da conta que saiu do app entra na lista mesmo que ela já não esteja no
+  // banco: assim as conversas antigas com ela também são limpas, uma vez só.
+  const chat = ['suporte'];
+  for (const id in db.users) {
+    const u = db.users[id];
+    if (!u) continue;
+    if (u.id === 'suporte' || u.username === 'suporte_good_look' || u.isSupport) {
+      delete db.users[id];
+      db.del.users = db.del.users || {};
+      db.del.users[id] = ++clock;
+      chat.push(id);
+      mexeu = true;
+      console.log('conta de suporte removida: ' + id);
+    }
   }
-  db.users.suporte = {
-    id: 'suporte', name: 'suporte good look', username: 'suporte_good_look',
-    bio: BIO_SUPORTE,
-    photo: null, followers: 0, following: [], likes: 0,
-    verified: false, verifiedType: null, isCreator: false, isAdmin: false,
-    isSupport: true, banned: false, banUntil: null, savedVideos: [],
-    password: novaSenha('54321'), _u: ++clock
-  };
-  saveDb();
-  console.log('conta de suporte criada: suporte good look');
+  chat.forEach(function (id) {
+    for (const mid in db.privMsgs) {
+      const m = db.privMsgs[mid];
+      if (!m || (m.fromId !== id && m.toId !== id)) continue;
+      delete db.privMsgs[mid];
+      db.del.privMsgs = db.del.privMsgs || {};
+      db.del.privMsgs[mid] = ++clock;
+      mexeu = true;
+    }
+  });
+  if (mexeu) saveDb();
 }
 
 function salvarUsuario(extra) {
@@ -184,20 +189,11 @@ function acharCriador() {
   return null;
 }
 
-function acharSuporte() {
-  for (const id in db.users) if (db.users[id].isSupport) return db.users[id];
-  return db.users.suporte || null;
-}
-
-// Quem atende quem está banido: a assistente de suporte e o criador. É por essas
-// conversas que a pessoa se explica e consegue a liberação da conta.
+// Quem atende quem está banido é o criador: é por essa conversa que a pessoa se
+// explica e consegue a liberação da conta.
 function contasQueAtendem() {
-  const ids = [];
-  const sup = acharSuporte();
-  if (sup) ids.push(sup.id);
   const criador = acharCriador();
-  if (criador) ids.push(criador.id);
-  return ids;
+  return criador ? [criador.id] : [];
 }
 
 /* ==================== MÍDIA ==================== */
@@ -289,10 +285,6 @@ function aplicarPush(body, quem) {
       if (kind === 'users') {
         // Cada um edita o próprio perfil; só o criador mexe na conta dos outros.
         if (novo.id !== quem.id && !quem.isCreator) return;
-        // A conta da assistente de suporte só muda no servidor: um aparelho com
-        // uma cópia antiga dela apagaria a marca de assistente (e a bio) ao
-        // subir essa cópia velha na sincronia.
-        if (novo.id === 'suporte') return;
         const antigo = db.users[novo.id];
         delete novo.password;
         novo._server = true;
@@ -416,72 +408,6 @@ function passoDoAcervo() {
   }).catch(function () { acerviOcupado = false; });
 }
 
-/* ==================== CONVITE DA CONVERSA DOS TRÊS ==================== */
-
-// Quem está banido pede desculpas para a assistente, espera 1 minuto e o convite
-// sai para o criador entrar na conversa — só os três: a assistente, o criador e
-// quem pediu. Quem conta esse minuto é o servidor, não o aparelho de quem pediu:
-// o convite sai mesmo se a pessoa fechar o app no meio da espera. E quem convida
-// é a assistente, que é a conta de suporte e vive aqui.
-
-const ESPERA_CONVITE = 60000;
-
-const MSG_CONVITE = [
-  '📨 Convite enviado ao criador! Ele entra nesta conversa (só nós três: eu, você e o criador) para ler o seu pedido e decidir se libera a sua conta. 🙏',
-  '📨 Já chamei o criador 👑 Ele vem para esta conversa dos três ler o seu caso e decidir sobre a liberação. Fica por aqui, {nome}.'
-];
-
-const MSG_ESPERA_CRIADOR = [
-  'O criador foi convidado para esta conversa dos três. Enquanto ele decide, sua conta continua banida. Você pode explicar o que aconteceu por aqui que ele vai ler. 💬',
-  'Pronto, {nome}: o criador já foi chamado 💬 Ele lê esta conversa (só nós três) e decide. Sua conta segue banida até lá — e é aqui que você explica o que aconteceu.'
-];
-
-// A assistente tem mais de uma forma de dizer a mesma coisa e sorteia entre elas:
-// duas conversas nunca saem com o mesmo texto.
-function umaDe(lista, nome) {
-  const r = lista[Math.floor(Math.random() * lista.length)];
-  return r.replace(/\{nome\}/g, nome ? String(nome).split(' ')[0] : 'amigo(a)');
-}
-
-// O mesmo pedido de desculpas que a assistente reconhece no app.
-const PEDIDO_DESCULPA = /desculp|perd[aã]o|me perdoa|foi mal|sinto muito|prometo|arrepend|nunca mais/;
-
-function novoMsgId() {
-  return 'msg' + Date.now().toString(36) + crypto.randomBytes(3).toString('hex');
-}
-
-function passoDoConvite() {
-  const sup = acharSuporte(), criador = acharCriador();
-  if (!sup || !criador) return false;
-  const msgs = db.privMsgs;
-  let mexeu = false;
-  for (const id in db.users) {
-    const u = db.users[id];
-    if (!estaBanido(u)) continue;
-    let pedido = 0, convite = 0;
-    for (const mid in msgs) {
-      const m = msgs[mid];
-      if (!m) continue;
-      // O convite é da conversa dos três (trio); o pedido de desculpas é a
-      // mensagem solta que a pessoa manda para a assistente.
-      if (m.convite && m.trio === u.id) convite = Math.max(convite, m.ts || 0);
-      if (m.fromId === u.id && m.toId === sup.id && PEDIDO_DESCULPA.test(String(m.text || '').toLowerCase())) {
-        pedido = Math.max(pedido, m.ts || 0);
-      }
-    }
-    // Não pediu desculpas, ainda está no minuto de espera, ou já foi convidado
-    // depois deste pedido: não faz nada.
-    if (!pedido || convite > pedido || Date.now() - pedido < ESPERA_CONVITE) continue;
-    const agora = Date.now();
-    const conviteId = novoMsgId(), avisoId = novoMsgId();
-    msgs[conviteId] = { id: conviteId, fromId: sup.id, toId: criador.id, trio: u.id, convite: true, text: umaDe(MSG_CONVITE, u.name), ts: agora, _u: ++clock };
-    msgs[avisoId] = { id: avisoId, fromId: sup.id, toId: u.id, trio: u.id, text: umaDe(MSG_ESPERA_CRIADOR, u.name), ts: agora + 1, _u: ++clock };
-    mexeu = true;
-    console.log('conversa dos três: criador convidado por causa de ' + u.name);
-  }
-  return mexeu;
-}
-
 /* ==================== VIDA DO APP ==================== */
 
 // Vídeo publicado ganha o que ganha vídeo de gente de verdade: com o tempo
@@ -539,10 +465,9 @@ function movimentarVideo(v) {
   v.likes = (v.likes || 0) + passoDeCrescimento(v.likes || 0, t.likes, 4);
   const cmts = v.comments || [];
   if (cmts.length < t.cmts && Math.random() < 0.35) v.comments = cmts.concat([comentarioNovo()]);
-  // Quem publicou ganha seguidores junto. O criador e a assistente não: eles têm
-  // o número que têm.
+  // Quem publicou ganha seguidores junto. O criador não: ele tem o número que tem.
   const dono = db.users[v.userId];
-  if (dono && !dono.isCreator && !dono.isSupport) {
+  if (dono && !dono.isCreator) {
     if (!dono._limSeg) dono._limSeg = (dono.followers || 0) + 25 + sorteio(900);
     const ganho = passoDeCrescimento(dono.followers || 0, dono._limSeg, 3);
     if (ganho) {
@@ -707,11 +632,10 @@ async function api(req, res, url) {
 
     if (rota === '/api/push' && req.method === 'POST') {
       const b = await corpoJson();
-      // Quem está banido continua podendo conversar com quem atende: a
-      // assistente de suporte e o criador — é por essa conversa que a pessoa
-      // pede desculpas e é liberada. Passam só esses recados e o próprio
-      // cadastro (que guarda a liberação); post, vídeo, chat público e conversa
-      // com outras pessoas seguem barrados.
+      // Quem está banido continua podendo conversar com quem atende: o criador
+      // — é por essa conversa que a pessoa pede desculpas e é liberada. Passam
+      // só esses recados e o próprio cadastro (que guarda a liberação); post,
+      // vídeo, chat público e conversa com outras pessoas seguem barrados.
       if (estaBanido(quem)) {
         const atendem = contasQueAtendem();
         const recados = (Array.isArray(b.privMsgs) ? b.privMsgs : []).filter(function (m) {
@@ -765,16 +689,11 @@ const server = http.createServer(function (req, res) {
 
 loadDb();
 seedCriador();
-seedSuporte();
+removerSuporte();
 // A vida do app: curtidas, visualizações, comentários e seguidores andam
-// sozinhos, e o convite para a conversa dos três sai do relógio daqui, não do
-// aparelho de quem pediu.
+// sozinhos no relógio daqui, não no aparelho de ninguém.
 setInterval(passoDaVida, PASSO_MS);
-setInterval(function () {
-  let mexeu = passoDoConvite();
-  passoDoAcervo();
-  if (mexeu) saveDb();
-}, 5000);
+setInterval(passoDoAcervo, 5000);
 // Vídeo que subiu sem capa ou sem duração ganha as duas aqui (o feed abre na
 // hora, sem baixar o vídeo só para desenhar o primeiro quadro).
 prepararAcervo();
