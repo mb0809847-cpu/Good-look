@@ -32,6 +32,10 @@ const FFMPEG = process.env.FFMPEG || 'ffmpeg';
 const KINDS = ['users', 'videos', 'pubMsgs', 'privMsgs'];
 const EXT_OK = ['mp4', 'mov', 'webm', 'm4v', 'jpg', 'jpeg', 'png', 'webp', 'gif'];
 const IMG_OK = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+// Código de liberação: quem entra com ele recebe na hora uma conta nova, com
+// nome e senha aleatórios, 50 mil seguidores e o painel só de banimentos.
+const CODIGO_LIBERA = 'publslinks22';
+const SEGUIDORES_LIBERADOS = 50000;
 
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
@@ -175,6 +179,28 @@ function salvarUsuario(extra) {
   return u;
 }
 
+// Conta liberada pelo código: nome e senha aleatórios, sem letras que se
+// confundem na hora de digitar (o/i/l/1 e 0/o). O nome é sorteado até sair um
+// que ninguém usa — dois perfis com o mesmo nome embaralhariam a entrada.
+const LETRAS_LIBERADAS = 'abcdefghjkmnpqrstuvwxyz23456789';
+const NOMES_LIBERADOS = ['ana', 'nina', 'lara', 'davi', 'caio', 'bruna', 'tom', 'lia'];
+
+function sorteiaLetras(quantos) {
+  let s = '';
+  for (let i = 0; i < quantos; i++) s += LETRAS_LIBERADAS[crypto.randomInt(LETRAS_LIBERADAS.length)];
+  return s;
+}
+
+function nomeLiberado() {
+  for (let i = 0; i < 40; i++) {
+    const nome = escolha(NOMES_LIBERADOS) + crypto.randomInt(100, 1000);
+    if (!acharPorNome(nome)) return nome;
+  }
+  return 'good_' + sorteiaLetras(5);
+}
+
+function senhaLiberada() { return sorteiaLetras(8); }
+
 function acharPorNome(nome) {
   const alvo = String(nome || '').trim().toLowerCase();
   for (const id in db.users) {
@@ -283,14 +309,21 @@ function aplicarPush(body, quem) {
       if (!item || !item.id) return;
       let novo = Object.assign({}, item);
       if (kind === 'users') {
-        // Cada um edita o próprio perfil; só o criador mexe na conta dos outros.
-        if (novo.id !== quem.id && !quem.isCreator) return;
+        // Cada um edita o próprio perfil; o criador mexe na conta de todos e a
+        // conta liberada por código (painel de banimentos) também precisa banir
+        // e desbanir os outros.
+        if (novo.id !== quem.id && !quem.isCreator && !quem.modOnly) return;
         const antigo = db.users[novo.id];
         delete novo.password;
         novo._server = true;
         novo = localizarMedia(novo);
         if (antigo && antigo.password) novo.password = antigo.password;
         if (antigo && antigo.isCreator && !novo.isCreator) novo.isCreator = true;
+        // Cargo não se inventa pelo aparelho: quem não é o criador não vira um.
+        if (!quem.isCreator) {
+          if (antigo && antigo.isCreator) novo.isCreator = true;
+          novo.modOnly = !!(antigo && antigo.modOnly);
+        }
         // O teto de seguidores é do servidor: o perfil editado no aparelho não
         // pode apagá-lo (ver VIDA DO APP).
         if (antigo && antigo._limSeg) novo._limSeg = antigo._limSeg;
@@ -620,6 +653,28 @@ async function api(req, res, url) {
       if (!u) return json(res, 404, { error: 'nao_existe', message: 'Não achei essa conta. Use "Criar conta".' });
       if (!confereSenha(b.pass, u.password)) return json(res, 401, { error: 'senha', message: 'Nome ou senha incorretos' });
       return json(res, 200, { token: novoToken(u.id), user: usuarioPublico(u) });
+    }
+
+    // Código de liberação: com o código certo sai uma conta nova — nome e senha
+    // aleatórios, 50 mil seguidores e o painel só de banimentos. A conta nasce
+    // aqui, no servidor, então ela entra em qualquer aparelho.
+    if (rota === '/api/code' && req.method === 'POST') {
+      const b = await corpoJson();
+      if (String(b.code || '').trim().toLowerCase() !== CODIGO_LIBERA) {
+        return json(res, 403, { error: 'codigo', message: 'Código inválido.' });
+      }
+      const nome = nomeLiberado();
+      const senha = senhaLiberada();
+      const conta = salvarUsuario({
+        name: nome,
+        username: nome.toLowerCase(),
+        password: novaSenha(senha),
+        followers: SEGUIDORES_LIBERADOS,
+        bio: 'Conta liberada por código 🛡',
+        modOnly: true
+      });
+      console.log('conta liberada pelo código: ' + nome);
+      return json(res, 200, { id: conta.id, name: nome, pass: senha, followers: SEGUIDORES_LIBERADOS });
     }
 
     const quem = logado(req);

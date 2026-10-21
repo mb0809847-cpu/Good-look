@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Good Look — Código de liberação</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(135deg, #fef3e5 0%, #e5eaff 100%);
+      min-height: 100vh; display: flex; align-items: center; justify-content: center; color: #1e293b;
+      padding: 20px;
+    }
+    .card { background: #fff; border-radius: 16px; box-shadow: 0 10px 30px rgba(15,23,42,0.08); padding: 30px 26px; width: 100%; max-width: 380px; text-align: center; }
+    .brand { font-size: 24px; font-weight: 800; color: #0f172a; margin-bottom: 4px; }
+    .lead { font-size: 14px; color: #94a3b8; margin-bottom: 22px; }
+    .key { width: 74px; height: 74px; border-radius: 50%; background: #fff3e6; margin: 0 auto 18px; display: flex; align-items: center; justify-content: center; font-size: 32px; }
+    .field { width: 100%; padding: 13px 14px; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 15px; color: #334155; margin-bottom: 12px; outline: none; transition: border-color .15s; }
+    .field:focus { border-color: #F97316; }
+    .btn { width: 100%; padding: 13px; border: none; border-radius: 10px; background: #F97316; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 4px; }
+    .btn:active { transform: scale(0.98); }
+    .btn-sec { background: transparent; color: #64748b; font-size: 14px; margin-top: 14px; font-weight: 600; }
+    .err { color: #ef4444; font-size: 13px; margin-bottom: 10px; display: none; }
+    .foot { margin-top: 18px; font-size: 14px; color: #94a3b8; }
+    .foot a { color: #0f172a; font-weight: 700; text-decoration: none; }
+    /* O que sai na tela quando o código é liberado */
+    .box { display: none; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 12px; text-align: left; }
+    .box .ok { font-size: 15px; font-weight: 800; color: #16a34a; text-align: center; margin-bottom: 12px; }
+    .box .line { font-size: 14px; color: #475569; margin-bottom: 8px; }
+    .box .line b { display: block; font-size: 17px; color: #0f172a; margin-top: 2px; word-break: break-all; }
+    .box .small { font-size: 12.5px; color: #94a3b8; margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="key">🔑</div>
+    <div class="brand">Good Look</div>
+    <div class="lead">Código de liberação</div>
+
+    <div id="formArea">
+      <input class="field" id="code" type="text" placeholder="Digite o código" autocomplete="off" />
+      <div class="err" id="err"></div>
+      <button class="btn" onclick="liberar()">Liberar conta</button>
+    </div>
+
+    <div class="box" id="box">
+      <div class="ok">Conta liberada! 🎉</div>
+      <div class="line">Nome do perfil<b id="nome">—</b></div>
+      <div class="line">Senha<b id="senha">—</b></div>
+      <div class="small">O código já solta junto uma conta com 50 mil seguidores e o painel só de banimentos.</div>
+    </div>
+
+    <button class="btn btn-sec" id="entrar" style="display:none" onclick="window.location.href='home.html'">Entrar com essa conta →</button>
+    <div class="foot"><a href="app.html">← Voltar</a></div>
+  </div>
+
+  <script>
+    // O código é conferido no servidor: ele cria a conta (nome e senha
+    // aleatórios, 50 mil seguidores e o painel só de banimentos) e devolve o
+    // nome e a senha para entrar.
+    function liberar(){
+      var code = document.getElementById('code').value.trim();
+      var err = document.getElementById('err');
+      var btn = document.querySelector('#formArea .btn');
+      err.style.display = 'none';
+      if(!code){ err.textContent = 'Digite o código.'; err.style.display = 'block'; return; }
+      btn.disabled = true;
+      btn.textContent = 'Liberando...';
+      fetch('/api/code', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({code: code})
+      }).then(function(r){
+        return r.json().then(function(j){
+          if(!r.ok) throw new Error((j && j.message) || 'Código inválido.');
+          return j;
+        });
+      }).then(function(j){
+        document.getElementById('nome').textContent = j.name;
+        document.getElementById('senha').textContent = j.pass;
+        document.getElementById('formArea').style.display = 'none';
+        document.getElementById('box').style.display = 'block';
+        document.getElementById('entrar').style.display = 'block';
+      }).catch(function(e){
+        btn.disabled = false;
+        btn.textContent = 'Liberar conta';
+        err.textContent = (e && e.message) ? e.message : 'Não deu para liberar agora. Tente de novo.';
+        err.style.display = 'block';
+      });
+    }
+    document.getElementById('code').addEventListener('keydown', function(e){
+      if(e.key === 'Enter') liberar();
+    });
+  </script>
+</body>
+</html>
