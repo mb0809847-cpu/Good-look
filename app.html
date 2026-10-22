@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Good Look</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
@@ -44,6 +45,7 @@ body{background:#000;color:#fff}
 .msg{max-width:80%;padding:10px 14px;border-radius:16px;font-size:14px;line-height:1.4;word-break:break-word}
 .msg.me{align-self:flex-end;background:#F97316;color:#fff}
 .msg.them{align-self:flex-start;background:#1e1e1e;color:#fff}
+.msg.sys{align-self:center;max-width:94%;background:#0f2d1a;border:1px solid #22c55e;color:#bbf7d0;font-size:12.5px;font-weight:600;text-align:center;line-height:1.45}
 .msg .name{font-size:11px;color:#888;margin-bottom:2px;display:flex;align-items:center;gap:3px}
 .msg img{max-width:200px;border-radius:12px;margin-top:6px}
 .chat-input{padding:10px;background:#111;display:flex;gap:8px;align-items:center;border-top:1px solid #222}
@@ -58,6 +60,7 @@ body{background:#000;color:#fff}
 .pvb-tab.active{color:#F97316;border-bottom-color:#F97316}
 .user-list{flex:1;overflow-y:auto}
 .user-row{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;border-bottom:1px solid #1a1a1a}
+.ban-tag{font-size:10px;font-weight:700;color:#fff;background:#e11900;border-radius:6px;padding:1px 6px;vertical-align:middle}
 .user-row:active{background:#1a1a1a}
 .user-row .ava{width:44px;height:44px;border-radius:50%;background:#333;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#666;font-size:18px}
 .user-row .ava img{width:100%;height:100%;object-fit:cover}
@@ -71,10 +74,29 @@ body{background:#000;color:#fff}
 
 /* Profile (visual claro, conforme a referência enviada) */
 .pf-view{height:100%;overflow-y:auto;background:#f4f4f5;color:#18181b;padding-bottom:24px}
+/* Código de liberação: fica no canto de cima, à esquerda, no perfil. */
+.pf-code{display:flex;flex-wrap:wrap;gap:8px;padding:10px 16px 0}
+.pf-code button{background:#18181b;color:#fff;border:none;border-radius:10px;padding:8px 12px;font-size:12.5px;font-weight:700;cursor:pointer}
+.pf-code .pf-code-hw{background:#7c3aed}
+/* Códigos do app (o criador vê): canto de cima, à direita, no perfil. */
+.pf-code .pf-code-ver{margin-left:auto;background:#0f172a}
+.cd-item{border:1px solid #333;border-radius:12px;padding:10px 12px;margin-bottom:10px;text-align:left}
+.cd-top{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:14px;font-weight:800;color:#fff}
+.cd-n{font-size:11.5px;font-weight:700;color:#F97316}
+.cd-desc{font-size:12.5px;color:#a1a1aa;margin:4px 0 8px;line-height:1.35}
+.cd-row{display:flex;gap:8px;align-items:center}
+.cd-code{margin-bottom:0;font-weight:800;letter-spacing:.5px}
+.cd-copy{flex:0 0 auto;padding:11px 14px;border:none;border-radius:10px;background:#F97316;color:#fff;font-size:13px;font-weight:700;cursor:pointer}
+/* Sorteio (o criador vê): quem entrou na lista e quem já ganhou. */
+.sort-lista{max-height:190px;overflow-y:auto;margin-bottom:12px}
+.sort-item{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#1e1e1e;border:1px solid #333;border-radius:10px;padding:9px 12px;margin-bottom:6px;color:#fff;font-size:13.5px;font-weight:600}
+.sort-item span{color:#22C55E;font-weight:800;font-size:12.5px}
+.sort-ganha{background:#062e17;border:1px solid #22C55E;border-radius:12px;padding:12px;color:#bbf7d0;font-size:14px;font-weight:700;text-align:center;margin-bottom:10px}
+.sort-ganha b{color:#22C55E}
 .pf-view::-webkit-scrollbar{display:none}
-.banbar{display:flex;align-items:center;gap:10px;background:#e11900;color:#fff;padding:15px 16px}
-.banbar .tx{flex:1;font-size:14px;font-weight:700;line-height:1.3}
-.banbar .tx small{display:block;font-size:11.5px;font-weight:500;opacity:.92;margin-top:2px}
+.banbar{display:flex;align-items:center;gap:10px;background:#e60000;color:#fff;padding:14px 16px}
+.banbar .tx{flex:1;font-size:14px;font-weight:600;line-height:1.3}
+.banbar .tx small{display:block;font-size:12px;font-weight:500;opacity:.94;margin-top:2px}
 .banbar .go{font-size:22px;line-height:1;font-weight:700}
 .pf-head{background:#fff;padding:18px 16px 16px;border-bottom:1px solid #e7e7ea}
 .pf-top{display:flex;align-items:center;gap:14px}
@@ -178,14 +200,28 @@ body{background:#000;color:#fff}
 .live-stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:#141414;border-radius:16px;margin:14px 0}
 .live-cam{font-size:52px}
 .live-note{color:#8b8b8b;font-size:13px;text-align:center;padding:0 20px;line-height:1.45}
+.live-preview{width:100%;flex:1;min-height:0;object-fit:cover;border-radius:16px;background:#000}
+.live-chat{max-height:30%;overflow-y:auto;background:#141414;border-radius:12px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+.live-chat:empty{display:none}
+.live-chat .lc{font-size:12.5px;color:#e5e5e5;line-height:1.35}
+.live-chat .lc b{color:#F97316;font-weight:700}
+.live-chat-input{display:flex;gap:8px;margin-bottom:10px}
+.live-chat-input input{flex:1;padding:11px 12px;border-radius:10px;border:1px solid #2a2a2a;background:#141414;color:#fff;font-size:14px;outline:none}
+.live-chat-input button{width:46px;border-radius:10px;border:none;background:#F97316;color:#fff;font-size:16px;cursor:pointer}
+.live-video{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;z-index:0}
+.live-cover .live-pill,.live-cover .live-ctitle,.live-cover .live-cmeta{position:relative;z-index:1}
+.live-cover .live-ctitle,.live-cover .live-cmeta{text-shadow:0 1px 6px rgba(0,0,0,.9)}
 .live-title{font-size:17px;font-weight:800;color:#fff}
 .live-sub{font-size:12.5px;color:#8b8b8b;margin-top:4px;display:flex;align-items:center;gap:5px}
 .live-end{width:100%;padding:15px;border-radius:12px;border:none;background:#e11900;color:#fff;font-size:15px;font-weight:800;cursor:pointer;margin-top:12px}
-.live-bubble{position:fixed;right:14px;bottom:78px;z-index:400;display:flex;align-items:center;gap:8px;background:#e11900;color:#fff;font-size:13.5px;font-weight:800;border-radius:30px;padding:11px 14px;box-shadow:0 8px 22px rgba(0,0,0,.55);cursor:pointer;animation:bubbleIn .22s ease}
-.live-bubble .dot{width:9px;height:9px;border-radius:50%;background:#fff;animation:livePulse 1.1s infinite}
-.live-bubble .lt{font-variant-numeric:tabular-nums;opacity:.9}
-.live-bubble .x{color:#ffd9d4;font-size:13px;margin-left:2px}
-.live-bubble .x.encerrar{background:rgba(255,255,255,.2);border-radius:14px;padding:4px 9px;font-size:12px;color:#fff}
+/* Bolinha flutuante pequena: ela é o botão que começa a gravação da live. */
+.live-bubble{position:fixed;right:16px;bottom:80px;z-index:400;width:58px;height:58px;border-radius:50%;background:#e11900;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 22px rgba(0,0,0,.55);cursor:pointer;animation:bubbleIn .22s ease}
+.live-bubble svg{width:26px;height:26px}
+.live-bubble .dot{width:15px;height:15px;border-radius:50%;background:#fff;animation:livePulse 1.1s infinite}
+.live-bubble .ball-x{position:absolute;top:-5px;right:-5px;width:21px;height:21px;border-radius:50%;background:#1c1c1c;color:#fff;font-size:12px;font-weight:800;line-height:1;display:flex;align-items:center;justify-content:center;border:2px solid #0b0b0b}
+.live-bubble .ball-time{position:absolute;bottom:-9px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.78);color:#fff;font-size:10.5px;font-weight:800;border-radius:9px;padding:1px 6px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.live-bubble.rec{animation:ballPulse 1.5s infinite}
+@keyframes ballPulse{0%,100%{box-shadow:0 0 0 0 rgba(225,25,0,.6)}50%{box-shadow:0 0 0 12px rgba(225,25,0,0)}}
 @keyframes bubbleIn{from{transform:translateY(12px);opacity:.6}to{transform:none;opacity:1}}
 
 /* Home feed (cards) */
@@ -198,6 +234,7 @@ body{background:#000;color:#fff}
 .hcard{margin:12px 12px 0;border-radius:18px;background:#151515;overflow:hidden;border:1px solid #202020;box-shadow:0 8px 20px rgba(0,0,0,.45)}
 .hthumb{position:relative;width:100%;aspect-ratio:16/9;background:#0f0f0f;cursor:pointer;overflow:hidden}
 .hthumb video{width:100%;height:100%;object-fit:cover;pointer-events:none;display:block}
+.hthumb .capa,.pf-cell .capa{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
 .hthumb .scrim{position:absolute;left:0;right:0;bottom:0;height:75%;background:linear-gradient(to top,rgba(0,0,0,.88),rgba(0,0,0,.35) 55%,transparent);pointer-events:none}
 .hthumb .htitle{position:absolute;left:12px;right:80px;bottom:11px;color:#fff;font-size:14.5px;font-weight:700;line-height:1.32;text-shadow:0 1px 6px rgba(0,0,0,.85);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 /* Duração do vídeo fica na capa */
@@ -221,6 +258,45 @@ body{background:#000;color:#fff}
 .vd-player video{width:100%;height:100%;object-fit:contain}
 .vd-back{position:absolute;top:12px;left:12px;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:5}
 .vd-back svg{width:22px;height:22px;color:#fff}
+
+/* ===== Vídeo só para membros =====
+   Quem não é membro do canal não recebe nem o link do vídeo (quem corta é o
+   servidor): no lugar do player aparece a tela do cadeado, que leva ao
+   pagamento. O nome de quem é membro fica verde nos comentários daquele canal. */
+.membro-view{height:100%;overflow-y:auto;background:#0a0a0a;color:#fff}
+.membro-cover{position:relative;width:100%;height:200px;background:#111;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.membro-cover img{width:100%;height:100%;object-fit:cover;opacity:.5}
+.membro-cover .lock{position:absolute;font-size:44px}
+.membro-body{padding:18px 16px 30px;display:flex;flex-direction:column;gap:12px}
+.membro-body h2{font-size:19px;font-weight:800;line-height:1.3}
+.membro-sub{font-size:13.5px;color:#a1a1aa;line-height:1.45}
+.membro-preco{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#18181b;border:1px solid #2a2a2e;border-radius:14px;padding:14px 16px}
+.membro-preco b{font-size:20px;color:#22C55E}
+.membro-btn{width:100%;padding:15px;border:none;border-radius:12px;background:#22C55E;color:#052e16;font-size:16px;font-weight:800;cursor:pointer}
+.membro-pill{position:absolute;top:10px;left:10px;background:rgba(6,46,23,.92);border:1px solid #22C55E;color:#bbf7d0;font-size:10.5px;font-weight:800;padding:3px 8px;border-radius:999px;z-index:4}
+.capa-lock{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#111;color:#52525b;font-size:30px}
+.nome-membro{color:#22C55E}
+
+/* ===== Moedas: o que a pessoa ganha ficando no app ===== */
+.moedas-view{height:100%;overflow-y:auto;background:#0a0a0a;color:#fff;padding:18px 16px 30px}
+.moeda-head{text-align:center;padding:12px 0 18px}
+.moeda-bolinha{font-size:40px;line-height:1}
+.moeda-saldo{font-size:34px;font-weight:800;color:#FACC15;margin-top:6px}
+.moeda-sub{font-size:13px;color:#a1a1aa;margin-top:2px}
+.moeda-card{background:#18181b;border:1px solid #2a2a2e;border-radius:14px;padding:16px}
+.moeda-titulo{font-size:14px;font-weight:800;color:#FACC15;margin-bottom:10px}
+.missao{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid #26262a}
+.missao:last-of-type{border-bottom:none}
+.missao .mleft b{display:block;font-size:13.5px}
+.missao .mleft span{font-size:12px;color:#a1a1aa}
+.missao .mdir{font-size:14px;font-weight:800;color:#22C55E;text-align:right;white-space:nowrap}
+.missao .mdir small{display:block;font-size:10.5px;color:#71717a;font-weight:600}
+.moeda-nota{font-size:12.5px;color:#a1a1aa;line-height:1.45;margin-top:12px}
+.moeda-pill{display:inline-flex;align-items:center;gap:5px;background:#fef9c3;border:1px solid #facc15;color:#854d0e;font-size:12px;font-weight:800;border-radius:999px;padding:4px 10px;margin-top:8px}
+.moeda-voltar{display:block;width:100%;margin-top:16px;padding:14px;border-radius:12px;border:none;background:#1e1e1e;color:#fff;font-size:14.5px;font-weight:700;cursor:pointer}
+.pag-linha{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13.5px;color:#d4d4d8;margin-bottom:8px;text-align:left}
+.pag-linha b{color:#fff;text-align:right}
+.pag-nota{font-size:11.5px;color:#a1a1aa;line-height:1.4;margin-top:10px;text-align:center}
 .vd-body{padding:12px 14px}
 .vd-title{font-size:17px;font-weight:700;color:#fff;line-height:1.3;margin-bottom:6px}
 .vd-stats{font-size:13px;color:#aaa;margin-bottom:12px}
@@ -250,6 +326,14 @@ body{background:#000;color:#fff}
 .vd-cmt-preview .ct{flex:1}
 .vd-cmt-preview .cn{font-size:13px;font-weight:600;color:#fff;display:flex;align-items:center;gap:3px}
 .vd-cmt-preview .cc{font-size:13px;color:#ccc}
+/* Outros vídeos: os que já estão na Home, embaixo dos comentários */
+.vo-titulo{font-size:15.5px;font-weight:700;color:#fff;margin:2px 0 12px}
+.vo-item{display:flex;gap:10px;margin-bottom:12px;cursor:pointer}
+.vo-thumb{position:relative;width:150px;flex-shrink:0;aspect-ratio:16/9;border-radius:10px;overflow:hidden;background:#0f0f0f}
+.vo-thumb .capa,.vo-thumb video{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
+.vo-info{flex:1;min-width:0}
+.vo-t{font-size:13.5px;font-weight:700;color:#fff;line-height:1.3;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.vo-s{font-size:11.5px;color:#aaa}
 
 /* Comments */
 .comments-panel{position:fixed;bottom:0;left:0;right:0;height:60%;background:#1a1a1a;border-radius:16px 16px 0 0;z-index:100;display:none;flex-direction:column}
@@ -270,6 +354,12 @@ body{background:#000;color:#fff}
 
 /* Aviso de banimento aparece na tela de perfil (ver .banbar) */
 
+/* Aviso da lei: app para maiores de 10 anos, fechado no X */
+.aviso-idade{position:relative;background:#1a1a1a;border-radius:16px;padding:30px 22px 26px;width:100%;max-width:340px;text-align:center;color:#fff}
+.aviso-idade .ic{font-size:34px;margin-bottom:10px}
+.aviso-idade p{font-size:15.5px;font-weight:600;line-height:1.45}
+.aviso-idade .x{position:absolute;top:6px;right:14px;font-size:26px;line-height:1;cursor:pointer;color:#a1a1aa}
+
 /* Edit profile */
 .edit-modal{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.8);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
 .edit-modal.show{display:flex}
@@ -277,28 +367,95 @@ body{background:#000;color:#fff}
 .edit-card h3{text-align:center;margin-bottom:16px;color:#F97316}
 .edit-card .eava{width:80px;height:80px;border-radius:50%;margin:0 auto 16px;background:#333;overflow:hidden;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#666;font-size:32px}
 .edit-card .eava img{width:100%;height:100%;object-fit:cover}
+
+/* ===== Visual Halloween (código halloween77) =====
+   Quem liga o código no perfil ganha o app inteiro no clima de Halloween: o
+   rodapé, os nomes e o resto das telas. Sem o tema (body sem a classe .hw),
+   nada aqui se aplica e o app fica exatamente como antes. */
+body.hw{background:#0a0410;color:#f4ecff}
+body.hw #app{background:#0a0410}
+body.hw #nav{background:linear-gradient(180deg,#1d0e2b,#0b0413);border-top:1px solid #7c3aed;box-shadow:0 -10px 26px rgba(124,58,237,.45)}
+body.hw .nav-item{color:#8e7bb0}
+body.hw .nav-item.active{color:#ff8c1a;text-shadow:0 0 12px rgba(255,140,26,.6)}
+body.hw .nav-post{background:linear-gradient(135deg,#ff8c1a,#7c3aed);box-shadow:0 2px 12px rgba(255,140,26,.5)}
+body.hw .hw-em{font-size:12px;line-height:1;margin-bottom:1px}
+body.hw .home-wrap{background:linear-gradient(180deg,#170a22,#0a0410)}
+body.hw .home-head .t b{color:#ff8c1a}
+body.hw .home-head .cnt{color:#ffb066;background:rgba(255,140,26,.12);border-color:rgba(255,140,26,.35)}
+body.hw .hcard{background:#1c1029;border-color:#3c2460;box-shadow:0 8px 22px rgba(80,20,120,.35)}
+body.hw .hthumb{background:#120821}
+body.hw .hthumb .play-ov{background:rgba(255,140,26,.92)}
+body.hw .hbody .hsub{color:#a78bfa}
+body.hw .feed{background:#0a0410}
+body.hw .video-slide{background:#0a0410}
+body.hw .chat-view{background:#12081c}
+body.hw .chat-header{background:#1d0e2b;border-bottom-color:#3c2460}
+body.hw .chat-header .back{color:#ff8c1a}
+body.hw .msg.me{background:linear-gradient(135deg,#ff8c1a,#c2410c)}
+body.hw .msg.them{background:#241338;color:#f4ecff}
+body.hw .chat-input{background:#1d0e2b;border-top-color:#3c2460}
+body.hw .chat-input input{background:#241338}
+body.hw .chat-input button{background:#ff8c1a}
+body.hw .comments-panel{background:#1c1029}
+body.hw .cp-header,body.hw .cp-input{border-color:#3c2460}
+body.hw .cp-input button{background:#ff8c1a}
+body.hw .post-view,body.hw .panel-view,body.hw .vd-view{background:#100718}
+body.hw .post-opt,body.hw .panel-section,body.hw .panel-tab{background:#1c1029}
+body.hw .post-opt.active,body.hw .panel-tab.active,body.hw .post-opt.active{border-color:#ff8c1a}
+body.hw .post-opt svg{color:#ff8c1a}
+body.hw .post-btn{background:linear-gradient(135deg,#ff8c1a,#c2410c)}
+body.hw .post-field:focus{border-color:#ff8c1a}
+body.hw .panel-view h2,body.hw .panel-section h3{color:#ffb066}
+body.hw .panel-item button{background:#ff8c1a}
+body.hw .pf-view{background:linear-gradient(180deg,#1a0d27,#0f0618);color:#f4ecff}
+body.hw .pf-head{background:#1d0e2b;border-bottom-color:#3c2460}
+body.hw .pf-name{color:#ffd9a8;text-shadow:0 0 14px rgba(255,140,26,.45)}
+body.hw .pf-user,body.hw .pf-stat .lbl{color:#a78bfa}
+body.hw .pf-bio{color:#e2d6f5}
+body.hw .pf-stat .num{color:#fff}
+body.hw .pf-rows{background:#1d0e2b;border-color:#3c2460}
+body.hw .pf-row{color:#f4ecff;border-bottom-color:#2c1a44}
+body.hw .pf-row .ic{background:#2c1a44}
+body.hw .pf-btn-dark{background:linear-gradient(135deg,#ff8c1a,#7c3aed)}
+body.hw .pf-note{background:#241338;border-color:#4c2a7a;color:#e9d5ff}
+body.hw .notif{background:linear-gradient(90deg,#7c3aed,#ff8c1a)}
+body.hw .live-bubble{background:linear-gradient(135deg,#ff8c1a,#7c3aed)}
+body.hw .vd-act,body.hw .vd-actgrp,body.hw .vd-bell{background:#241338}
+body.hw .vd-cmt-head .cnt{color:#a78bfa}
+/* Enfeites soltos pela tela (morcegos, abóboras, fantasmas). Não pegam toque:
+   são só enfeite, e ficam abaixo do rodapé. */
+#hwDeco{position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;overflow:hidden;display:none;z-index:260}
+body.hw #hwDeco{display:block}
+/* Nas telas de assistir a classe .hw nem entra no body (ver halloweenNaTela):
+   é assim que Home, Shorts, player e live voltam ao visual normal. */
+#hwDeco span{position:absolute;opacity:.5;filter:drop-shadow(0 2px 6px rgba(0,0,0,.7));animation:hwFloat 8s ease-in-out infinite}
+@keyframes hwFloat{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-16px) rotate(7deg)}}
 </style>
 </head>
 <body>
 <div id="app"></div>
 <div id="nav"></div>
-<div class="notif" id="notif" onclick="this.classList.remove('show')"></div>
+<div id="hwDeco"><span style="left:5%;top:11%">🎃</span><span style="left:84%;top:7%;font-size:20px;animation-delay:.8s">🦇</span><span style="left:11%;top:70%;font-size:24px;animation-delay:1.6s">👻</span><span style="left:88%;top:58%">🕸</span><span style="left:44%;top:3%;font-size:18px;animation-delay:2.4s">🦇</span><span style="left:70%;top:86%;font-size:22px;animation-delay:3.2s">💀</span><span style="left:28%;top:38%;font-size:18px;animation-delay:1.1s">🕷</span><span style="left:92%;top:32%;font-size:20px;animation-delay:2s">🎃</span></div>
+<div class="notif" id="notif" onclick="notifClick()"></div>
 
+<script src="sync.js"></script>
 <script>
 // ==================== DATA LAYER ====================
+// Cada leitura devolve sempre uma lista, mesmo se o valor guardado estiver
+// estranho (um "null" salvo por engano quebrava o chat e a home).
 var DB = {
-  users: function(){ return JSON.parse(localStorage.getItem('gl_users')||'[]'); },
-  saveUsers: function(u){ localStorage.setItem('gl_users', JSON.stringify(u)); },
-  videos: function(){ return JSON.parse(localStorage.getItem('gl_videos')||'[]'); },
-  saveVideos: function(v){ localStorage.setItem('gl_videos', JSON.stringify(v)); },
-  pubMsgs: function(){ return JSON.parse(localStorage.getItem('gl_pubmsg')||'[]'); },
-  savePubMsgs: function(m){ localStorage.setItem('gl_pubmsg', JSON.stringify(m)); },
-  privMsgs: function(){ return JSON.parse(localStorage.getItem('gl_privmsg')||'[]'); },
-  savePrivMsgs: function(m){ localStorage.setItem('gl_privmsg', JSON.stringify(m)); },
-  aiHist: function(){ return JSON.parse(localStorage.getItem('gl_aihist')||'[]'); },
+  users: function(){ return JSON.parse(localStorage.getItem('gl_users')||'[]')||[]; },
+  saveUsers: function(u){ localStorage.setItem('gl_users', JSON.stringify(u)); if(window.SYNC) SYNC.save('users'); },
+  videos: function(){ return JSON.parse(localStorage.getItem('gl_videos')||'[]')||[]; },
+  saveVideos: function(v){ localStorage.setItem('gl_videos', JSON.stringify(v)); if(window.SYNC) SYNC.save('videos'); },
+  pubMsgs: function(){ return JSON.parse(localStorage.getItem('gl_pubmsg')||'[]')||[]; },
+  savePubMsgs: function(m){ localStorage.setItem('gl_pubmsg', JSON.stringify(m)); if(window.SYNC) SYNC.save('pubMsgs'); },
+  privMsgs: function(){ return JSON.parse(localStorage.getItem('gl_privmsg')||'[]')||[]; },
+  savePrivMsgs: function(m){ localStorage.setItem('gl_privmsg', JSON.stringify(m)); if(window.SYNC) SYNC.save('privMsgs'); },
+  aiHist: function(){ return JSON.parse(localStorage.getItem('gl_aihist')||'[]')||[]; },
   saveAiHist: function(h){ localStorage.setItem('gl_aihist', JSON.stringify(h)); },
   live: function(){ return JSON.parse(localStorage.getItem('gl_live')||'null'); },
-  saveLive: function(l){ if(l) localStorage.setItem('gl_live', JSON.stringify(l)); else localStorage.removeItem('gl_live'); }
+  saveLive: function(l){ if(l) localStorage.setItem('gl_live', JSON.stringify(l)); else localStorage.removeItem('gl_live'); if(window.SYNC) SYNC.save('live'); }
 };
 
 function curUser(){ var id=localStorage.getItem('gl_current_user'); return DB.users().find(function(u){return u.id===id;}); }
@@ -320,14 +477,99 @@ function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;'
 function verifiedBadge(type){
   if(type==='blue') return '<span class="vbadge"><svg viewBox="0 0 24 24" fill="#2196F3"><path d="M12 1l2.4 2.4 3.4-.3 1 3.3 3 1.8-1.4 3.1 1.4 3.1-3 1.8-1 3.3-3.4-.3L12 22l-2.4-2.4-3.4.3-1-3.3-3-1.8 1.4-3.1L3.2 8.2l3-1.8 1-3.3 3.4.3z" fill="#2196F3"/><path d="M8.5 12l2.5 2.5 4.5-5" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
   if(type==='orange') return '<span class="vbadge"><svg viewBox="0 0 24 24"><path d="M12 1l2.4 2.4 3.4-.3 1 3.3 3 1.8-1.4 3.1 1.4 3.1-3 1.8-1 3.3-3.4-.3L12 22l-2.4-2.4-3.4.3-1-3.3-3-1.8 1.4-3.1L3.2 8.2l3-1.8 1-3.3 3.4.3z" fill="#ED8B38"/><path d="M8.5 12l2.5 2.5 4.5-5" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
+  // Selo verde: é o prêmio do sorteio. Quem ganha carrega o selo (e o painel de
+  // banimentos) até o prêmio vencer — quem sabe se ainda vale é o servidor, que
+  // manda "premio" ligado ou desligado em cada resposta.
+  if(type==='green') return '<span class="vbadge"><svg viewBox="0 0 24 24"><path d="M12 1l2.4 2.4 3.4-.3 1 3.3 3 1.8-1.4 3.1 1.4 3.1-3 1.8-1 3.3-3.4-.3L12 22l-2.4-2.4-3.4.3-1-3.3-3-1.8 1.4-3.1L3.2 8.2l3-1.8 1-3.3 3.4.3z" fill="#22C55E"/><path d="M8.5 12l2.5 2.5 4.5-5" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
   return '';
 }
-function userNameDisplay(u){ return '<span style="display:flex;align-items:center;gap:3px">'+escapeHtml(u.name)+(u.isCreator?'👑':'')+verifiedBadge(u.verifiedType)+'</span>'; }
+// Selo: o azul é exclusivo do criador (tex_tt). Quem chega a 100 mil seguidores
+// ganha o selo laranja. O verde é do ganhador do sorteio, enquanto o prêmio vale.
+function verificado(u){
+  if(!u) return null;
+  if(u.isCreator || u.username==='tex_tt') return 'blue';
+  if(u.premio) return 'green';
+  if((u.followers||0) >= 100000) return 'orange';
+  return null;
+}
+// Quem entra no painel de banimentos: o criador, a conta liberada por código e
+// quem ganhou o sorteio (u.premio, enquanto o prêmio não venceu).
+function temPainelBan(u){ return !!(u && (u.isCreator || u.modOnly || u.premio)); }
+// Visual Halloween: quem ligou o código (halloween77) carrega o tema no próprio
+// cadastro, então ele volta em qualquer aparelho. O visual sai do app na
+// meia-noite do dia 31 de outubro — depois disso o tema não aparece mais.
+function fimDoHalloween(){
+  var hoje = new Date();
+  return new Date(hoje.getFullYear(), 9, 31, 0, 0, 0, 0).getTime();
+}
+function temHalloween(u){
+  if(Date.now() >= fimDoHalloween()) return false;
+  return !!((u||curUser()||{}).tema==='halloween');
+}
+// Telas em que o vídeo está na frente: ali o app fica no visual normal, sem
+// Halloween nenhum (nem enfeite, nem rodapé enfeitado, nem 🎃 no nome).
+var TELAS_DE_VIDEO = ['home', 'shorts', 'detail', 'live'];
+function halloweenNaTela(){ return TELAS_DE_VIDEO.indexOf(view) < 0 && temHalloween(curUser()); }
+// Membresia (do servidor): o dono do canal e quem é membro dele. Quem é membro
+// aparece com o nome verde nos comentários daquele canal — e só nele.
+function ehMembroDe(u, canalId){ return !!(u && canalId && (u.id===canalId || (u.membroDe||[]).indexOf(canalId)>=0)); }
+// Vídeo de membro: só abre para o dono do canal e para quem é membro dele.
+function podeVerVideo(v, u){ if(!v || !v.membro) return true; return ehMembroDe(u, v.userId); }
+function videoTrancado(v, u){ return !!(v && v.membro && !podeVerVideo(v, u)); }
+// ==================== MOEDAS ====================
+// A membresia de um canal é paga com moedas: o valor do vídeo é em moedas, não
+// em dinheiro, e vive entre MIN_MEMBRESIA e MAX_MEMBRESIA — o servidor não
+// deixa entrar nem pagar fora dessa faixa (ver MEMBRESIA_MIN e MEMBRESIA_MAX
+// no server.js). O que a pessoa paga cai inteirinho no saldo do dono do vídeo.
+var MIN_MEMBRESIA = 25;
+var MAX_MEMBRESIA = 30;
+function precoDeMembro(n){ var v = Number(n) || MIN_MEMBRESIA; return Math.min(MAX_MEMBRESIA, Math.max(MIN_MEMBRESIA, v)); }
+function precoMembresia(v){ return precoDeMembro(v && v.preco); }
+function moedaNum(n){ return (Math.round(Number(n||0)*100)/100).toFixed(2).replace('.', ','); }
+function moedaTxt(n){ return '🪙 '+moedaNum(n)+' moedas'; }
+function moedaCurta(n){ return '🪙 '+moedaNum(n); }
+// O saldo é do servidor (ver MOEDAS no server.js): aqui a gente só mostra o
+// número que ele mandou.
+function saldoMoedas(){ return Math.round(Number((curUser()||{}).moedas||0)*100)/100; }
+function precoTxt(valor){ return moedaTxt(valor); }
+
+// ==================== AVATAR COM COR ====================
+// Conta sem foto (os comentaristas automáticos, por exemplo) ficava com aquele
+// círculo cinza e a inicial apagada. Agora a cor sai do próprio nome, então cada
+// conta tem sempre a mesma cor e nenhuma imagem fica sem graça.
+var CORES_AVATAR = ['#f97316','#22c55e','#3b82f6','#e11d48','#a855f7','#06b6d4','#eab308','#ec4899','#14b8a6','#6366f1'];
+function corDoNome(nome){
+  var s = String(nome||'?'), h = 0;
+  for(var i=0;i<s.length;i++) h = (h*31 + s.charCodeAt(i)) % 1000003;
+  return CORES_AVATAR[h % CORES_AVATAR.length];
+}
+function letraDe(nome){
+  var c = String(nome||'?').trim().charAt(0).toUpperCase();
+  return /[A-Z0-9À-ÿ]/.test(c) ? escapeHtml(c) : '?';
+}
+// O círculo colorido que entra no lugar da foto — inclusive quando a foto existe
+// mas não carrega: aí a imagem quebrada dá lugar a ele na hora (ver trocarPorCor).
+function avatarCorEstilo(nome, s){
+  return 'width:'+s+'px;height:'+s+'px;border-radius:50%;overflow:hidden;flex-shrink:0;'+
+    'background:linear-gradient(135deg,'+corDoNome(nome)+','+corDoNome(String(nome||'?')+'•2')+');'+
+    'color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:'+Math.round(s/2.2)+'px';
+}
+function trocarPorCor(img, s, nome){
+  var d = img && img.parentNode;
+  if(!d) return;
+  d.setAttribute('style', avatarCorEstilo(nome, s));
+  d.innerHTML = letraDe(nome);
+}
+// O nome verde só entra quando a tela é de um canal (canalId), tipo os
+// comentários de um vídeo.
+function userNameDisplay(u, canalId){ return '<span class="'+(ehMembroDe(u, canalId)?'nome-membro':'')+'" style="display:flex;align-items:center;gap:3px">'+((temHalloween(u) && TELAS_DE_VIDEO.indexOf(view)<0)?'🎃 ':'')+escapeHtml(u.name)+(u.isCreator?'👑':'')+verifiedBadge(verificado(u))+'</span>'; }
 function avatarHtml(u, sz, cls){
   var s=sz||44;
   var c=cls?(' '+cls):'';
-  if(u && u.photo) return '<div class="'+c+'" style="width:'+s+'px;height:'+s+'px;border-radius:50%;overflow:hidden;flex-shrink:0"><img src="'+u.photo+'" style="width:100%;height:100%;object-fit:cover"></div>';
-  return '<div class="'+c+'" style="width:'+s+'px;height:'+s+'px;border-radius:50%;background:#333;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#666;font-size:'+(s/2.5)+'px">'+(u?escapeHtml(u.name[0]||'?'):'?')+'</div>';
+  var nome = (u && (u.name || u.userName)) || '?';
+  var seguro = String(nome).replace(/[^\wÀ-ÿ ]/g,'').slice(0,30) || '?';
+  if(u && u.photo) return '<div class="'+c+'" style="width:'+s+'px;height:'+s+'px;border-radius:50%;overflow:hidden;flex-shrink:0"><img src="'+u.photo+'" style="width:100%;height:100%;object-fit:cover" onerror="trocarPorCor(this,'+s+',\''+seguro+'\')"></div>';
+  return '<div class="'+c+'" style="'+avatarCorEstilo(nome,s)+'">'+letraDe(nome)+'</div>';
 }
 
 // ==================== STATE ====================
@@ -339,7 +581,6 @@ var profileUserId = null;
 var panelTab = 'videos';
 var currentVideoId = null;
 var feedObserver = null;
-var botTimer = null;
 var vdVideoId = null;
 
 // ==================== NAV ====================
@@ -352,51 +593,75 @@ var ICONS = {
 };
 
 function renderNav(){
-  var u = curUser();
+  // Rodapé de Halloween: com o visual ligado, cada item do rodapé ganha o seu
+  // enfeite (abóbora, morcego, teia, caveirinha) — menos na hora de assistir,
+  // que é quando o app volta ao visual normal.
+  var hw = halloweenNaTela();
   var items = [
-    {key:'home', label:'Início', icon:ICONS.home},
-    {key:'shorts', label:'Shorts', icon:ICONS.shorts},
-    {key:'post', label:'Postar', icon:ICONS.post, circle:true},
-    {key:'pvb', label:'PVB', icon:ICONS.pvb},
-    {key:'profile', label:'Você', icon:ICONS.profile}
+    {key:'home', label:'Início', icon:ICONS.home, em:'🎃'},
+    {key:'shorts', label:'Shorts', icon:ICONS.shorts, em:'🦇'},
+    {key:'post', label:'Postar', icon:ICONS.post, circle:true, em:'🎃'},
+    {key:'pvb', label:'PVB', icon:ICONS.pvb, em:'🕸'},
+    {key:'profile', label:'Você', icon:ICONS.profile, em:'💀'}
   ];
   var html = items.map(function(it){
     var cls = 'nav-item' + (view===it.key ? ' active' : '');
-    if(it.circle) return '<div class="nav-item" onclick="navigate(\''+it.key+'\')"><div class="nav-post">'+it.icon+'</div><span>'+it.label+'</span></div>';
-    return '<div class="'+cls+'" onclick="navigate(\''+it.key+'\')">'+it.icon+'<span>'+it.label+'</span></div>';
+    var enfeite = hw ? '<span class="hw-em">'+it.em+'</span>' : '';
+    if(it.circle) return '<div class="nav-item" onclick="navigate(\''+it.key+'\')"><div class="nav-post">'+it.icon+'</div>'+enfeite+'<span>'+it.label+'</span></div>';
+    return '<div class="'+cls+'" onclick="navigate(\''+it.key+'\')">'+enfeite+it.icon+'<span>'+it.label+'</span></div>';
   }).join('');
   document.getElementById('nav').innerHTML = html;
 }
 
 function navigate(v){
+  // Tocar duas vezes no mesmo item do rodapé atualiza a tela.
+  if(view===v){ atualizarView(); return; }
   view = v;
   if(v==='profile') profileUserId = curUser().id;
   if(v==='pvb'){ pvbView='list'; }
   render();
 }
 
+function atualizarView(){
+  render();
+  if(window.SYNC && SYNC.logged()) SYNC.tick();
+  showNotif('Atualizado 🔄');
+}
+
 // ==================== RENDER ====================
 function render(){
   var u = curUser();
-  if(!u){ window.location.href='/home'; return; }
+  if(!u){ window.location.href='home.html'; return; }
+  // Visual Halloween: o tema vive no cadastro da conta e entra no body a cada
+  // desenho da tela. Nas telas de assistir ele não entra: o vídeo fica normal.
+  document.body.classList.toggle('hw', halloweenNaTela());
   // Banido não posta, não conversa e não assiste vídeo: cai sempre no próprio perfil.
-  if(isBanned(u) && !bannedViewAllowed(u)){
+  var banido = isBanned(u);
+  if(banido && !bannedViewAllowed(u)){
     view = 'profile';
     profileUserId = u.id;
   }
-  document.getElementById('nav').style.display='flex';
+  // Sem rodapé para quem está banido: sobram o próprio perfil e a conversa com o criador.
+  document.getElementById('nav').style.display = banido ? 'none' : 'flex';
   renderNav();
   switch(view){
     case 'home': renderHome(); break;
-    case 'shorts': renderShorts(); break;
+    // A sincronia chega de poucos em poucos segundos (o app mexe sozinho nas
+    // curtidas e nas visualizações). Com um vídeo rodando, redesenhar a tela
+    // jogaria ele de volta para o começo: aqui só os números são atualizados.
+    case 'shorts': if(tempoRodando('.video-slide video')) atualizarBotoesShorts(); else renderShorts(); break;
     case 'pvb': renderPVB(); break;
     case 'profile': renderProfile(); break;
     case 'post': renderPost(); break;
     case 'panel': renderPanel(); break;
-    case 'detail': renderVideoDetail(); break;
+    case 'moedas': renderMoedas(); break;
+    case 'detail': if(tempoRodando('.vd-view video')) break; renderVideoDetail(); break;
     case 'live': renderLive(); break;
   }
   paintBubble();
+  // Quem foi banido por ter 10 anos ou menos vê este recado e fecha no X; a
+  // conta continua banida (quem libera é só o criador).
+  if(banPorIdade()) mostrarAvisoIdade();
 }
 
 // ==================== CARREGAMENTO DOS VÍDEOS ====================
@@ -427,6 +692,21 @@ function attachLazyVideo(el){
   }
 }
 
+// O servidor manda a capa pronta (JPEG) e a duração junto com o vídeo: o card do
+// feed aparece na hora, sem baixar o arquivo inteiro só para desenhar o primeiro
+// quadro. Vídeo sem capa (link de fora ou enviado antes disso) usa o do próprio.
+function capaHtml(v){
+  if(v.poster) return '<img class="capa" src="'+v.poster+'" alt="" loading="lazy">';
+  // Vídeo de membro chega sem link para quem não é membro: sem capa, o card
+  // mostra o cadeado em vez de um quadro preto.
+  if(!v.url) return '<div class="capa-lock">🔒</div>';
+  return '<video data-src="'+v.url+'" data-thumb="1" data-dur="1" muted playsinline preload="none"></video>';
+}
+
+function duracaoHtml(v){
+  return '<div class="vdur">'+(v.poster && v.dur ? fmtDur(v.dur) : '')+'</div>';
+}
+
 function lazyLoadEls(els){
   var list = [].slice.call(els || []);
   if(list.length===0) return;
@@ -437,6 +717,21 @@ function lazyLoadEls(els){
     });
   }, {rootMargin:(niceNetwork()?'420px 0px':'140px 0px')});
   list.forEach(function(el){ io.observe(el); });
+}
+
+// O toque no card já começa a baixar o vídeo: quando o player abre, o começo do
+// arquivo já está no aparelho e o vídeo começa a tocar quase na hora.
+var aquecendo = {};
+function aquecerVideo(url){
+  url = String(url||'');
+  if(url.indexOf('/') !== 0 || aquecendo[url]) return;   // só o que está no servidor
+  aquecendo[url] = true;
+  var v = document.createElement('video');
+  v.preload = 'auto'; v.muted = true; v.setAttribute('playsinline','');
+  v.style.display = 'none'; v.src = url;
+  document.body.appendChild(v);
+  try { v.load(); } catch(e){}
+  setTimeout(function(){ if(v.parentNode) v.parentNode.removeChild(v); }, 20000);
 }
 
 // Deixa o próximo short já carregando (troca instantânea) — só em rede boa.
@@ -452,39 +747,42 @@ function preloadNeighbour(el){
 
 // ==================== HOME (feed de vídeos) ====================
 function renderHome(){
-  var vids = DB.videos().filter(function(v){return v.type!=='short';});
+  // Mais novo primeiro: o último vídeo publicado aparece no topo.
+  var vids = DB.videos().filter(function(v){return v.type!=='short';}).sort(function(a,b){ return (b.timestamp||0)-(a.timestamp||0); });
   if(vids.length===0 && !DB.live()){
     document.getElementById('app').innerHTML = '<div style="height:100%;display:flex;align-items:center;justify-content:center;color:#666;font-size:16px;text-align:center;padding:20px">Nenhum vídeo ainda.<br>Use o botão "+" para publicar! 🎬</div>';
     return;
   }
+  // No topo da Home fica só o nome do app: a contagem de vídeos saiu daqui.
   var html = '<div class="home-wrap" id="homeFeed">'+
-    '<div class="home-head"><div class="t">Good<b>Look</b> · Vídeos</div><div class="cnt">'+vids.length+' vídeos</div></div>';
-  // Live no ar aparece em cima da Home também.
-  var l = DB.live();
-  if(l){
+    '<div class="home-head"><div class="t">Good<b>Look</b> · Vídeos</div></div>';
+  // Quem está ao vivo aparece em cima da Home — a sua live e as dos outros usuários.
+  livesOnAir().forEach(function(l){
     var lo = getUser(l.userId) || {name:l.userName, photo:l.userPhoto, verifiedType:null, isCreator:false};
+    var mine = l.userId===curUser().id;
     html += '<div class="hcard live-card">'+
-      '<div class="live-cover" onclick="openLiveView()">'+
+      '<div class="live-cover" onclick="openLiveView(\''+l.id+'\')">'+
+        (mine && liveStream?'<video class="live-video" id="homeLiveVideo" autoplay playsinline muted></video>':'')+
         '<span class="live-pill"><span class="dot"></span>AO VIVO</span>'+
         '<div class="live-ctitle">'+escapeHtml(l.title)+'</div>'+
-        '<div class="live-cmeta">'+userNameDisplay(lo)+' · <span id="liveCardTime">'+liveElapsed(l.startedAt)+'</span> no ar</div>'+
+        '<div class="live-cmeta">'+userNameDisplay(lo)+' · <span data-live="'+l.id+'">'+liveElapsed(l.startedAt)+'</span> no ar</div>'+
       '</div>'+
       '<div class="hbody">'+
         avatarHtml(lo,40,'yt-ava')+
         '<div class="hinfo"><div class="hname">'+userNameDisplay(lo)+'</div><div class="hsub">'+l.viewers+' assistindo agora</div></div>'+
-        '<button class="live-watch" onclick="openLiveView()">'+(l.userId===curUser().id?'Ver minha live':'Assistir')+'</button>'+
+        '<button class="live-watch" onclick="openLiveView(\''+l.id+'\')">'+(mine?'Ver minha live':'Assistir')+'</button>'+
       '</div>'+
     '</div>';
-  }
+  });
   vids.forEach(function(v){
     var owner = getUser(v.userId) || {name:v.userName, photo:v.userPhoto, verifiedType:null, isCreator:false};
     html += '<div class="hcard">'+
-      '<div class="hthumb" onclick="openVideoDetail(\''+v.id+'\')">'+
-        '<video data-src="'+v.url+'" data-thumb="1" data-dur="1" muted playsinline preload="none"></video>'+
+      '<div class="hthumb" ontouchstart="aquecerVideo(\''+v.url+'\')" onmousedown="aquecerVideo(\''+v.url+'\')" onclick="openVideoDetail(\''+v.id+'\')">'+
+        capaHtml(v)+
+        (v.membro?'<span class="membro-pill">🔒 MEMBRO</span>':'')+
         '<div class="scrim"></div>'+
-        '<div class="play-ov"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>'+
         '<div class="htitle">'+escapeHtml(v.description||'')+'</div>'+
-        '<div class="vdur"></div>'+
+        duracaoHtml(v)+
       '</div>'+
       '<div class="hbody">'+
         avatarHtml(owner,40,'yt-ava')+
@@ -498,6 +796,8 @@ function renderHome(){
   html += '</div>';
   document.getElementById('app').innerHTML = html;
   lazyLoadEls(document.querySelectorAll('#homeFeed video'));
+  var hv = document.getElementById('homeLiveVideo');
+  if(hv) hv.srcObject = liveStream;
 }
 
 function timeAgoStr(ts){
@@ -516,7 +816,8 @@ function openVideoDetail(vid){
   vdVideoId = vid;
   view = 'detail';
   var v = DB.videos().find(function(x){return x.id===vid;});
-  if(v){ v.views = (v.views||0)+1; DB.saveVideos(DB.videos()); }
+  // Vídeo de membro trancado não conta visualização: a tela é só a do cadeado.
+  if(v && !videoTrancado(v, curUser())){ v.views = (v.views||0)+1; DB.saveVideos(DB.videos()); }
   render();
 }
 
@@ -529,12 +830,19 @@ function renderVideoDetail(){
   var disliked = v.dislikedBy && v.dislikedBy.indexOf(u.id)>=0;
   var saved = u.savedVideos && u.savedVideos.indexOf(v.id)>=0;
   var isFollowing = u.following && u.following.indexOf(owner.id)>=0;
-  var previewCmt = v.comments && v.comments.length>0 ? v.comments[v.comments.length-1] : null;
-  var pcu = previewCmt ? (getUser(previewCmt.userId) || {name:previewCmt.userName, photo:null, verifiedType:null}) : null;
+
+  // Vídeo de membro: quem não é membro do canal não vê o player — vê a tela do
+  // cadeado, e é ela que leva ao pagamento.
+  if(videoTrancado(v, u)){
+    document.getElementById('app').innerHTML = membroGateHtml(v, owner);
+    return;
+  }
 
   var html = '<div class="vd-view">'+
     '<div class="vd-player">'+
-      '<video src="'+v.url+'" autoplay controls playsinline style="width:100%;height:100%;object-fit:contain"></video>'+
+      // A capa aparece na hora; o vídeo já começa com o índice no começo do
+      // arquivo (o servidor deixa assim no envio), então toca sem esperar tudo.
+      '<video src="'+v.url+'"'+(v.poster?' poster="'+v.poster+'"':'')+' autoplay preload="auto" controls playsinline style="width:100%;height:100%;object-fit:contain"></video>'+
       '<div class="vd-back" onclick="view=\'home\';render()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></div>'+
     '</div>'+
     '<div class="vd-body">'+
@@ -573,16 +881,50 @@ function renderVideoDetail(){
           '<span>Salvar</span>'+
         '</button>'+
       '</div>'+
-      '<div class="vd-cmt-head" onclick="openComments(\''+v.id+'\')" style="cursor:pointer">Comentários <span class="cnt">'+(v.comments?v.comments.length:0)+'</span><span style="margin-left:auto;color:#3ea6ff;font-size:13px;font-weight:600">Ver todos ›</span></div>'+
-      (previewCmt?
-        '<div class="vd-cmt-preview" onclick="openComments(\''+v.id+'\')">'+
-          '<div class="ca">'+(pcu.photo?'<img src="'+pcu.photo+'">':escapeHtml((pcu.name||'?')[0]))+'</div>'+
-          '<div class="ct"><div class="cn">'+userNameDisplay(pcu)+'</div><div class="cc">'+escapeHtml(previewCmt.text)+'</div></div>'+
-        '</div>'
-      :'<div style="color:#666;font-size:14px;margin-bottom:8px">Nenhum comentário ainda</div>')+
+      // Comentários da Home: a barra, uma prévia do que estão falando e, logo
+      // abaixo, os outros vídeos. Tocando na barra o chat abre e esses vídeos
+      // saem da tela; fechando o chat, eles voltam (ver openComments).
+      '<div class="vd-cmt-head" onclick="openComments(\''+v.id+'\')" style="cursor:pointer">Comentários <span class="cnt">'+(v.comments?v.comments.length:0)+'</span><span style="margin-left:auto;color:#3ea6ff;font-size:13px;font-weight:600">'+(v.comments&&v.comments.length?'Abrir ›':'Comentar ›')+'</span></div>'+
+      previewComentariosHtml(v)+
+      outrosVideosHtml(v)+
     '</div>'+
   '</div>';
   document.getElementById('app').innerHTML = html;
+  lazyLoadEls(document.querySelectorAll('.vd-body .vo-thumb video'));
+}
+
+// A prévia dos comentários na tela do vídeo: os últimos recados, do jeito que
+// aparecem no chat. É só a prévia — o chat completo abre no toque.
+function previewComentariosHtml(v){
+  var list = (v.comments||[]).slice(-2).reverse();
+  if(list.length===0) return '';
+  return list.map(function(c){
+    var cu = getUser(c.userId) || {name:c.userName, photo:null, verifiedType:null, isCreator:false};
+    return '<div class="vd-cmt-preview" onclick="openComments(\''+v.id+'\')">'+
+      '<div style="flex-shrink:0">'+avatarHtml(cu,32)+'</div>'+
+      '<div class="ct"><div class="cn">'+userNameDisplay(cu, v.userId)+'</div><div class="cc">'+escapeHtml(c.text)+'</div></div>'+
+    '</div>';
+  }).join('');
+}
+
+// Embaixo dos comentários ficam os outros vídeos — os mesmos que já aparecem na
+// Home, menos este. Tocar em um abre ele. Enquanto o chat está aberto, essa
+// lista sai da tela (ver esconderOutrosVideos).
+function outrosVideosHtml(v){
+  var list = DB.videos().filter(function(x){
+    return x.id!==v.id && x.type!=='short';
+  }).sort(function(a,b){ return (b.timestamp||0)-(a.timestamp||0); }).slice(0,8);
+  if(list.length===0) return '';
+  return '<div class="vo-outros"><div class="vo-titulo">Outros vídeos</div>'+list.map(function(x){
+    var o = getUser(x.userId) || {name:x.userName, photo:x.userPhoto, verifiedType:null, isCreator:false};
+    return '<div class="vo-item" onclick="openVideoDetail(\''+x.id+'\')">'+
+      '<div class="vo-thumb">'+capaHtml(x)+duracaoHtml(x)+'</div>'+
+      '<div class="vo-info">'+
+        '<div class="vo-t">'+escapeHtml(x.description||'Sem descrição')+'</div>'+
+        '<div class="vo-s">'+escapeHtml(o.name||'')+' · '+fmt(x.views||0)+' visualizações · '+timeAgoStr(x.timestamp)+'</div>'+
+      '</div>'+
+    '</div>';
+  }).join('')+'</div>';
 }
 
 function likeVideoDetail(vid){
@@ -643,29 +985,30 @@ function toggleFollowDetail(uid){
 // ==================== SHORTS (full-screen feed) ====================
 function renderShorts(){
   var vids = DB.videos().filter(function(v){return v.type==='short';});
-  var liveNow = DB.live();
-  if(vids.length===0 && !liveNow){
+  var lives = livesOnAir();
+  if(vids.length===0 && lives.length===0){
     document.getElementById('app').innerHTML = '<div style="height:100%;display:flex;align-items:center;justify-content:center;color:#666;font-size:16px;text-align:center;padding:20px">Nenhum short ainda.<br>Use o botão "+" para adicionar! ⚡</div>';
     return;
   }
   var u = curUser();
   var html = '<div class="feed" id="feed">';
   // Quem está ao vivo aparece no primeiro slide do Shorts.
-  if(liveNow){
-    var lo = getUser(liveNow.userId) || {name:liveNow.userName, photo:liveNow.userPhoto, verifiedType:null, isCreator:false};
+  var liveTop = lives[0];
+  if(liveTop){
+    var lo = getUser(liveTop.userId) || {name:liveTop.userName, photo:liveTop.userPhoto, verifiedType:null, isCreator:false};
     html += '<div class="live-slide">'+
       '<span class="live-pill"><span class="dot"></span>AO VIVO</span>'+
-      '<div class="lt">'+escapeHtml(liveNow.title)+'</div>'+
-      '<div class="ls">'+userNameDisplay(lo)+' · <span id="liveCardTime">'+liveElapsed(liveNow.startedAt)+'</span> no ar</div>'+
-      '<button class="lw" onclick="openLiveView()">'+(liveNow.userId===u.id?'Voltar para a minha live':'Assistir agora')+'</button>'+
+      '<div class="lt">'+escapeHtml(liveTop.title)+'</div>'+
+      '<div class="ls">'+userNameDisplay(lo)+' · <span data-live="'+liveTop.id+'">'+liveElapsed(liveTop.startedAt)+'</span> no ar</div>'+
+      '<button class="lw" onclick="openLiveView(\''+liveTop.id+'\')">'+(liveTop.userId===u.id?'Voltar para a minha live':'Assistir agora')+'</button>'+
     '</div>';
   }
   vids.forEach(function(v){
     var owner = getUser(v.userId) || {name:v.userName, photo:v.userPhoto, verifiedType:null, isCreator:false};
     var liked = v.likedBy && v.likedBy.indexOf(u.id)>=0;
     var saved = u.savedVideos && u.savedVideos.indexOf(v.id)>=0;
-    html += '<div class="video-slide" data-vid="'+v.id+'">'+
-      '<video data-src="'+v.url+'" loop playsinline muted preload="none"></video>'+
+    html += '<div class="video-slide" data-vid="'+v.id+'" ontouchstart="aquecerVideo(\''+v.url+'\')" onmousedown="aquecerVideo(\''+v.url+'\')">'+
+      '<video data-src="'+v.url+'"'+(v.poster?' poster="'+v.poster+'"':'')+' loop playsinline muted preload="none"></video>'+
       '<div class="tap-area" onclick="togglePause(this)"></div>'+
       '<div class="pause-icon">⏸</div>'+
       '<div class="video-info">'+
@@ -722,6 +1065,39 @@ function renderShorts(){
   vids2.forEach(function(v){ feedObserver.observe(v); });
 }
 
+// Tem vídeo rodando na tela agora? Quando tem, a tela não é redesenhada: o
+// vídeo seria criado de novo e voltaria para o começo no meio do caminho.
+function tempoRodando(seletor){
+  var vids = document.querySelectorAll(seletor);
+  for(var i=0;i<vids.length;i++){
+    var v = vids[i];
+    if(v.getAttribute('src') && !v.paused && v.currentTime>0) return true;
+  }
+  return false;
+}
+
+// O que muda sozinho num short (curtidas, comentários e salvo) sem mexer no
+// vídeo que está rodando.
+function atualizarBotoesShorts(){
+  var u = curUser();
+  var vids = DB.videos();
+  [].forEach.call(document.querySelectorAll('.video-slide'), function(s){
+    var v = vids.find(function(x){ return x.id===s.dataset.vid; });
+    if(!v) return;
+    var b = s.querySelectorAll('.vbtn');
+    if(b[0]){
+      var cur = b[0].querySelector('.count');
+      if(cur) cur.textContent = fmt(v.likes||0);
+      b[0].classList.toggle('liked', !!(v.likedBy && v.likedBy.indexOf(u.id)>=0));
+    }
+    if(b[1]){
+      var cmt = b[1].querySelector('.count');
+      if(cmt) cmt.textContent = (v.comments?v.comments.length:0);
+    }
+    if(b[3]) b[3].classList.toggle('saved', !!(u.savedVideos && u.savedVideos.indexOf(v.id)>=0));
+  });
+}
+
 function likeShort(vid){
   var u = curUser();
   var vids = DB.videos();
@@ -732,7 +1108,7 @@ function likeShort(vid){
   if(idx>=0){ v.likedBy.splice(idx,1); v.likes = Math.max(0,(v.likes||0)-1); }
   else { v.likedBy.push(u.id); v.likes = (v.likes||0)+1; }
   DB.saveVideos(vids);
-  renderShorts();
+  atualizarBotoesShorts();
 }
 
 function saveShort(vid){
@@ -743,7 +1119,7 @@ function saveShort(vid){
   if(idx>=0) u.savedVideos.splice(idx,1);
   else u.savedVideos.push(vid);
   DB.saveUsers(users);
-  renderShorts();
+  atualizarBotoesShorts();
 }
 
 function togglePause(el){
@@ -795,9 +1171,9 @@ function commentsListHtml(v){
   return list.map(function(c){
     var cu = getUser(c.userId) || {name:c.userName, photo:null, verifiedType:null, isCreator:false};
     return '<div class="cp-item">'+
-      '<div class="ca" onclick="commentOptions(\''+v.id+'\',\''+c.id+'\')" style="cursor:pointer">'+(cu.photo?'<img src="'+cu.photo+'">':escapeHtml((cu.name||'?')[0]))+'</div>'+
+      '<div onclick="commentOptions(\''+v.id+'\',\''+c.id+'\')" style="cursor:pointer;flex-shrink:0">'+avatarHtml(cu,32)+'</div>'+
       '<div class="ct">'+
-        '<div class="cn" onclick="commentOptions(\''+v.id+'\',\''+c.id+'\')" style="cursor:pointer">'+userNameDisplay(cu)+(c.pinned?'<span class="cp-pin">📌 Fixado</span>':'')+'</div>'+
+        '<div class="cn" onclick="commentOptions(\''+v.id+'\',\''+c.id+'\')" style="cursor:pointer">'+userNameDisplay(cu, v.userId)+(c.pinned?'<span class="cp-pin">📌 Fixado</span>':'')+'</div>'+
         (c.replyTo?'<div class="cp-rep">↳ '+escapeHtml(c.replyTo.userName)+'</div>':'')+
         '<div class="cc" onclick="startReply(\''+v.id+'\',\''+c.id+'\')" style="cursor:pointer">'+escapeHtml(c.text)+'</div>'+
       '</div>'+
@@ -821,6 +1197,8 @@ function openComments(vid){
   if(blockedAction()) return;
   currentVideoId = vid;
   cpReplyTo = null;
+  // Com o chat aberto os vídeos de baixo saem da tela; fechando, eles voltam.
+  esconderOutrosVideos(true);
   var r = loadVideoWithIds(vid);
   document.body.insertAdjacentHTML('beforeend', commentsPanelHtml(r.v));
 }
@@ -838,6 +1216,13 @@ function closeComments(){
   var cp = document.getElementById('cp');
   if(cp) cp.remove();
   cpReplyTo = null;
+  esconderOutrosVideos(false);
+}
+
+// Some com a lista de outros vídeos enquanto o chat está aberto.
+function esconderOutrosVideos(esconder){
+  var el = document.querySelector('.vo-outros');
+  if(el) el.style.display = esconder ? 'none' : '';
 }
 
 function findComment(vid, cid){
@@ -926,6 +1311,7 @@ function addComment(){
   var inp = document.getElementById('cpText');
   var text = inp ? inp.value.trim() : '';
   if(!text) return;
+  if(checarTexto(text)) return;
   var u = curUser();
   var r = loadVideoWithIds(currentVideoId);
   if(!r.v) return;
@@ -1035,7 +1421,14 @@ function renderPVB(){
 }
 
 function renderPVBList(){
-  var users = DB.users().filter(function(u){return u.id!==curUser().id;});
+  var eu = curUser();
+  var souCriador = !!(eu.isCreator || eu.isAdmin);
+  // A lista abre em tela cheia com todo mundo; quem está banido só o criador vê.
+  var users = DB.users().filter(function(u){
+    if(u.id === eu.id) return false;
+    if(!souCriador && isBanned(u)) return false;
+    return true;
+  });
   var html = '<div class="chat-view">'+
     '<div class="chat-header"><div class="title">💬 PVB</div></div>'+
     '<div class="pvb-tabs">'+
@@ -1047,7 +1440,7 @@ function renderPVBList(){
       users.map(function(u){
         return '<div class="user-row" onclick="startPrivateChat(\''+u.id+'\')">'+
           avatarHtml(u)+
-          '<div class="info"><div class="n">'+userNameDisplay(u)+'</div><div class="s">'+(u.bio||'Sem bio')+'</div></div>'+
+          '<div class="info"><div class="n">'+userNameDisplay(u)+(isBanned(u)?' <span class="ban-tag">banido</span>':'')+'</div><div class="s">'+(u.bio||'Sem bio')+'</div></div>'+
           '<div class="acts"><button class="pbtn" onclick="event.stopPropagation();viewProfile(\''+u.id+'\')">Perfil</button><button class="cbtn" onclick="event.stopPropagation();startPrivateChat(\''+u.id+'\')">Conversar</button></div>'+
         '</div>';
       }).join(''))+
@@ -1089,13 +1482,18 @@ function renderPVBPublic(){
   scrollChat('pubMsgs');
 }
 
+// Cada mensagem precisa de um id próprio: é por ele que a sincronia reconhece
+// a mensagem entre os aparelhos. Sem id, ela nunca sai do aparelho de quem escreveu.
+function novoMsgId(){ return 'msg'+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+
 function sendPubMsg(img){
   var input = document.getElementById('pubText');
   var text = input ? input.value.trim() : '';
   if(!text && !img) return;
+  if(checarTexto(text)) return;
   var u = curUser();
   var msgs = DB.pubMsgs();
-  msgs.push({userId:u.id, userName:u.name, text:text, image:img, ts:Date.now()});
+  msgs.push({id:novoMsgId(), userId:u.id, userName:u.name, text:text, image:img, ts:Date.now()});
   DB.savePubMsgs(msgs);
   renderPVBPublic();
 }
@@ -1110,15 +1508,19 @@ function renderPVBPrivate(){
   var partner = getUser(pvbChatUser);
   if(!partner){ pvbView='list'; renderPVBList(); return; }
   var u = curUser();
+  // Conversa com o criador: o recado automático dele entra aqui, uma vez só.
+  recadoAutomatico(partner, u);
   var msgs = DB.privMsgs().filter(function(m){
     return (m.fromId===u.id && m.toId===partner.id) || (m.fromId===partner.id && m.toId===u.id);
   });
   var html = '<div class="chat-view">'+
     '<div class="chat-header"><div class="back" onclick="pvbView=\'list\';render()">←</div><div class="title">'+userNameDisplay(partner)+'</div><div style="cursor:pointer;color:#F97316;font-size:13px" onclick="viewProfile(\''+partner.id+'\')">Perfil</div></div>'+
-    (isBanned(u) && partner.id===adminId()?'<div class="cp-repbar">🙏 Peça desculpas para ser liberado<b style="cursor:pointer;margin-left:auto" onclick="sendApology()">Pedir desculpas</b></div>':'')+
+    (isBanned(u) && partner.id===adminId()?'<div class="cp-repbar">🙏 Peça desculpas e aguarde o criador liberar<b style="cursor:pointer;margin-left:auto" onclick="sendApology()">Pedir desculpas</b></div>':'')+
+    (u.isCreator && isBanned(partner)?'<div class="cp-repbar">🚫 '+escapeHtml(partner.name)+' está banido<b style="cursor:pointer;margin-left:auto" onclick="liberarPeloCriador(\''+partner.id+'\')">Liberar conta</b></div>':'')+
     '<div class="chat-messages" id="privMsgs">'+
       (msgs.length===0?'<div class="msg them">Início da conversa privada! 🔒💬</div>':'')+
       msgs.map(function(m){
+        if(m.sys) return '<div class="msg sys">'+escapeHtml(m.text)+'</div>';
         return '<div class="msg '+(m.fromId===u.id?'me':'them')+'">'+
           (m.image?'<img src="'+m.image+'">':'')+
           escapeHtml(m.text)+
@@ -1142,15 +1544,416 @@ function renderPVBPrivate(){
   scrollChat('privMsgs');
 }
 
+// Mensagem que o liberado recebe na conversa.
+var MSG_LIBERADO = '🎉 O criador liberou você! Na próxima, tenha educação + respeito seguindo a lei da nossa comunidade.';
+
+// Recado que o criador manda sozinho: chega quando alguém abre a conversa com
+// ele e vale até 1 dia. Fica registrado na conversa, então não se repete.
+var MSG_RECADO = 'Mande seu recado e espere, de agora válida até 1 dia.';
+
+function recadoAutomatico(partner, u){
+  if(!partner || !u || partner.id !== adminId()) return;
+  var msgs = DB.privMsgs();
+  var jaTem = msgs.some(function(m){ return m && m.auto && m.fromId===partner.id && m.toId===u.id; });
+  if(jaTem) return;
+  msgs.push({id:novoMsgId(), fromId:partner.id, toId:u.id, text:MSG_RECADO, auto:true, ts:Date.now()});
+  DB.savePrivMsgs(msgs);
+}
+
 function sendPrivMsg(img){
   var input = document.getElementById('privText');
   var text = input ? input.value.trim() : '';
   if(!text && !img) return;
   var u = curUser();
+  // Banido conversa com o criador, mas palavrão não passa.
+  if(isBanned(u) && contarPalavroes(text) > 0){
+    showNotif('Você está banido 🚫 Pode conversar, mas sem palavrão');
+    return;
+  }
+  // Na conversa com o criador o limite é 2; nas outras conversas continua 6.
+  if(checarTexto(text, pvbChatUser===adminId() ? LIMITE_PALAVROES_CRIADOR : LIMITE_PALAVROES)) return;
   var msgs = DB.privMsgs();
-  msgs.push({fromId:u.id, toId:pvbChatUser, text:text, image:img, ts:Date.now()});
+  msgs.push({id:novoMsgId(), fromId:u.id, toId:pvbChatUser, text:text, image:img, ts:Date.now()});
+  // O criador libera a pessoa escrevendo "liberado" na conversa: ela volta ao normal.
+  if((u.isCreator || u.isAdmin) && text.toLowerCase().indexOf('liberado') >= 0){
+    var alvo = getUser(pvbChatUser);
+    if(alvo && isBanned(alvo)){
+      liberarUsuario(alvo.id);   // liberar aqui não pode jogar a tela no painel
+      msgs.push({id:novoMsgId(), fromId:alvo.id, toId:u.id, text:MSG_LIBERADO, sys:true, ts:Date.now()+1});
+      showNotif('Você liberou '+alvo.name+' ✅');
+    }
+  }
   DB.savePrivMsgs(msgs);
   renderPVBPrivate();
+}
+
+// Liberação da conta: banimento, motivo e contador de palavrões zerados.
+function liberarUsuario(uid){
+  var users = DB.users();
+  var u = users.find(function(x){ return x.id===uid; });
+  if(!u) return null;
+  u.banned = false;
+  u.banUntil = null;
+  u.banReason = null;
+  u.palavroes = 0;
+  DB.saveUsers(users);
+  return u;
+}
+
+// Quem libera é o criador: ele tira o banimento pela conversa, pelo painel ou
+// pelo perfil, e o liberado recebe o recado na hora.
+function liberarPeloCriador(uid){
+  var livre = liberarUsuario(uid);
+  if(!livre) return;
+  var msgs = DB.privMsgs();
+  msgs.push({id:novoMsgId(), fromId:adminId(), toId:uid, text:MSG_LIBERADO, sys:true, ts:Date.now()});
+  DB.savePrivMsgs(msgs);
+  showNotif(livre.name+' está livre de novo ✅');
+  if(view==='pvb' && pvbView==='private') renderPVBPrivate(); else render();
+}
+
+// "Ver detalhes" do aviso vermelho: vai direto para a conversa com o criador,
+// que lê o pedido e é quem libera a conta.
+function openCriadorChat(){
+  var id = adminId();
+  if(!id){ showNotif('Não encontrei a conta do criador 😕'); return; }
+  pvbView = 'private';
+  pvbChatUser = id;
+  view = 'pvb';
+  render();
+}
+
+// ==================== VISUAL HALLOWEEN ====================
+// O código (halloween77) é conferido no servidor, que grava o tema na conta.
+// Como o tema fica no cadastro, ele volta em qualquer aparelho em que a pessoa
+// entre — e sai enfeitando rodapé, nomes e o resto do app.
+function abrirCodigoHalloween(){
+  document.body.insertAdjacentHTML('beforeend',
+    '<div class="edit-modal show" id="hwModal"><div class="edit-card">'+
+      '<h3>🎃 Visual Halloween</h3>'+
+      '<div style="font-size:13px;color:#a1a1aa;text-align:center;margin-bottom:12px;line-height:1.45">Digite o código e o app inteiro entra no clima de Halloween: rodapé, nomes e o visual todo.</div>'+
+      '<input class="post-field" id="hwCode" placeholder="Código do visual" autocomplete="off">'+
+      '<div id="hwErro" style="color:#ef4444;font-size:13px;margin-bottom:8px;display:none"></div>'+
+      '<button class="post-btn" onclick="aplicarCodigoHalloween()">Ativar visual</button>'+
+      '<button class="post-btn" style="background:#333;margin-top:8px" onclick="document.getElementById(\'hwModal\').remove()">Cancelar</button>'+
+    '</div></div>');
+  var inp = document.getElementById('hwCode');
+  inp.focus();
+  inp.addEventListener('keydown', function(e){ if(e.key==='Enter') aplicarCodigoHalloween(); });
+}
+
+function aplicarCodigoHalloween(){
+  var code = (document.getElementById('hwCode').value||'').trim();
+  var erro = document.getElementById('hwErro');
+  var btn = document.querySelector('#hwModal .post-btn');
+  erro.style.display = 'none';
+  if(!code){ erro.textContent = 'Digite o código.'; erro.style.display = 'block'; return; }
+  // Passada a meia-noite do dia 31 o visual não entra mais no app.
+  if(Date.now() >= fimDoHalloween()){
+    erro.textContent = 'O visual de Halloween sai do ar na meia-noite do dia 31 🎃';
+    erro.style.display = 'block';
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = 'Ativando...';
+  fetch('/api/theme', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (window.SYNC ? SYNC.token() : '')},
+    body: JSON.stringify({code: code})
+  }).then(function(r){
+    return r.json().then(function(j){
+      if(!r.ok) throw new Error((j && j.message) || 'Código inválido.');
+      return j;
+    });
+  }).then(function(j){
+    var users = DB.users();
+    users.forEach(function(x){ if(x.id === j.user.id) Object.assign(x, j.user); });
+    DB.saveUsers(users);
+    var m = document.getElementById('hwModal');
+    if(m) m.remove();
+    render();
+    showNotif('Visual Halloween ligado 🎃');
+  }).catch(function(e){
+    btn.disabled = false;
+    btn.textContent = 'Ativar visual';
+    erro.textContent = (e && e.message) ? e.message : 'Não deu para ativar agora. Tente de novo.';
+    erro.style.display = 'block';
+  });
+}
+
+// ==================== CÓDIGOS DO APP ====================
+// A lista é do servidor e chega só para o criador (é ele quem espalha os
+// códigos). Cada código aparece num campo que já vem selecionado, com o botão
+// de copiar do lado, e o do sorteio mostra quantas pessoas já entraram.
+function abrirCodigosDoApp(){
+  fetch('/api/codes', { headers: { 'Authorization': 'Bearer ' + (window.SYNC ? SYNC.token() : '') } })
+    .then(function(r){
+      return r.json().then(function(j){
+        if(!r.ok) throw new Error((j && j.message) || 'Não deu para abrir os códigos.');
+        return j.codigos || [];
+      });
+    })
+    .then(function(lista){
+      var itens = lista.map(function(c){
+        var qtd = (c.participantes === null || c.participantes === undefined)
+          ? '' : '<span class="cd-n">'+c.participantes+' no sorteio</span>';
+        return '<div class="cd-item">'+
+          '<div class="cd-top"><span>'+escapeHtml(c.nome)+'</span>'+qtd+'</div>'+
+          '<div class="cd-desc">'+escapeHtml(c.desc)+'</div>'+
+          '<div class="cd-row">'+
+            '<input class="post-field cd-code" readonly value="'+escapeHtml(c.code)+'" onclick="this.select()">'+
+            '<button class="cd-copy" onclick="copiarCodigo(\''+c.code+'\')">Copiar</button>'+
+          '</div>'+
+        '</div>';
+      }).join('');
+      document.body.insertAdjacentHTML('beforeend',
+        '<div class="edit-modal show" id="cdModal"><div class="edit-card">'+
+          '<h3>🔑 Códigos para resgatar</h3>'+
+          (itens || '<div class="cd-desc">Nenhum código por aqui.</div>')+
+          // Da lista de códigos sai a outra opção do criador: quem está no sorteio.
+          '<button class="post-btn" onclick="abrirSorteioDoApp()">🎟️ Ver quem está no sorteio</button>'+
+          '<button class="post-btn" style="background:#333;margin-top:8px" onclick="document.getElementById(\'cdModal\').remove()">Fechar</button>'+
+        '</div></div>');
+    })
+    .catch(function(e){ showNotif((e && e.message) || 'Não deu para abrir os códigos 😕'); });
+}
+
+// ==================== SORTEIO DO CRIADOR ====================
+// O criador vê quem entrou no sorteio (a lista vem do servidor, com a chance de
+// cada um) e é ele quem aperta o botão que escolhe o ganhador. O sorteio está
+// marcado para 12 de novembro e o prêmio do ganhador vale até 27 de novembro:
+// quem ganha fica com o selo verde e o painel de banimentos até essa data, e
+// depois disso o prêmio sai da conta sozinho (quem decide é o servidor).
+var SORTEIO_DIA = '12 de novembro';
+var PREMIO_ATE_TXT = '27 de novembro';
+
+function abrirSorteioDoApp(){
+  var jaAberto = document.getElementById('cdModal');
+  if(jaAberto) jaAberto.remove();
+  fetch('/api/sorteio', { headers: { 'Authorization': 'Bearer ' + (window.SYNC ? SYNC.token() : '') } })
+    .then(function(r){
+      return r.json().then(function(j){
+        if(!r.ok) throw new Error((j && j.message) || 'Não deu para abrir o sorteio.');
+        return j;
+      });
+    })
+    .then(function(j){
+      var gente = j.participantes || [];
+      var ganhador = j.ganhador || null;
+      var chance = gente.length ? gente[0].chance : 0;
+      var lista = gente.map(function(p){
+        return '<div class="sort-item">'+escapeHtml(p.nome)+'<span>'+chance+'%</span></div>';
+      }).join('');
+      document.body.insertAdjacentHTML('beforeend',
+        '<div class="edit-modal show" id="sorteioModal"><div class="edit-card">'+
+          '<h3>🎟 Sorteio</h3>'+
+          '<div class="cd-desc">Sorteio marcado para '+SORTEIO_DIA+'. Quem ganhar leva o selo verde com o painel de banimentos até '+PREMIO_ATE_TXT+'.</div>'+
+          (ganhador
+            ? '<div class="sort-ganha">🏆 Ganhador: <b>'+escapeHtml(ganhador.nome)+'</b></div>'
+            : '<div class="cd-desc">'+(gente.length ? gente.length+' '+(gente.length===1?'pessoa está':'pessoas estão')+' no sorteio, cada uma com '+chance+'% de chance:' : 'Ninguém entrou no sorteio ainda.')+'</div>')+
+          (lista?'<div class="sort-lista">'+lista+'</div>':'')+
+          (gente.length?'<button class="post-btn" onclick="sortearGanhador(this)">'+(ganhador?'🔄 Sortear de novo':'🏆 Sortear ganhador')+'</button>':'')+
+          '<button class="post-btn" style="background:#333;margin-top:8px" onclick="document.getElementById(\'sorteioModal\').remove()">Fechar</button>'+
+        '</div></div>');
+    })
+    .catch(function(e){ showNotif((e && e.message) || 'Não deu para abrir o sorteio 😕'); });
+}
+
+function sortearGanhador(btn){
+  btn.disabled = true;
+  btn.textContent = 'Sorteando...';
+  fetch('/api/sorteio/sortear', { method: 'POST', headers: { 'Authorization': 'Bearer ' + (window.SYNC ? SYNC.token() : '') } })
+    .then(function(r){
+      return r.json().then(function(j){
+        if(!r.ok) throw new Error((j && j.message) || 'Não deu para sortear.');
+        return j;
+      });
+    })
+    .then(function(j){
+      var m = document.getElementById('sorteioModal');
+      if(m) m.remove();
+      showNotif('🏆 Ganhador: '+j.ganhador.nome+(j.conta?'':' — a conta com esse nome ainda não existe'));
+      abrirSorteioDoApp();
+    })
+    .catch(function(e){
+      btn.disabled = false;
+      btn.textContent = '🏆 Sortear ganhador';
+      showNotif((e && e.message) || 'Não deu para sortear 😕');
+    });
+}
+
+// ==================== MEMBRESIA (vídeo só para membro) ====================
+// Pagou a membresia do canal, o vídeo abre. Quem grava a membresia é o servidor
+// (/api/membro) e é ele quem manda o link dos vídeos de membro do canal — os
+// outros aparelhos nem recebem esse link.
+function membroGateHtml(v, owner){
+  var canal = owner || {};
+  var valor = precoMembresia(v);
+  return '<div class="membro-view">'+
+    '<div class="membro-cover">'+
+      (v.poster?'<img src="'+v.poster+'" alt="">':'')+
+      '<div class="lock">🔒</div>'+
+      '<div class="vd-back" onclick="view=\'home\';render()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></div>'+
+    '</div>'+
+    '<div class="membro-body">'+
+      '<h2>Seja membro para assistir a esse vídeo</h2>'+
+      '<div class="membro-sub">'+escapeHtml(v.description||'Sem descrição')+'</div>'+
+      '<div style="display:flex;align-items:center;gap:10px">'+avatarHtml(canal,40)+
+        '<div><div style="font-size:14px;font-weight:700">'+userNameDisplay(canal)+'</div>'+
+        '<div class="membro-sub">'+fmt(canal.followers||0)+' inscritos</div></div>'+
+      '</div>'+
+      '<div class="membro-preco"><div><div class="membro-sub">Membresia do canal</div>'+
+        '<div style="font-size:13.5px;font-weight:700">'+escapeHtml(canal.name||'')+'</div></div><b>'+precoTxt(valor)+'</b></div>'+
+      '<button class="membro-btn" onclick="abrirPagamento(\''+canal.id+'\','+valor+',\''+v.id+'\')">🔓 Seja membro para assistir</button>'+
+      '<div class="membro-sub">Como membro você assiste a todos os vídeos de membro deste canal e o seu nome fica verde nos comentários dele. Você paga com as moedas que ganha ficando no app.</div>'+
+    '</div>'+
+  '</div>';
+}
+
+// A forma de pagamento do canal: o resumo do que a pessoa está comprando e o
+// botão que paga. O pagamento é feito com as moedas que ela ganha ficando no
+// app — quem desconta o saldo é o servidor (ver /api/membro).
+function abrirPagamento(canalId, valor, videoId){
+  var canal = getUser(canalId) || {};
+  var txt = precoTxt(valor);
+  var saldo = saldoMoedas();
+  var falta = Math.max(0, Math.round((Number(valor) - saldo) * 100) / 100);
+  document.body.insertAdjacentHTML('beforeend',
+    '<div class="edit-modal show" id="pagModal"><div class="edit-card">'+
+      '<h3>🪙 Pagar com moedas</h3>'+
+      '<div class="pag-linha"><span>Canal</span><b>'+escapeHtml(canal.name||'')+'</b></div>'+
+      '<div class="pag-linha"><span>Membresia</span><b>'+txt+'</b></div>'+
+      '<div class="pag-linha"><span>Seu saldo</span><b>'+moedaCurta(saldo)+'</b></div>'+
+      '<div class="pag-linha"><span>O que você recebe</span><b>Vídeos de membro e nome verde no canal</b></div>'+
+      (falta > 0
+        ? '<div class="pag-nota">Faltam '+moedaNum(falta)+' moedas. Fique no app para ganhar: cada hora vale 1 moeda.</div>'+
+          '<button class="post-btn" style="background:#333" onclick="document.getElementById(\'pagModal\').remove()">Fechar</button>'
+        : '<button class="post-btn" id="pagBtn" onclick="pagarMembresia(\''+canalId+'\','+Number(valor)+',\''+(videoId||'')+'\')">Pagar '+txt+'</button>'+
+          '<button class="post-btn" style="background:#333;margin-top:8px" onclick="document.getElementById(\'pagModal\').remove()">Cancelar</button>')+
+      '<div class="pag-nota">A membresia fica na sua conta: vale em qualquer aparelho em que você entrar.</div>'+
+    '</div></div>');
+}
+
+function pagarMembresia(canalId, valor, videoId){
+  var btn = document.getElementById('pagBtn');
+  if(btn){ btn.disabled = true; btn.textContent = 'Pagando...'; }
+  fetch('/api/membro', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','Authorization':'Bearer ' + (window.SYNC ? SYNC.token() : '')},
+    body: JSON.stringify({canalId: canalId, valor: valor})
+  }).then(function(r){
+    return r.json().then(function(j){
+      if(!r.ok) throw new Error((j && j.message) || 'Não deu para concluir o pagamento.');
+      return j;
+    });
+  }).then(function(j){
+    var users = DB.users();
+    users.forEach(function(x){ if(x.id === j.user.id) Object.assign(x, j.user); });
+    DB.saveUsers(users);
+    // Os vídeos de membro do canal vêm completos agora (com o link): é isso que
+    // abre o vídeo logo depois do pagamento.
+    var vids = DB.videos();
+    (j.videos||[]).forEach(function(nv){
+      var i = -1; vids.forEach(function(x,k){ if(x.id===nv.id) i = k; });
+      if(i>=0) vids[i] = nv; else vids.unshift(nv);
+    });
+    if((j.videos||[]).length) DB.saveVideos(vids);
+    var m = document.getElementById('pagModal');
+    if(m) m.remove();
+    // O saldo que aparece é o que o servidor devolveu depois de descontar.
+    showNotif('Membresia ativada! Saldo: '+moedaNum((j.user||{}).moedas)+' moedas 🟢');
+    if(videoId){ vdVideoId = videoId; view = 'detail'; }
+    render();
+  }).catch(function(e){
+    if(btn){ btn.disabled = false; btn.textContent = 'Pagar com moedas'; }
+    showNotif((e && e.message) || 'Não deu para pagar 😕');
+  });
+}
+
+function copiarCodigo(code){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(code).then(function(){ showNotif('Código copiado! 📋'); }, function(){ showNotif('Toque no código para copiar 📋'); });
+    return;
+  }
+  showNotif('Toque no código para copiar 📋');
+}
+
+// ==================== MOEDAS E MISSÕES ====================
+// O saldo é do servidor (ver MOEDAS no server.js): aqui a gente só mostra o
+// número que ele mandou e pede o pagamento do minuto. Com as moedas a pessoa
+// paga a membresia de um canal e assiste aos vídeos de membro dele.
+var moedasInfo = { minutos:0, ganhasHoje:0, tetoDia:24, missaoFeita:false, missaoMin:420, missaoBaseMin:60, missaoMoedas:5 };
+
+// O tempo das missões é contado em horas: 420 min aparece como "7 horas" e o
+// meio do caminho como "6h 52min".
+function tempoApp(min){
+  var m = Math.floor(Number(min)||0);
+  if(m < 60) return m + ' min';
+  var h = Math.floor(m/60), r = m%60;
+  if(!r) return h + (h===1 ? ' hora' : ' horas');
+  return h + 'h ' + r + 'min';
+}
+
+function renderMoedas(){
+  var saldo = saldoMoedas();
+  var html = '<div class="moedas-view">'+
+    '<div class="moeda-head">'+
+      '<div class="moeda-bolinha">🪙</div>'+
+      '<div class="moeda-saldo">'+moedaNum(saldo)+'</div>'+
+      '<div class="moeda-sub">moedas na sua conta</div>'+
+    '</div>'+
+    '<div class="moeda-card">'+
+      '<div class="moeda-titulo">Missões de hoje</div>'+
+      '<div class="missao">'+
+        '<div class="mleft"><b>Fique '+tempoApp(moedasInfo.missaoBaseMin)+' no app</b><span>Ganha 1 moeda a cada hora</span></div>'+
+        '<div class="mdir">'+moedasInfo.ganhasHoje+'/'+moedasInfo.tetoDia+'<small>hoje</small></div>'+
+      '</div>'+
+      '<div class="missao">'+
+        '<div class="mleft"><b>Fique '+tempoApp(moedasInfo.missaoMin)+' no app</b><span>Bônus de '+moedasInfo.missaoMoedas+' moedas, uma vez por dia</span></div>'+
+        '<div class="mdir">'+(moedasInfo.missaoFeita?'✅':'+'+moedasInfo.missaoMoedas)+'<small>'+tempoApp(moedasInfo.minutos)+'</small></div>'+
+      '</div>'+
+      '<div class="moeda-nota">Ficando no app o saldo sobe sozinho: 1 moeda por hora, até '+moedasInfo.tetoDia+' moedas por dia. Conta nova não ganha moedas de presente — elas vêm do tempo no app. As missões reiniciam todo dia. Com as moedas você vira membro de um canal — a membresia começa em '+MIN_MEMBRESIA+' moedas — e assiste aos vídeos de membro dele.</div>'+
+    '</div>'+
+    '<button class="moeda-voltar" onclick="view=\'profile\';profileUserId=curUser().id;render()">Voltar ao perfil</button>'+
+  '</div>';
+  document.getElementById('app').innerHTML = html;
+}
+
+// Mostra o saldo onde ele aparece na tela que está aberta (o perfil).
+function paintMoedasNaTela(){
+  var el = document.getElementById('saldoMoedas');
+  if(el) el.textContent = moedaCurta(saldoMoedas());
+}
+
+// O batimento das missões: enquanto a tela está à vista o app avisa o servidor
+// que a pessoa continua aqui, e é o servidor quem paga o minuto — o aparelho
+// não soma moeda nenhuma por conta própria.
+function baterMissao(forcar){
+  if(!window.SYNC || !SYNC.logged() || !curUser()) return;
+  if(!forcar && document.visibilityState && document.visibilityState !== 'visible') return;
+  fetch('/api/missao', {
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+SYNC.token()},
+    body:'{}'
+  }).then(function(r){ return r.ok ? r.json() : null; }).then(function(j){
+    if(!j || !j.user) return;
+    moedasInfo.minutos = j.minutos || 0;
+    moedasInfo.ganhasHoje = j.ganhasHoje || 0;
+    moedasInfo.tetoDia = j.tetoDia || 60;
+    moedasInfo.missaoFeita = !!j.missaoFeita;
+    moedasInfo.missaoMin = j.missaoMin || 420;
+    moedasInfo.missaoBaseMin = j.missaoBaseMin || 60;
+    moedasInfo.missaoMoedas = j.missaoMoedas || 5;
+    // Guarda o cadastro que o servidor devolveu (com o saldo novo) sem marcar
+    // como mudança local: quem manda no saldo é ele.
+    var users = DB.users(), i = -1;
+    users.forEach(function(x,k){ if(x.id===j.user.id) i = k; });
+    if(i>=0) users[i] = Object.assign({}, users[i], j.user); else users.push(j.user);
+    localStorage.setItem('gl_users', JSON.stringify(users));
+    if(j.ganhas > 0) showNotif('Você ganhou '+j.ganhas+' moeda'+(j.ganhas>1?'s':'')+' 🪙');
+    if(view==='moedas') renderMoedas();
+    else paintMoedasNaTela();
+  }).catch(function(){});
 }
 
 // ==================== PROFILE ====================
@@ -1171,17 +1974,27 @@ function renderProfile(){
 
   var html = '<div class="pf-view">';
 
-  // Aviso vermelho: para o dono da conta o texto é "Sua conta foi banida" e abre a conversa
-  // com o administrador; para quem está visitando aparece "Esta conta foi banida".
+  // Canto de cima, à esquerda: a página do código de liberação. Quem está banido
+  // não vê o botão (senão bastava um código para escapar do banimento).
+  // Canto de cima do perfil: à esquerda o resgate de código (sorteio) e o código
+  // do visual; à direita, só para o criador, a lista dos códigos do app.
+  if(isMe && !banned) html += '<div class="pf-code"><button onclick="window.location.href=\'codigo.html\'">🎟️ Resgatar código</button>'+
+    '<button class="pf-code-hw" onclick="abrirCodigoHalloween()">🎃 Código Halloween</button>'+
+    (cu.isCreator?'<button class="pf-code-ver" onclick="abrirCodigosDoApp()">🔑 Códigos</button>':'')+'</div>';
+  if(temHalloween(target)) html += '<div class="pf-note">🎃 Visual Halloween ligado nesta conta</div>';
+
+  // Aviso vermelho do banimento: uma faixa só, com o tempo que falta (horas, dias
+  // ou permanente) e a conversa com o criador abrindo no toque. Nada além disso
+  // aparece para quem está banido.
   if(banned){
     html += isMe
-      ? '<div class="banbar" onclick="openAdminChat()"><div class="tx">Você foi banido. Veja detalhes...<small>'+banUntilLabel(target)+' · toque para conversar com o administrador</small></div><div class="go">›</div></div>'
+      ? '<div class="banbar" onclick="openCriadorChat()"><div class="tx">Sua conta foi banida. Veja detalhes...<small>'+banDurationLabel(target)+'</small></div><div class="go">›</div></div>'
       : '<div class="banbar"><div class="tx">Esta conta foi banida</div></div>';
   }
 
   html += '<div class="pf-head">'+
       '<div class="pf-top">'+
-        '<div class="pf-ava">'+(target.photo?'<img src="'+target.photo+'">':escapeHtml((target.name||'?')[0]))+'</div>'+
+        avatarHtml(target,82)+
         '<div class="pf-stats">'+
           '<div class="pf-stat"><div class="num">'+fmt(target.followers||0)+'</div><div class="lbl">Seguidores</div></div>'+
           '<div class="pf-stat"><div class="num">'+fmt((target.following||[]).length)+'</div><div class="lbl">Seguindo</div></div>'+
@@ -1191,10 +2004,11 @@ function renderProfile(){
       '<div class="pf-name">'+userNameDisplay(target)+(isMe?'<span style="font-size:13px;color:#71717a;cursor:pointer" onclick="editProfile()">✏️</span>':'')+'</div>'+
       '<div class="pf-user">@'+escapeHtml((target.username||target.name||'').toLowerCase())+'</div>'+
       '<div class="pf-bio">'+(target.bio?escapeHtml(target.bio):'Sem bio')+'</div>'+
+      (isMe?'<div class="moeda-pill" id="saldoMoedas" onclick="view=\'moedas\';baterMissao(true);render()" style="cursor:pointer">'+moedaCurta(saldoMoedas())+' moedas</div>':'')+
       '<div class="pf-btns">'+
         (isMe?
           '<button class="pf-btn-light" onclick="editProfile()">Editar perfil</button>'+
-          (!banned && target.isCreator?'<button class="pf-btn-dark" onclick="view=\'panel\';render()">Painel</button>':'')+
+          (!banned && temPainelBan(target)?'<button class="pf-btn-dark" onclick="view=\'panel\';render()">Painel</button>':'')+
           (!banned && !target.isCreator?'<button class="pf-btn-dark" onclick="view=\'post\';render()">Postar vídeo</button>':'')
         :
           '<button class="'+(isFollowing?'pf-btn-light':'pf-btn-dark')+'" onclick="toggleFollow(\''+target.id+'\')">'+(isFollowing?'Adicionar amigos ✓':'Adicionar amigos')+'</button>'+
@@ -1203,24 +2017,24 @@ function renderProfile(){
       '</div>'+
     '</div>';
 
-  // No meio da tela, o botão para sair da conta
-  if(isMe) html += '<button class="pf-out" onclick="logout()">Sair dessa conta</button>';
+  // No meio da tela, o botão para sair da conta — para quem está banido ele não aparece.
+  if(isMe && !banned) html += '<button class="pf-out" onclick="logout()">Sair dessa conta</button>';
 
   var rows = '';
-  if(isMe && !banned && target.isCreator) rows += '<div class="pf-row" onclick="view=\'panel\';render()"><div class="ic">⚡</div>Central do Criador<div class="ar">›</div></div>';
+  if(isMe && !banned && temPainelBan(target)) rows += '<div class="pf-row" onclick="view=\'panel\';render()"><div class="ic">'+(target.isCreator?'⚡':'🛡')+'</div>'+(target.isCreator?'Central do Criador':'Painel de Banimentos')+'<div class="ar">›</div></div>';
   if(isMe && !banned && (cu.savedVideos||[]).length>0) rows += '<div class="pf-row" onclick="openSaved()"><div class="ic">🔖</div>Vídeos salvos ('+(cu.savedVideos||[]).length+')<div class="ar">›</div></div>';
+  if(isMe && !banned) rows += '<div class="pf-row" onclick="view=\'moedas\';baterMissao(true);render()"><div class="ic">🪙</div>Moedas ('+moedaNum(saldoMoedas())+')<div class="ar">›</div></div>';
   if(!isMe) rows += '<div class="pf-row" onclick="startPrivateChat(\''+target.id+'\')"><div class="ic">💬</div>Conversar com '+escapeHtml(target.name)+'<div class="ar">›</div></div>';
   if(rows) html += '<div class="pf-rows">'+rows+'</div>';
 
-  if(banned){
-    html += '<div class="pf-note">🚫 '+(isMe?'Sua conta está banida: você não pode postar, conversar nem assistir vídeos até o banimento acabar.':'Este perfil está banido e os vídeos ficaram indisponíveis.')+'</div>';
-  } else {
+  // Banido vê apenas o aviso vermelho: sem os vídeos e sem mais nenhum recado na tela.
+  if(!banned){
     html += vids.length
       ? '<div class="pf-grid">'+vids.map(function(v){
           return '<div class="pf-cell" onclick="playProfileVideo(\''+v.id+'\')">'+
-            '<video data-src="'+v.url+'" data-thumb="1" data-dur="1" muted playsinline preload="none"></video>'+
+            capaHtml(v)+
             '<div class="vc">▶ '+fmt(v.views||0)+'</div>'+
-            '<div class="vdur"></div>'+
+            duracaoHtml(v)+
           '</div>';
         }).join('')+'</div>'
       : '<div class="pf-empty">Nenhum vídeo postado ainda 🎬</div>';
@@ -1241,8 +2055,8 @@ function openSaved(){
         ? '<div class="pf-empty">Você ainda não salvou nenhum vídeo</div>'
         : '<div class="pf-grid">'+vids.map(function(v){
             return '<div class="pf-cell" onclick="closeSaved();playProfileVideo(\''+v.id+'\')">'+
-              '<video data-src="'+v.url+'" data-thumb="1" data-dur="1" muted playsinline preload="none"></video>'+
-              '<div class="vdur"></div>'+
+              capaHtml(v)+
+              duracaoHtml(v)+
             '</div>';
           }).join('')+'</div>')+
       '<div class="sh-cancel" onclick="closeSaved()">Fechar</div>'+
@@ -1278,6 +2092,9 @@ function toggleFollow(uid){
 function playProfileVideo(vid){
   var v = DB.videos().find(function(x){return x.id===vid;});
   if(!v) return;
+  // Vídeo de membro trancado não abre no player direto: vai para a tela do
+  // cadeado, que é onde o pagamento da membresia acontece.
+  if(videoTrancado(v, curUser())){ vdVideoId = vid; view='detail'; render(); return; }
   v.views = (v.views||0)+1;
   DB.saveVideos(DB.videos());
   var html = '<div style="position:fixed;top:0;left:0;right:0;bottom:0;background:#000;z-index:500;display:flex;align-items:center;justify-content:center" id="pvModal">'+
@@ -1296,7 +2113,7 @@ function editProfile(){
   var html = '<div class="edit-modal show" id="editModal">'+
     '<div class="edit-card">'+
       '<h3>Editar Perfil</h3>'+
-      '<div class="eava" id="eAva" onclick="document.getElementById(\'ePhoto\').click()">'+(u.photo?'<img src="'+u.photo+'">':escapeHtml((u.name||'?')[0]))+'</div>'+
+      '<div class="eava" id="eAva" onclick="document.getElementById(\'ePhoto\').click()">'+avatarHtml(u,80)+'</div>'+
       '<input type="file" id="ePhoto" accept="image/*" style="display:none">'+
       '<input class="post-field" id="eName" placeholder="Nome" value="'+escapeHtml(u.name)+'">'+
       '<input class="post-field" id="eBio" placeholder="Bio" value="'+escapeHtml(u.bio||'')+'">'+
@@ -1328,13 +2145,26 @@ function saveProfile(){
 }
 
 function logout(){
+  if(window.SYNC) SYNC.sair();
   localStorage.removeItem('gl_current_user');
-  window.location.href = '/';
+  window.location.href = 'index.html';
 }
 
 // ==================== POST ====================
 var postMode = 'link';
+// Opção nova do postar vídeo: vídeo só para membro (ver renderPost) e o valor
+// da membresia que a pessoa paga para assistir.
+var postMembro = false;
+var postDescVal = '';
+
+// O valor digitado no postar (aceita "25,50" e "25.50"), em moedas. A membresia
+// vive entre MIN_MEMBRESIA e MAX_MEMBRESIA: o que estiver fora entra na faixa.
+function valorMembresia(){
+  var el = document.getElementById('postPreco');
+  return precoDeMembro(Number(String(el ? el.value : '').replace(',', '.')));
+}
 var postFileUrl = null;
+var postFile = null;
 
 function renderPost(){
   var isShort = postMode==='shorts';
@@ -1359,10 +2189,25 @@ function renderPost(){
         '<div class="t">Live</div>'+
       '</div>'+
     '</div>'+
+    // Vídeo só para membro: a opção nova do postar vídeo. Ligada, o vídeo só
+    // abre para quem pagar a membresia do canal, e o valor é o do campo abaixo.
+    (postMode==='video'?
+      '<div class="post-opts" style="margin-top:10px">'+
+        '<div class="post-opt '+(postMembro?'active':'')+'" onclick="postMembro=!postMembro;renderPost()">'+
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>'+
+          '<div class="t">Membro</div>'+
+        '</div>'+
+      '</div>'+
+      (postMembro?
+        '<input class="post-field" id="postPreco" inputmode="decimal" value="'+MIN_MEMBRESIA+'" placeholder="Valor da membresia em moedas">'+
+        '<div class="pf-note">🔒 Só quem for membro do seu canal assiste a esse vídeo. Quem pagar a membresia vê todos os seus vídeos de membro e fica com o nome verde nos comentários do seu canal. O valor é em moedas, de '+MIN_MEMBRESIA+' a '+MAX_MEMBRESIA+', e cai inteirinho no seu saldo: a pessoa paga com as moedas que ganha ficando no app.</div>'
+      :'')
+    :'')+
     (isLive?
       '<input class="post-field" id="liveTitle" placeholder="Título da sua live">'+
-      '<div class="pf-note">🔴 Toque em <b>Ativar sobreposição</b> e depois na bolinha flutuante <b>Começar agora</b>. A bolinha fica na tela enquanto você navega — para encerrar, aperte nela e em <b>Encerrar</b>.</div>'+
-      '<button class="post-btn" style="background:#e11900;margin-top:12px" onclick="activateOverlay()">Ativar sobreposição 📱</button>'
+      '<div class="pf-note">🔴 Escolha como quer transmitir. A live começa na hora e a <b>bolinha flutuante</b> fica na tela enquanto você navega — toque nela para encerrar.</div>'+
+      '<button class="post-btn" onclick="comecarLive(\'screen\')">📱 Gravar só a tela</button>'+
+      '<button class="post-btn" style="margin-top:10px;background:#1e1e1e" onclick="comecarLive(\'screenCam\')">🎥 Tela + câmera frontal</button>'
     :
     (postMode==='link'?
       '<input class="post-field" id="postUrl" placeholder="Cole o link do vídeo (URL)">'+
@@ -1378,47 +2223,178 @@ function renderPost(){
   '</div>';
   document.getElementById('app').innerHTML = html;
 
+  // A descrição digitada não pode sumir quando a pessoa troca de opção (tipo
+  // ligar "Membro"): ela fica guardada e volta para o campo.
+  var descEl = document.getElementById('postDesc');
+  if(descEl){
+    descEl.value = postDescVal;
+    descEl.addEventListener('input', function(){ postDescVal = descEl.value; });
+  }
+
+  // No modo Live, quem começa a transmissão são os botões de modo (comecarLive).
+
   if(postMode==='video' || postMode==='shorts'){
     document.getElementById('postFile').addEventListener('change', function(e){
       var f = e.target.files[0]; if(!f) return;
+      postFile = f;
       postFileUrl = URL.createObjectURL(f);
       document.getElementById('postPreview').innerHTML = '<video class="post-preview" src="'+postFileUrl+'" controls muted></video>';
     });
   }
 }
 
+// Tira a capa do vídeo aqui no aparelho, antes de enviar, e mede a duração.
+// É essa capa em JPEG que faz o feed abrir rápido: o card mostra a imagem na
+// hora, sem baixar o vídeo inteiro só para desenhar o primeiro quadro.
+function prepararCapa(file){
+  return new Promise(function(ok){
+    var url = URL.createObjectURL(file);
+    var v = document.createElement('video');
+    var entregou = false, dur = null, relogio = null;
+    var entregar = function(blob){
+      if(entregou) return;
+      entregou = true;
+      clearTimeout(relogio);
+      try { URL.revokeObjectURL(url); } catch(e){}
+      ok((dur || blob) ? { blob: blob || null, dur: dur } : null);
+    };
+    v.preload = 'metadata'; v.muted = true; v.setAttribute('playsinline','');
+    v.onerror = function(){ entregar(null); };
+    relogio = setTimeout(function(){ entregar(null); }, 8000);   // vídeo que não abre aqui
+    v.onloadedmetadata = function(){
+      dur = Math.round(v.duration) || null;
+      // Um quadro pouco depois do começo: evita a tela preta do primeiro instante.
+      var alvo = Math.min(Math.max((v.duration || 2) * 0.1, 0.1), 1.5);
+      v.onseeked = function(){
+        try {
+          var c = document.createElement('canvas');
+          c.width = 480;
+          c.height = (v.videoWidth ? Math.round(480 * v.videoHeight / v.videoWidth) : 270) || 270;
+          c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+          c.toBlob(function(b){ entregar(b); }, 'image/jpeg', 0.72);
+        } catch(e){ entregar(null); }
+      };
+      try { v.currentTime = alvo; } catch(e){ entregar(null); }
+    };
+    v.src = url;
+  });
+}
+
+// Sobe o vídeo e, junto, a capa. Se a capa não subir, o vídeo vai do mesmo jeito
+// (aí o card mostra o quadro do próprio vídeo, como antes).
+function enviaVideoComCapa(file, ext, capa){
+  var dur = (capa && capa.dur) || null;
+  return SYNC.upload(file, ext).then(function(r){
+    var pronto = { url:r.url, poster:null, dur:dur || r.dur || null };
+    if(!capa || !capa.blob) return pronto;
+    return SYNC.upload(capa.blob, 'jpg').then(function(rc){
+      pronto.poster = rc.url;
+      return pronto;
+    }).catch(function(){ return pronto; });
+  });
+}
+
+// "extra" é o que o servidor devolve no envio: a capa pronta e a duração do
+// vídeo, para o feed abrir rápido sem baixar o arquivo inteiro em cada card.
+function publicarVideo(url, type, desc, extra){
+  var u = curUser();
+  desc = desc || document.getElementById('postDesc').value.trim() || 'Sem descrição';
+  extra = extra || {};
+  var vids = DB.videos();
+  var vid = { id:'vid'+Date.now(), userId:u.id, userName:u.name, userPhoto:u.photo, url:url, poster:extra.poster||null, dur:extra.dur||null, description:desc, type:type, likes:0, views:0, comments:[], timestamp:Date.now(), likedBy:[], dislikedBy:[] };
+  // Vídeo de membro: sem o pagamento da membresia do canal ninguém assiste (o
+  // servidor não manda nem o link do vídeo para quem não é membro).
+  if(extra.membro){ vid.membro = true; vid.preco = precoDeMembro(extra.preco); }
+  vids.unshift(vid);
+  DB.saveVideos(vids);
+  postFile = null;
+  postFileUrl = null;
+  postMembro = false;
+  postDescVal = '';
+  showNotif(type==='short'?'Short publicado! ⚡🎉':'Vídeo publicado! 🎉');
+  setTimeout(function(){ view=(type==='short'?'shorts':'home'); render(); }, 800);
+}
+
 function publishVideo(){
   if(blockedAction()) return;
-  var u = curUser();
   var url, desc;
   var type = postMode==='shorts' ? 'short' : 'video';
+  // A descrição vale em qualquer modo — link, vídeo ou short. Antes ela só era
+  // lida quando o vídeo vinha da galeria: quem publicava por link digitava a
+  // descrição e ela não aparecia em lugar nenhum.
+  var descEl = document.getElementById('postDesc');
+  desc = String(descEl ? descEl.value : postDescVal).trim() || 'Sem descrição';
+  // Só vídeo pode ser de membro (short não passa por pagamento).
+  var extra = { membro: postMembro && type === 'video', preco: postMembro && type === 'video' ? valorMembresia() : null };
   if(postMode==='link'){
     url = document.getElementById('postUrl').value.trim();
     if(!url){ showNotif('Cole o link do vídeo! 🔗'); return; }
   } else {
+    if(!postFile && !postFileUrl){ showNotif('Escolha um '+(type==='short'?'short':'vídeo')+' primeiro! 📹'); return; }
+    if(postFile && window.SYNC && SYNC.logged()){
+      // O vídeo sobe para o servidor: é isso que faz ele abrir no celular de
+      // qualquer pessoa. Se o envio falhar, não publica um vídeo que só existe
+      // aqui — ele ficaria preto e ninguém mais veria.
+      showNotif('Enviando o vídeo... ⬆️');
+      var ext = (String(postFile.name||'').split('.').pop() || 'mp4').toLowerCase();
+      prepararCapa(postFile).then(function(capa){
+        return enviaVideoComCapa(postFile, ext, capa);
+      }).then(function(r){ publicarVideo(r.url, type, desc, Object.assign(extra, r)); })
+        .catch(function(){ showNotif('Não deu para enviar o vídeo 📴 Confira a internet e tente de novo.'); });
+      return;
+    }
     url = postFileUrl;
-    if(!url){ showNotif('Escolha um '+(type==='short'?'short':'vídeo')+' primeiro! 📹'); return; }
   }
-  desc = document.getElementById('postDesc').value.trim() || 'Sem descrição';
-  var vids = DB.videos();
-  var vid = { id:'vid'+Date.now(), userId:u.id, userName:u.name, userPhoto:u.photo, url:url, description:desc, type:type, likes:0, views:0, comments:[], timestamp:Date.now(), likedBy:[], dislikedBy:[], botLikes:0 };
-  vids.unshift(vid);
-  DB.saveVideos(vids);
-  postFileUrl = null;
-  showNotif(type==='short'?'Short publicado! ⚡🎉':'Vídeo publicado! 🎉');
-  setTimeout(function(){ view=(type==='short'?'shorts':'home'); render(); }, 800);
+  publicarVideo(url, type, desc, extra);
+}
+
+// Vídeos publicados antes de existir o servidor ficaram guardados só neste
+// aparelho (url blob:/data:) — eles nunca abrem no celular de outra pessoa.
+// Aqui eles sobem para o servidor; o que já não abre mais sai do feed, para
+// ninguém ver um quadro preto no lugar do vídeo.
+function subirVideosLocais(){
+  if(!window.SYNC || !SYNC.logged()) return;
+  var locais = DB.videos().filter(function(v){ return v.url && /^(blob:|data:)/.test(String(v.url)); });
+  if(!locais.length) return;
+  showNotif('Enviando '+locais.length+' vídeo(s) que ainda estavam só neste aparelho... ⬆️');
+  locais.forEach(function(v){
+    fetch(v.url).then(function(r){ return r.blob(); }).then(function(b){
+      var t = String(b.type||'');
+      var ext = t.indexOf('webm')>=0 ? 'webm' : (t.indexOf('quicktime')>=0 ? 'mov' : 'mp4');
+      return prepararCapa(b).then(function(capa){ return enviaVideoComCapa(b, ext, capa); });
+    }).then(function(r){
+      var vids = DB.videos();
+      var alvo = vids.find(function(x){ return x.id===v.id; });
+      if(!alvo) return;
+      alvo.url = r.url;
+      alvo.poster = r.poster || alvo.poster || null;
+      alvo.dur = r.dur || alvo.dur || null;
+      DB.saveVideos(vids);
+      if(view==='home'||view==='shorts') render();
+    }).catch(function(){
+      var restantes = DB.videos().filter(function(x){ return x.id!==v.id; });
+      DB.saveVideos(restantes);
+      if(view==='home'||view==='shorts') render();
+    });
+  });
 }
 
 // ==================== PANEL (Creator) ====================
 function renderPanel(){
   var u = curUser();
-  if(!u.isCreator){ showNotif('Acesso negado'); view='home'; render(); return; }
+  // A conta liberada por código e o ganhador do sorteio (enquanto o prêmio vale)
+  // entram só no painel de banimentos; o painel completo (vídeos, pessoas e
+  // banimentos) continua sendo do criador.
+  var soBan = !u.isCreator;
+  if(!temPainelBan(u)){ showNotif('Acesso negado'); view='home'; render(); return; }
+  if(soBan) panelTab = 'ban';
 
   var html = '<div class="panel-view">'+
-    '<h2>👑 Painel do Criador</h2>'+
+    '<h2>'+(soBan?'🛡 Painel de Banimentos':'👑 Painel do Criador')+'</h2>'+
     '<div class="panel-tabs">'+
-      '<div class="panel-tab '+(panelTab==='videos'?'active':'')+'" onclick="panelTab=\'videos\';renderPanel()">Vídeos</div>'+
-      '<div class="panel-tab '+(panelTab==='people'?'active':'')+'" onclick="panelTab=\'people\';renderPanel()">Pessoas</div>'+
+      (soBan?'':
+        '<div class="panel-tab '+(panelTab==='videos'?'active':'')+'" onclick="panelTab=\'videos\';renderPanel()">Vídeos</div>'+
+        '<div class="panel-tab '+(panelTab==='people'?'active':'')+'" onclick="panelTab=\'people\';renderPanel()">Pessoas</div>')+
       '<div class="panel-tab '+(panelTab==='ban'?'active':'')+'" onclick="panelTab=\'ban\';renderPanel()">Banimentos</div>'+
     '</div>';
 
@@ -1498,7 +2474,10 @@ function renderPanel(){
 function setVideoStat(vid, type, val){
   var vids = DB.videos();
   var v = vids.find(function(x){return x.id===vid;});
-  if(v){ v[type] = parseInt(val)||0; DB.saveVideos(vids); }
+  // O "statAdj" avisa o servidor de que este número foi ajustado na mão: sem ele
+  // o ajuste do painel poderia ser engolido pelo movimento automático do vídeo
+  // (ver VIDA DO APP, em server.js).
+  if(v){ v[type] = parseInt(val)||0; v.statAdj = Date.now(); DB.saveVideos(vids); }
 }
 
 function setUserStat(uid, type, val){
@@ -1523,22 +2502,27 @@ function addFakeComment(){
   var v = vids.find(function(x){return x.id===vidId;});
   if(!v){ showNotif('Vídeo não encontrado'); return; }
   if(!v.comments) v.comments = [];
-  v.comments.push({userId:'bot_'+name, userName:name, text:text, ts:Date.now()});
+  v.comments.push({userId:'fake_'+name, userName:name, text:text, ts:Date.now()});
   DB.saveVideos(vids);
   showNotif('Comentário adicionado! 💬');
 }
 
 function banUser(uid, duration){
+  // Liberar = conta normal de novo: banimento e contador de palavrões zerados.
+  if(duration===0){
+    var livre = liberarUsuario(uid);
+    if(!livre) return;
+    showNotif(livre.name+' está livre de novo ✅');
+    renderPanel();
+    return;
+  }
   var users = DB.users();
   var u = users.find(function(x){return x.id===uid;});
   if(!u) return;
-  if(duration===0){ u.banned=false; u.banUntil=null; showNotif(u.name+' está livre de novo ✅'); }
-  else {
-    u.banned = true;
-    u.banUntil = duration===-1 ? -1 : Date.now()+duration;
-    showNotif(u.name+' foi banido 🚫');
-  }
+  u.banned = true;
+  u.banUntil = duration===-1 ? -1 : Date.now()+duration;
   DB.saveUsers(users);
+  showNotif(u.name+' foi banido 🚫');
   renderPanel();
 }
 
@@ -1585,10 +2569,54 @@ function banUntilLabel(u){
   return 'banido · '+(h>0?h+'h ':'')+m+'min restantes';
 }
 
-// O banido só pode ver o próprio perfil e a conversa com o administrador.
+// Tempo do banimento no aviso vermelho do perfil: horas, dias ou permanente.
+function banDurationLabel(u){
+  if(!u) return 'Banimento permanente';
+  if(u.banUntil===-1 || !u.banUntil) return 'Banimento permanente';
+  var ms = Math.max(0, u.banUntil - Date.now());
+  // Arredonda para cima no dia: ban de 3 dias não pode aparecer como 2.
+  var horas = Math.round(ms/3600000);
+  var dias = Math.round(horas/24);
+  if(dias >= 2) return 'Banido por '+dias+' dias';
+  if(horas >= 1) return 'Banido por '+horas+(horas===1?' hora':' horas');
+  var min = Math.max(1, Math.round(ms/60000));
+  return 'Banido por '+min+(min===1?' minuto':' minutos');
+}
+
+// Banimento por idade: quem declara ter 10 anos ou menos. Nesses casos o app
+// mostra o recado da lei na tela e a conta fica banida de verdade.
+var avisoIdadeVisto = false;
+
+function banPorIdade(u){
+  u = u || curUser();
+  if(!u || !isBanned(u)) return false;
+  return u.banTipo==='idade' || /maiores de 10 anos/i.test(u.banReason||'');
+}
+
+function mostrarAvisoIdade(){
+  if(avisoIdadeVisto || document.getElementById('avisoIdade')) return;
+  document.body.insertAdjacentHTML('beforeend',
+    '<div class="edit-modal show" id="avisoIdade">'+
+      '<div class="aviso-idade">'+
+        '<div class="x" onclick="fecharAvisoIdade()">×</div>'+
+        '<div class="ic">🚫</div>'+
+        '<p>Esse app é para maiores de 10 anos e nós temos que seguir essa lei.</p>'+
+      '</div>'+
+    '</div>');
+}
+
+function fecharAvisoIdade(){
+  avisoIdadeVisto = true;
+  var m = document.getElementById('avisoIdade');
+  if(m) m.remove();
+}
+
+// O banido só pode ver o próprio perfil e a conversa com o criador, que é quem
+// libera a conta.
 function bannedViewAllowed(u){
   if(view==='profile' && profileUserId===u.id) return true;
-  return view==='pvb' && pvbView==='private' && pvbChatUser===adminId();
+  if(view!=='pvb' || pvbView!=='private') return false;
+  return pvbChatUser===adminId();
 }
 
 // Bloqueia qualquer ação de quem está banido (postar, comentar, conversar, assistir).
@@ -1602,26 +2630,43 @@ function blockedAction(){
   return true;
 }
 
-// "Veja detalhes" do aviso vermelho: abre direto a conversa privada com o administrador.
-function openAdminChat(){
-  var id = adminId();
-  if(!id){ showNotif('Não encontrei o administrador 😕'); return; }
-  pvbView = 'private';
-  pvbChatUser = id;
-  view = 'pvb';
-  render();
-}
-
 // ==================== LIVE ====================
-// Processo: Postar -> Live -> ativar a sobreposição. No APK a sobreposição fica
-// por cima dos outros apps; aqui ela aparece como uma bolinha flutuante dentro do
-// Good Look, com "Começar agora". Ao começar, a live aparece na Home e no Shorts
-// e a bolinha passa a mostrar "AO VIVO" com o tempo no ar e o "Encerrar".
+// Processo: Postar -> Live oferece dois modos (só a tela, ou tela + câmera
+// frontal). Escolhido o modo, a captura da tela começa na hora e a live entra no
+// ar: ela aparece na Home e no Shorts, e a bolinha flutuante fica na tela pulsando
+// com o tempo. No APK a sobreposição fica por cima dos outros apps e a captura é
+// a do próprio Android.
 var overlayOn = false;
 var liveTitle = null;
 var liveTimer = null;
+var liveMode = 'screen';   // 'screen' = só a tela | 'screenCam' = tela + câmera frontal
+var liveWatchId = null;    // qual live está aberta na tela da transmissão
+var chatLiveId = null;     // qual live está recebendo os comentários
 
-function openLiveView(){ view='live'; render(); }
+// Todas as lives no ar: só as de verdade, feitas por quem está usando o app.
+function livesOnAir(){
+  var l = DB.live();
+  return l ? [l] : [];
+}
+
+function findLive(id){
+  var all = livesOnAir();
+  for(var i=0;i<all.length;i++){ if(all[i].id===id) return all[i]; }
+  return all[0] || null;
+}
+
+function openLiveView(id){
+  var l = id ? findLive(id) : (DB.live() || livesOnAir()[0]);
+  var u = curUser();
+  // Entrar na live de outra pessoa conta como um espectador de verdade.
+  if(l && u && l.userId !== u.id){
+    l.viewers = (l.viewers||0) + 1;
+    DB.saveLive(l);
+  }
+  liveWatchId = l ? l.id : null;
+  view='live';
+  render();
+}
 
 // Tempo no ar da live (m:ss ou h:mm:ss).
 function liveElapsed(ts){
@@ -1632,66 +2677,176 @@ function liveElapsed(ts){
 
 function tickLive(){
   var l = DB.live();
-  if(!l) return;
-  var t = liveElapsed(l.startedAt);
-  ['liveTime','bubbleTime','liveCardTime'].forEach(function(id){
-    var el = document.getElementById(id);
-    if(el) el.textContent = t;
+  if(l){
+    var t = liveElapsed(l.startedAt);
+    var a = document.getElementById('liveTime'); if(a) a.textContent = t;
+    var b = document.getElementById('bubbleTime'); if(b) b.textContent = t;
+  }
+  // Cada card da Home tem o seu próprio relógio no ar.
+  document.querySelectorAll('[data-live]').forEach(function(el){
+    var lv = findLive(el.getAttribute('data-live'));
+    if(lv) el.textContent = liveElapsed(lv.startedAt);
   });
 }
 function startLiveTick(){ if(liveTimer) clearInterval(liveTimer); liveTimer = setInterval(tickLive, 1000); }
 function stopLiveTick(){ if(liveTimer){ clearInterval(liveTimer); liveTimer = null; } }
 
-// A bolinha flutuante só existe depois de ativar a sobreposição.
+// Chat da live: só entra comentário de gente de verdade. Fica guardado no
+// aparelho, então quem abrir a live vê o mesmo chat.
+var liveChat = [];
+
+function loadLiveChat(id){
+  if(!id){ liveChat = []; return; }
+  liveChat = (JSON.parse(localStorage.getItem('gl_livechat_'+id)||'[]')||[]).slice(-60);
+}
+
+function sendLiveComment(){
+  var u = curUser();
+  var el = document.getElementById('liveChatInput');
+  var text = el ? el.value.trim() : '';
+  if(!chatLiveId || !u || !text) return;
+  if(checarTexto(text)) return;
+  liveChat.push({name:u.name, text:text, ts:Date.now()});
+  if(liveChat.length>60) liveChat = liveChat.slice(-60);
+  localStorage.setItem('gl_livechat_'+chatLiveId, JSON.stringify(liveChat));
+  el.value = '';
+  paintLiveChat();
+}
+
+function paintLiveChat(){
+  var el = document.getElementById('liveChatList');
+  if(!el) return;
+  el.innerHTML = liveChat.map(function(c){
+    return '<div class="lc"><b>'+escapeHtml(c.name)+'</b> '+escapeHtml(c.text)+'</div>';
+  }).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+function startLiveChat(id){
+  var l = findLive(id);
+  chatLiveId = l ? l.id : null;
+  loadLiveChat(chatLiveId);
+  paintLiveChat();
+}
+
+// Bolinha flutuante: pequena, fica na tela e é ela que começa a gravação.
 function paintBubble(){
   var l = DB.live();
   var b = document.getElementById('liveBubble');
-  if(!overlayOn || (view==='live' && l)){ if(b) b.remove(); return; }
+  if(!overlayOn || !l || view==='live' || l.userId!==curUser().id){ if(b) b.remove(); return; }
   if(!b){
     b = document.createElement('div');
     b.id = 'liveBubble';
-    b.className = 'live-bubble';
     document.body.appendChild(b);
   }
-  if(l){
-    b.innerHTML = '<span class="dot"></span>AO VIVO <span class="lt" id="bubbleTime">'+liveElapsed(l.startedAt)+'</span>'+
-      '<span class="x encerrar" onclick="event.stopPropagation();endLive()">Encerrar</span>';
-    b.onclick = function(){ openLiveView(); };
-  } else {
-    b.innerHTML = '<span class="dot"></span>Começar agora'+
-      '<span class="x" onclick="event.stopPropagation();closeBubble()">✕</span>';
-    b.onclick = function(){ startLive(); };
-  }
+  // Gravando: bolinha pulsando, com o tempo no ar; toque abre a tela da live.
+  b.className = 'live-bubble rec';
+  b.innerHTML = '<span class="dot"></span>'+
+    '<span class="ball-time" id="bubbleTime">'+liveElapsed(l.startedAt)+'</span>';
+  b.onclick = function(){ openLiveView(l.id); };
 }
 
-function closeBubble(){ overlayOn = false; var b = document.getElementById('liveBubble'); if(b) b.remove(); }
-
-// "Ativar sobreposição" no Postar: guarda o título e mostra a bolinha.
-function activateOverlay(){
+// Escolha do modo no Postar: guarda o título e começa a captura + a live.
+function comecarLive(modo){
   if(blockedAction()) return;
+  liveMode = modo;
   var t = document.getElementById('liveTitle');
-  liveTitle = (t && t.value.trim()) || ('Live de '+curUser().name);
-  overlayOn = true;
-  paintBubble();
-  showNotif('Sobreposição ativada — toque na bolinha para começar 🔴');
+  if(t && t.value.trim()) liveTitle = t.value.trim();
+  capturarTela();
 }
 
-function startLive(){
-  if(blockedAction()) return;
+// O que aparece na live (a tela, ou a tela + a câmera frontal).
+var liveStream = null;
+var screenStream = null;  // captura da tela do aparelho
+var camStream = null;     // câmera frontal (modo tela + câmera)
+var mixTimer = null;      // desenha a tela com a câmera num quadradinho
+var mix = null;
+
+// Captura da tela. O Chrome do computador deixa gravar; o navegador do celular
+// não — lá a live entra no ar sem imagem (no APK a captura é a do Android).
+function capturarTela(){
+  var md = navigator.mediaDevices;
+  if(!md || !md.getDisplayMedia){ semImagem('Este navegador não grava a tela 📵'); return; }
+  md.getDisplayMedia({video:true}).then(function(scr){
+    screenStream = scr;
+    var vt = scr.getVideoTracks()[0];
+    if(vt) vt.addEventListener('ended', function(){ showNotif('A gravação de tela foi parada ⏹'); });
+    if(liveMode!=='screenCam'){ liveStream = scr; abrirLive(); return; }
+    return md.getUserMedia({video:{facingMode:'user'}}).then(function(cam){
+      camStream = cam;
+      juntarTelaECamera();
+      abrirLive();
+    }).catch(function(){
+      liveStream = scr;
+      showNotif('Sem a câmera frontal — gravando só a tela 📱');
+      abrirLive();
+    });
+  }).catch(function(){ semImagem('A gravação de tela não abriu 📵'); });
+}
+
+// Sem captura: a live entra no ar e avisa que está sem imagem.
+function semImagem(msg){ showNotif(msg+' A live entrou no ar sem imagem'); abrirLive(); }
+
+// Modo tela + câmera frontal: a tela ocupa tudo e a câmera fica num quadradinho.
+function juntarTelaECamera(){
+  var cv = document.createElement('canvas');
+  cv.width = 720; cv.height = 1280;
+  var ctx = cv.getContext('2d');
+  var vs = document.createElement('video'); vs.muted = true; vs.playsInline = true; vs.srcObject = screenStream; vs.play();
+  var vc = document.createElement('video'); vc.muted = true; vc.playsInline = true; vc.srcObject = camStream; vc.play();
+  mix = {cv:cv, ctx:ctx, vs:vs, vc:vc};
+  if(mixTimer) clearInterval(mixTimer);
+  mixTimer = setInterval(function(){
+    if(!mix) return;
+    var w = cv.width, h = cv.height;
+    ctx.fillStyle = '#000'; ctx.fillRect(0,0,w,h);
+    cobrir(ctx, mix.vs, 0, 0, w, h);
+    var cw = Math.round(w*0.3), ch = Math.round(cw*4/3);
+    var cx = w-cw-16, cy = h-ch-16;
+    ctx.fillStyle = '#fff'; ctx.fillRect(cx-3, cy-3, cw+6, ch+6);
+    cobrir(ctx, mix.vc, cx, cy, cw, ch);
+  }, 66); // ~15 quadros por segundo
+  liveStream = cv.captureStream(15);
+}
+
+// Desenha o vídeo preenchendo a área (como o object-fit: cover).
+function cobrir(ctx, v, x, y, w, h){
+  if(!v.videoWidth) return;
+  var s = Math.max(w/v.videoWidth, h/v.videoHeight);
+  var dw = v.videoWidth*s, dh = v.videoHeight*s;
+  ctx.drawImage(v, x+(w-dw)/2, y+(h-dh)/2, dw, dh);
+}
+
+// Live no ar: salva a transmissão, liga o relógio e os comentários.
+function abrirLive(){
   var u = curUser();
-  DB.saveLive({id:'live'+Date.now(), userId:u.id, userName:u.name, userPhoto:u.photo, title:liveTitle||('Live de '+u.name), startedAt:Date.now(), viewers:1});
+  var l = {id:'live'+Date.now(), userId:u.id, userName:u.name, userPhoto:u.photo, title:liveTitle||('Live de '+u.name), startedAt:Date.now(), viewers:1};
+  DB.saveLive(l);
   overlayOn = true;
+  liveWatchId = l.id;
   startLiveTick();
+  startLiveChat(l.id);
   view = 'live';
   render();
-  showNotif('Você está ao vivo 🔴 Já apareceu na Home e no Shorts');
+  showNotif('Você está ao vivo 🔴 Sua live já está na Home');
 }
 
-// Encerrar: apertando na bolinha em "Encerrar" (ou no botão da tela da live).
+function stopCamera(){
+  if(liveStream){ liveStream.getTracks().forEach(function(t){ t.stop(); }); liveStream = null; }
+  if(screenStream){ screenStream.getTracks().forEach(function(t){ t.stop(); }); screenStream = null; }
+  if(camStream){ camStream.getTracks().forEach(function(t){ t.stop(); }); camStream = null; }
+  if(mixTimer){ clearInterval(mixTimer); mixTimer = null; }
+  mix = null;
+}
+
+// Encerrar: apertando na bolinha (que abre a tela da live) ou no botão dela.
 function endLive(){
   stopLiveTick();
+  stopCamera();
   DB.saveLive(null);
   overlayOn = false;
+  liveWatchId = null;
+  chatLiveId = null;
   var b = document.getElementById('liveBubble');
   if(b) b.remove();
   view = 'home';
@@ -1699,43 +2854,109 @@ function endLive(){
   showNotif('Live encerrada 🔴');
 }
 
-// Tela da transmissão ao vivo.
+// Tela da transmissão ao vivo (a sua ou a de outro usuário).
 function renderLive(){
-  var l = DB.live();
   var u = curUser();
+  var l = findLive(liveWatchId) || DB.live();
   if(!l){ view='home'; render(); return; }
   var owner = getUser(l.userId) || {name:l.userName, photo:l.userPhoto, verifiedType:null, isCreator:false};
   var mine = l.userId===u.id;
+  if(chatLiveId!==l.id) startLiveChat(l.id);
   var html = '<div class="live-view">'+
     '<div class="live-top"><span class="live-pill"><span class="dot"></span>AO VIVO</span><span class="live-time" id="liveTime">'+liveElapsed(l.startedAt)+'</span></div>'+
     '<div class="live-stage">'+
-      '<div class="live-cam">📱</div>'+
-      '<div class="live-note">'+(mine?'Você está transmitindo do Good Look. No APK a sobreposição fica por cima dos outros apps.':'Transmissão de '+escapeHtml(owner.name)+', ao vivo agora.')+'</div>'+
+      (mine && liveStream?
+        '<video class="live-preview" id="livePreview" autoplay playsinline muted></video>'
+      :
+        '<div class="live-cam">📱</div>'+
+        '<div class="live-note">'+(mine?
+          (screenStream?'Gravando a tela do seu aparelho. No APK a sobreposição fica por cima dos outros apps.':'Sua live está no ar sem imagem — este navegador não grava a tela. No APK a captura é a do próprio Android.')
+          :'Transmissão de '+escapeHtml(owner.name)+', ao vivo agora.')+'</div>'
+      )+
     '</div>'+
+    '<div class="live-chat" id="liveChatList"></div>'+
+    '<div class="live-chat-input"><input id="liveChatInput" placeholder="Comentar na live..." onkeydown="if(event.key===\'Enter\')sendLiveComment()"><button onclick="sendLiveComment()">➤</button></div>'+
     '<div class="live-title">'+escapeHtml(l.title)+'</div>'+
-    '<div class="live-sub">'+userNameDisplay(owner)+' · '+l.viewers+' assistindo</div>'+
+    '<div class="live-sub">'+userNameDisplay(owner)+' · <span id="liveViewers">'+l.viewers+'</span> assistindo</div>'+
     (mine?'<button class="live-end" onclick="endLive()">Encerrar live</button>':'<button class="live-end" style="background:#F97316" onclick="view=\'shorts\';render()">Sair</button>')+
   '</div>';
   document.getElementById('app').innerHTML = html;
+  var pv = document.getElementById('livePreview');
+  if(pv) pv.srcObject = liveStream;
+  paintLiveChat();
 }
 
-// No chat com o administrador, quem está banido tem o pedido de desculpas na mão.
+// Na conversa com o criador, quem está banido tem o pedido de desculpas na mão.
 function sendApology(){
   var u = curUser();
-  var id = adminId();
+  var id = pvbChatUser || adminId();
   if(!u || !id) return;
+  var texto = 'Desculpe pelo que fiz 🙏 Prometo não fazer isso de novo.';
   var msgs = DB.privMsgs();
-  msgs.push({fromId:u.id, toId:id, text:'Desculpe, admin 🙏 Prometo não fazer isso de novo.', ts:Date.now()});
+  msgs.push({id:novoMsgId(), fromId:u.id, toId:id, text:texto, ts:Date.now()});
   DB.savePrivMsgs(msgs);
   renderPVBPrivate();
 }
 
+// ==================== MENSAGENS RECEBIDAS ====================
+// Chegou mensagem privada? Aparece um aviso no topo com o nome de quem mandou
+// (de quem está banido também) e, tocando nele, abre a conversa com a pessoa.
+// Quem está banido só recebe aviso do criador — é por aí que o pedido de
+// liberação acontece.
+function checarMensagensNovas(){
+  var u = curUser();
+  if(!u) return;
+  var banido = isBanned(u);
+  var atendem = [adminId()];
+  var msgs = DB.privMsgs().filter(function(m){
+    if(!m || m.toId!==u.id || m.sys) return false;
+    return !banido || atendem.indexOf(m.fromId) >= 0;
+  });
+  if(!msgs.length) return;
+  // A mensagem mais nova é a que vale: o aviso abre sempre a conversa de quem
+  // acabou de escrever, e não a de uma mensagem antiga que ficou no meio da lista.
+  var ultima = msgs[0];
+  msgs.forEach(function(m){ if((m.ts||0) > (ultima.ts||0)) ultima = m; });
+  var chave = 'gl_msgvista_'+u.id;
+  var visto = parseInt(localStorage.getItem(chave) || '0', 10);
+  if(!ultima.ts || ultima.ts <= visto) return;
+  localStorage.setItem(chave, String(ultima.ts));
+  var id = ultima.fromId;
+  // Se já estou na conversa com essa pessoa, não preciso de aviso.
+  if(view==='pvb' && pvbView==='private' && pvbChatUser===id) return;
+  var quem = getUser(id) || getUser(ultima.fromId);
+  var nome = quem ? quem.name : 'Alguém';
+  var aviso = '💬 '+nome+' te mandou mensagem'+(quem && isBanned(quem)?' · banido 🚫':'');
+  showNotif(aviso, function(){ abrirConversa(id); });
+}
+
+function abrirConversa(uid){
+  pvbChatUser = uid;
+  pvbView = 'private';
+  view = 'pvb';
+  render();
+}
+
 // ==================== NOTIFICATIONS ====================
-function showNotif(msg){
+var notifAction = null, notifTimer = null;
+function showNotif(msg, action){
   var n = document.getElementById('notif');
   n.textContent = msg;
+  notifAction = action || null;
   n.classList.add('show');
-  setTimeout(function(){ n.classList.remove('show'); }, 3000);
+  if(notifTimer) clearTimeout(notifTimer);
+  // O aviso de mensagem fica no topo até você tocar nele; os outros somem sozinhos.
+  notifTimer = action ? null : setTimeout(function(){ n.classList.remove('show'); }, 3000);
+}
+
+// Tocar no aviso abre a conversa de quem mandou a mensagem.
+function notifClick(){
+  var n = document.getElementById('notif');
+  n.classList.remove('show');
+  if(notifTimer) clearTimeout(notifTimer);
+  var acao = notifAction;
+  notifAction = null;
+  if(acao) acao();
 }
 
 // ==================== SCROLL HELPER ====================
@@ -1746,49 +2967,115 @@ function scrollChat(id){
   }, 100);
 }
 
-// ==================== BOTS ====================
-var botNames = ['Lucas','Maria','Pedro','Ana','João','Carla','Bruno','Julia','Rafael','Camila','Felipe','Beatriz','Gustavo','Larissa','Diego','Marina','Thiago','Fernanda','Rodrigo','Patrícia'];
-var botComments = ['Muito bom! 😍','Que legal! 🔥','Adorei! ❤️','KKKKK 😂','Top demais! 👏','Sensacional! 🎉','Incrível! ✨','Amei isso! 💖','Hahaha muito bom','Show! 🎬','Mano que vídeo 😂','Que conteúdo bom!','Parabéns! 👏','Sensacional 🔥','Top! 👍'];
+// ==================== SEM BOTS ====================
+// O app é de gente de verdade: nenhum bot posta, curte, comenta, ganha seguidor
+// ou manda mensagem. Aqui a gente só apaga o que as versões antigas gravaram.
+function limparBots(){
+  var users = DB.users().filter(function(u){ return String(u.id||'').indexOf('bot_') !== 0; });
+  users.forEach(function(u){
+    // O selo azul é só do criador: tira de todo mundo.
+    if(!u.isCreator && u.username!=='tex_tt' && (u.verified || u.verifiedType)){ u.verified = false; u.verifiedType = null; }
+  });
+  DB.saveUsers(users);
+  var vids = DB.videos().filter(function(v){
+    return !v.botPost && String(v.userId||'').indexOf('bot_') !== 0;
+  });
+  vids.forEach(function(v){
+    if(v.comments && v.comments.length){
+      v.comments = v.comments.filter(function(c){ return String(c.userId||'').indexOf('bot_') !== 0; });
+    }
+  });
+  DB.saveVideos(vids);
+  DB.savePrivMsgs(DB.privMsgs().filter(function(m){ return String(m.fromId||'').indexOf('bot_') !== 0; }));
+}
 
-function startBots(){
-  if(botTimer) clearInterval(botTimer);
-  botTimer = setInterval(function(){
-    var vids = DB.videos();
-    if(vids.length===0) return;
-    // Like 1-2 random videos
-    var n = 1 + Math.floor(Math.random()*2);
-    var changed = false;
-    for(var i=0; i<n; i++){
-      var v = vids[Math.floor(Math.random()*vids.length)];
-      v.likes = (v.likes||0) + 1;
-      v.botLikes = (v.botLikes||0) + 1;
-      changed = true;
-    }
-    // Occasionally add a comment
-    if(Math.random() < 0.3){
-      var v2 = vids[Math.floor(Math.random()*vids.length)];
-      if(!v2.comments) v2.comments = [];
-      var bn = botNames[Math.floor(Math.random()*botNames.length)];
-      var bc = botComments[Math.floor(Math.random()*botComments.length)];
-      v2.comments.push({userId:'bot_'+bn, userName:bn, text:bc, ts:Date.now()});
-      changed = true;
-    }
-    if(changed){
-      DB.saveVideos(vids);
-      // If on home, update counts without full re-render
-      if(view==='shorts'){
-        var slides = document.querySelectorAll('.video-slide');
-        slides.forEach(function(s){
-          var vid = s.dataset.vid;
-          var vd = vids.find(function(x){return x.id===vid;});
-          if(vd){
-            var cnt = s.querySelector('.vbtn .count');
-            if(cnt) cnt.textContent = fmt(vd.likes||0);
-          }
-        });
-      }
-    }
-  }, 3000);
+// ==================== PALAVRÕES ====================
+// Juntando 6 palavrões (no chat público, no privado ou nos comentários) a conta
+// toma ban automático de 24h, e o motivo fica registrado no perfil dela.
+var PALAVROES = ['porra','desgraça','disgraça','vagabundo','vagabunda','filho da puta','filha da puta','caralho','puta que pariu','vai tomar no cu'];
+var LIMITE_PALAVROES = 6;
+// Na conversa privada com o criador o limite é 2: dois palavrões já baniram.
+var LIMITE_PALAVROES_CRIADOR = 2;
+
+function contarPalavroes(text){
+  var t = (text||'').toLowerCase();
+  var n = 0;
+  PALAVROES.forEach(function(p){
+    var i = t.indexOf(p);
+    while(i>=0){ n++; i = t.indexOf(p, i+p.length); }
+  });
+  return n;
+}
+
+// Roda antes de enviar a mensagem. Devolve true quando a conta acabou de ser banida.
+function checarPalavroes(text, limite){
+  var u = curUser();
+  var n = contarPalavroes(text);
+  if(!u || !n) return false;
+  if(u.isCreator || u.isAdmin) return false; // o dono do app não toma ban
+  limite = limite || LIMITE_PALAVROES;
+  var users = DB.users();
+  var x = users.find(function(y){ return y.id===u.id; });
+  if(!x) return false;
+  x.palavroes = (x.palavroes||0) + n;
+  if(x.palavroes >= limite){
+    x.banned = true;
+    x.banUntil = Date.now() + 24*3600000;
+    x.banReason = 'Palavrões repetidos ('+x.palavroes+'x): '+text.slice(0,40);
+    DB.saveUsers(users);
+    showNotif('Você foi banido por 24h 🚫 Motivo: palavras ofensivas');
+    view = 'profile'; profileUserId = x.id;
+    render();
+    return true;
+  }
+  // O contador fica em silêncio: ninguém vê o aviso de palavrão, mas o ban continua valendo.
+  DB.saveUsers(users);
+  return false;
+}
+
+// ==================== IDADE MÍNIMA ====================
+// O Good Look é para maiores de 10 anos. Quem diz que tem 10 anos ou menos (ou
+// uma data de nascimento que dá essa idade) toma banimento permanente na hora,
+// sem contador e sem aviso de advertência: o motivo aparece no perfil e só o
+// criador pode liberar depois.
+var IDADE_MINIMA = 11;
+
+function idadeDeclarada(text){
+  var t = (text||'').toLowerCase(), m;
+  if((m = t.match(/(?:eu\s+)?tenho\s+(\d{1,3})\s*(?:anos?|aninhos)/))) return Number(m[1]);
+  if((m = t.match(/(?:minha\s+)?idade\s*(?:é|e|:)?\s*(\d{1,3})/))) return Number(m[1]);
+  if((m = t.match(/(\d{1,3})\s*(?:anos?|aninhos)\s+de\s+idade/))) return Number(m[1]);
+  if((m = t.match(/(?:eu\s+)?(?:fiz|completei|acabei\s+de\s+fazer)\s+(\d{1,3})\s*(?:anos?|aninhos)/))) return Number(m[1]);
+  if((m = t.match(/(?:nasci|nascido|nascida)\s+(?:em|no\s+ano\s+(?:de\s+)?)\s*((?:19|20)\d{2})/))) return new Date().getFullYear() - Number(m[1]);
+  if(/sou\s+(?:um\s+|uma\s+)?(?:beb[eê]|crian[çc]a|menor\s+de\s+idade)/.test(t)) return 0;
+  return null;
+}
+
+// Devolve true quando a conta acabou de ser banida por idade.
+function checarIdade(text){
+  var u = curUser();
+  if(!u || u.isCreator || u.isAdmin) return false;
+  var idade = idadeDeclarada(text);
+  if(idade===null || idade >= IDADE_MINIMA) return false;
+  var users = DB.users();
+  var x = users.find(function(y){ return y.id===u.id; });
+  if(!x) return false;
+  x.banned = true;
+  x.banUntil = -1;   // -1 = permanente
+  x.banTipo = 'idade';
+  x.banReason = 'Declarou ter menos de ' + IDADE_MINIMA + ' anos — o app é para maiores de 10 anos';
+  DB.saveUsers(users);
+  showNotif('Banimento permanente 🚫 O app é para maiores de 10 anos');
+  view = 'profile'; profileUserId = x.id;
+  render();
+  return true;
+}
+
+// O que vale para tudo que eu escrevo: chat público, conversa privada,
+// comentário e comentário da live.
+function checarTexto(text, limite){
+  if(checarIdade(text)) return true;
+  return checarPalavroes(text, limite);
 }
 
 // ==================== STORAGE SYNC ====================
@@ -1797,6 +3084,7 @@ window.addEventListener('storage', function(e){
   if(e.key==='gl_privmsg' && view==='pvb' && pvbView==='private') renderPVBPrivate();
   if(e.key==='gl_videos' && view==='home') renderHome();
   if(e.key==='gl_videos' && view==='shorts') renderShorts();
+  if(chatLiveId && e.key==='gl_livechat_'+chatLiveId && view==='live'){ loadLiveChat(chatLiveId); paintLiveChat(); }
 });
 
 // ==================== INIT ====================
@@ -1812,45 +3100,37 @@ window.addEventListener('storage', function(e){
     creator.password = '12345678910';
     DB.saveUsers(users);
   }
-  // Sample clips ship with the site: the external bucket used before now answers
-  // 403, which left every seeded video showing a black player.
-  var SAMPLES = ['/videos/bunny.mp4','/videos/jellyfish.mp4','/videos/sintel.mp4','/videos/flower.mp4','/videos/friday.mp4','/videos/onda.mp4'];
-  var SEED_INDEX = {v0:0,v1:1,v2:2,s0:3,s1:4,s2:5};
+  // A conta "suporte good look" saiu do app: quem cuida de quem está banido é o
+  // criador. A cópia que ficou gravada neste aparelho também sai.
+  var semSuporte = users.filter(function(u){ return !(u.id==='suporte' || u.username==='suporte_good_look'); });
+  if(semSuporte.length !== users.length) DB.saveUsers(semSuporte);
+  // Os vídeos de exemplo antigos saem do banco: quem publica na Home e no Shorts
+  // são as pessoas de verdade que usam o app.
+  var vids = DB.videos().filter(function(v){ return ['v0','v1','v2','s0','s1','s2'].indexOf(v.id)<0; });
+  DB.saveVideos(vids);
+  limparBots();
 
-  // Point sample videos already saved in this browser at the local files.
-  var vids = DB.videos();
-  var resaved = false;
-  vids.forEach(function(v){
-    var si = SEED_INDEX[v.id];
-    if(si!==undefined && v.url && v.url.indexOf('gtv-videos-bucket')>=0){ v.url = SAMPLES[si]; resaved = true; }
-  });
-  if(resaved) DB.saveVideos(vids);
-
-  // Seed videos if empty
-  if(vids.length===0){
-    var vSamples = [
-      {desc:'PEGUEI O OVO DIVINO MAIS RARO DO HALLOWEEN! 🎃🥚',url:SAMPLES[0]},
-      {desc:'TOP GLOBAL no jogo mais difícil! 🏆',url:SAMPLES[1]},
-      {desc:'DEMON SLAYER — melhor momento do anime! ⚔️🔥',url:SAMPLES[2]}
-    ];
-    vSamples.forEach(function(s,i){
-      vids.push({id:'v'+i,userId:'creator',userName:'tex_tt',userPhoto:null,url:s.url,description:s.desc,type:'video',likes:Math.floor(Math.random()*500)+100,views:Math.floor(Math.random()*15000)+1000,comments:[],timestamp:Date.now()-(i+1)*43200000,likedBy:[],dislikedBy:[],botLikes:0});
-    });
-    var sSamples = [
-      {desc:'Flor desabrochando 🌸',url:SAMPLES[3]},
-      {desc:'Boa sexta! 🎉',url:SAMPLES[4]},
-      {desc:'Clima de verão ☀️',url:SAMPLES[5]}
-    ];
-    sSamples.forEach(function(s,i){
-      vids.push({id:'s'+i,userId:'creator',userName:'tex_tt',userPhoto:null,url:s.url,description:s.desc,type:'short',likes:Math.floor(Math.random()*50)+5,views:Math.floor(Math.random()*500)+100,comments:[],timestamp:Date.now()-i*3600000,likedBy:[],dislikedBy:[],botLikes:0});
-    });
-    DB.saveVideos(vids);
+  if(!curUser()){ window.location.href='home.html'; return; }
+  // Sem sessão no servidor: quem tem servidor cai na tela de entrada (que entra
+  // sozinha com a conta que já existe neste aparelho). Site aberto sem servidor
+  // (GitHub Pages) continua funcionando só no aparelho.
+  if(window.SYNC && !SYNC.logged()){
+    SYNC.ping().then(function(){ window.location.href='home.html'; }).catch(function(){});
   }
-
-  if(!curUser()){ window.location.href='/home'; return; }
-  // Se a página foi recarregada durante uma live, a bolinha volta com ela.
-  if(DB.live()){ overlayOn = true; startLiveTick(); }
-  startBots();
+  // Contas, vídeos, shorts e conversas ficam no servidor: o que acontece aqui
+  // aparece no celular das outras pessoas (e o que elas fazem aparece aqui).
+  if(window.SYNC) SYNC.start();
+  // Sobe para o servidor os vídeos que ficaram presos neste aparelho.
+  subirVideosLocais();
+  // Se a página foi recarregada durante a MINHA live, a bolinha volta com ela.
+  var liveAtual = DB.live();
+  if(liveAtual && liveAtual.userId===curUser().id){ overlayOn = true; startLiveTick(); }
+  // Só checa mensagem de gente de verdade chegando: nenhum bot roda por aqui.
+  setInterval(checarMensagensNovas, 3000);
+  // Missões das moedas: de tempo em tempo o app avisa o servidor que a pessoa
+  // continua aqui, e é ele quem paga o minuto (ver MOEDAS E MISSÕES).
+  baterMissao(true);
+  setInterval(function(){ baterMissao(); }, 15000);
   render();
 })();
 </script>

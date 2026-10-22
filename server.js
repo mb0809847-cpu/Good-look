@@ -1,0 +1,1141 @@
+#!/usr/bin/env node
+'use strict';
+/*
+ * Good Look — servidor único.
+ *
+ * Ele faz duas coisas:
+ *   1. entrega o site (index.html, home.html, app.html, sync.js, vídeos...);
+ *   2. guarda o que é de todo mundo: contas, vídeos, shorts, conversas e live.
+ *
+ * Sem dependências: só o Node. Os dados ficam em DATA_DIR/db.json e os arquivos
+ * enviados (vídeo da galeria, foto de perfil, foto no chat) em DATA_DIR/uploads.
+ *
+ * Rodar:  node server.js          (porta 3000, ou PORT=... )
+ */
+
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+const { spawn } = require('child_process');
+
+const ROOT = __dirname;
+const DATA_DIR = process.env.DATA_DIR || path.join(ROOT, 'data');
+const UPLOAD_DIR = path.join(DATA_DIR, 'uploads');
+const DB_FILE = path.join(DATA_DIR, 'db.json');
+const PORT = Number(process.env.PORT || 3000);
+const HOST = process.env.HOST || '0.0.0.0';
+const MAX_BODY = 30 * 1024 * 1024;     // pushes (perfil, conversas)
+const MAX_UPLOAD = 300 * 1024 * 1024;  // vídeo escolhido na galeria (vídeo de celular é grande)
+const MAX_DATA_URL = 8 * 1024 * 1024;  // foto em base64 que vira arquivo
+const FFMPEG = process.env.FFMPEG || 'ffmpeg';
+const KINDS = ['users', 'videos', 'pubMsgs', 'privMsgs'];
+const EXT_OK = ['mp4', 'mov', 'webm', 'm4v', 'jpg', 'jpeg', 'png', 'webp', 'gif'];
+const IMG_OK = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+// Códigos do app: cada um faz uma coisa.
+//   • o do sorteio não cria conta nenhuma: quem digita entra no sorteio com 20%
+//     de chance de ganhar, e é o criador quem sorteia, no dia marcado;
+//   • o do visual liga o tema de Halloween na conta de quem digita. O tema fica
+//     gravado no cadastro, então ele volta em qualquer aparelho.
+const CODIGO_SORTEIO = 'publslinks22';
+const CODIGO_HALLOWEEN = 'halloween77';
+const CHANCE_INICIAL = 20;
+// O sorteio é do criador e tem data marcada: 12 de novembro de 2026. Quem ganha
+// leva o selo verde junto com o painel de banimentos, e isso vale até 27 de
+// novembro de 2026 — depois dessa data o prêmio sai sozinho, sem ninguém
+// precisar tirar nada da conta de quem ganhou.
+const PREMIO_ATE = new Date(2026, 10, 27, 23, 59, 59, 999).getTime();
+const CODIGOS_DO_APP = [
+  { code: CODIGO_SORTEIO, nome: 'Sorteio', desc: 'Quem resgata entra no sorteio com ' + CHANCE_INICIAL + '% de chance, sem criar conta' },
+  { code: CODIGO_HALLOWEEN, nome: 'Visual Halloween', desc: 'Liga o visual de Halloween na conta' }
+];
+
+// ==================== MOEDAS ====================
+// O saldo de moedas é do servidor: ele vive na conta aqui, nunca no aparelho —
+// é isso que impede o bug de alguém inventar moeda no próprio celular.
+//   • conta nova não ganha moeda nenhuma de boas-vindas;
+//   • o criador começa com 1000k (1.000.000) de moedas;
+//   • ficar no app rende 1 moeda por hora e, às 7 horas, 5 de bônus;
+//   • com moedas a pessoa paga a membresia de um canal (ver /api/membro).
+const MOEDAS_NOVO = 0;
+const MOEDAS_CRIADOR = 1000 * 1000;
+const MOEDA_SEG = 3600;          // 1 moeda a cada hora de app
+const MOEDAS_DIA_MAX = 24;       // teto de moedas ganhas por dia, no tempo
+const BATIMENTO_SEG_MAX = 30;    // batimento atrasado vale no máximo 30s
+const MISSAO_BASE_MIN = 60;      // primeira missão: 1 hora no app
+const MISSAO_MIN = 420;          // missão do dia: 7 horas no app
+const MISSAO_MOEDAS = 5;         // e ela paga 5 moedas
+const MEMBRESIA_MIN = 25;        // a membresia de um canal começa em 25 moedas
+const MEMBRESIA_MAX = 30;        // e vai no máximo até 30 moedas
+
+// O preço do vídeo de membro vive entre MEMBRESIA_MIN e MEMBRESIA_MAX: o que
+// vem do aparelho entra sempre dentro dessa faixa.
+function precoDeMembro(n) {
+  const v = Number(n) || MEMBRESIA_MIN;
+  return Math.min(MEMBRESIA_MAX, Math.max(MEMBRESIA_MIN, v));
+}
+
+fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+
+/* ==================== BANCO ==================== */
+
+let clock = Date.now();
+let db = { users: {}, videos: {}, pubMsgs: {}, privMsgs: {}, live: null, liveU: 0, del: {}, tokens: {}, sorteio: [], premio: null };
+
+function loadDb() {
+  try {
+    const raw = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+    KINDS.forEach(function (k) { if (raw[k]) db[k] = raw[k]; });
+    db.live = raw.live || null;
+    db.liveU = raw.liveU || 0;
+    db.del = raw.del || {};
+    db.tokens = raw.tokens || {};
+    // Quem entrou no sorteio resgatando o código (ver Códigos do app). A chance
+    // é a mesma para todo mundo que está no sorteio, então ela é acertada aqui —
+    // quem entrou quando a chance era outra entra no mesmo páreo que os outros.
+    db.sorteio = raw.sorteio || [];
+    db.sorteio.forEach(function (p) { p.chance = CHANCE_INICIAL; });
+    // Quem ganhou o sorteio (nome + quando), e até quando o prêmio vale.
+    db.premio = raw.premio || null;
+    const marcas = [Date.now()];
+    KINDS.forEach(function (k) { for (const id in db[k]) marcas.push(db[k][id]._u || 0); });
+    db.liveU && marcas.push(db.liveU);
+    clock = Math.max.apply(null, marcas);
+    console.log('banco carregado: ' + Object.keys(db.users).length + ' contas, ' + Object.keys(db.videos).length + ' vídeos');
+  } catch (e) {
+    console.log('banco novo em ' + DB_FILE);
+  }
+}
+
+let saveTimer = null;
+function saveDb() {
+  if (saveTimer) return;
+  saveTimer = setTimeout(function () {
+    saveTimer = null;
+    const tmp = DB_FILE + '.tmp';
+    try {
+      fs.writeFileSync(tmp, JSON.stringify(db));
+      fs.renameSync(tmp, DB_FILE);
+    } catch (e) {
+      console.error('não deu para salvar o banco:', e.message);
+    }
+  }, 600);
+}
+
+/* ==================== SENHAS E ACESSO ==================== */
+
+function hashPass(pass, salt) {
+  return crypto.scryptSync(String(pass), salt, 32).toString('hex');
+}
+function novaSenha(pass) {
+  const salt = crypto.randomBytes(8).toString('hex');
+  return salt + ':' + hashPass(pass, salt);
+}
+function confereSenha(pass, guardada) {
+  const partes = String(guardada || '').split(':');
+  if (partes.length !== 2) return false;
+  const calc = hashPass(pass, partes[0]);
+  return calc.length === partes[1].length && crypto.timingSafeEqual(Buffer.from(calc), Buffer.from(partes[1]));
+}
+function novoToken(userId) {
+  const t = crypto.randomBytes(24).toString('hex');
+  db.tokens[t] = userId;
+  saveDb();
+  return t;
+}
+function logado(req) {
+  const h = String(req.headers.authorization || '');
+  const t = h.replace(/^Bearer\s+/i, '');
+  const uid = db.tokens[t];
+  return uid ? db.users[uid] : null;
+}
+function estaBanido(u) {
+  if (!u || !u.banned) return false;
+  return u.banUntil === -1 || !u.banUntil || Date.now() < u.banUntil;
+}
+
+/* ==================== CONTAS ==================== */
+
+// Quem ganhou o sorteio leva o selo verde e o painel de banimentos até a data
+// marcada (27/11/2026). O prêmio não fica gravado na conta: ele é conferido a
+// cada resposta, então quando a data passa o selo e o painel saem sozinhos.
+function premioDe(u) {
+  if (!u || !db.premio || !db.premio.nome) return false;
+  if (Date.now() >= PREMIO_ATE) return false;
+  const alvo = String(db.premio.nome).trim().toLowerCase();
+  return String(u.name || '').trim().toLowerCase() === alvo || String(u.username || '').trim().toLowerCase() === alvo;
+}
+// Quem manda no painel de banimentos: o criador, a conta liberada por código e
+// quem está com o prêmio do sorteio na mão.
+function podeBanir(u) { return !!u && (!!u.isCreator || !!u.modOnly || premioDe(u)); }
+
+function usuarioPublico(u) {
+  const o = Object.assign({}, u);
+  delete o.password;
+  o._server = true;
+  o.premio = premioDe(u);
+  // O saldo nunca sai faltando: conta que nunca teve moeda aparece com 0.
+  o.moedas = Number(u.moedas) || 0;
+  // O tempo das missões é controle interno do servidor: o aparelho não precisa
+  // dele e não tem como mexer nele.
+  for (const k in o) if (k.indexOf('_m') === 0) delete o[k];
+  return o;
+}
+
+function seedCriador() {
+  if (db.users.creator) return;
+  db.users.creator = {
+    id: 'creator', name: 'tex_tt', username: 'tex_tt', bio: '👑 Criador do Good Look',
+    photo: null, followers: 100000, following: [], likes: 0,
+    verified: true, verifiedType: 'blue', isCreator: true, isAdmin: true,
+    banned: false, banUntil: null, savedVideos: [],
+    moedas: MOEDAS_CRIADOR,
+    password: novaSenha('12345678910'), _u: ++clock
+  };
+  saveDb();
+  console.log('conta do criador criada: tex_tt');
+}
+
+// Contas que já existiam antes das moedas: quem nunca teve saldo ganha o de
+// boas-vindas, e o criador ganha as 1000k dele. Uma vez entregue, o saldo passa
+// a ser do servidor e nenhum aparelho muda mais (ver aplicarPush).
+function completarMoedas() {
+  let mexeu = false;
+  for (const id in db.users) {
+    const u = db.users[id];
+    if (!u || u.moedas != null) continue;
+    u.moedas = u.isCreator ? MOEDAS_CRIADOR : MOEDAS_NOVO;
+    u._u = ++clock;
+    mexeu = true;
+  }
+  if (mexeu) { saveDb(); console.log('moedas de boas-vindas entregues'); }
+}
+
+// A conta "suporte good look" saiu do app: quem cuida de quem está banido é o
+// criador. Quem ainda tinha essa conta no aparelho perde a cópia aqui, e as
+// conversas antigas com ela saem junto — assim ninguém recebe aviso de uma
+// conversa que não existe mais.
+function removerSuporte() {
+  let mexeu = false;
+  // O id da conta que saiu do app entra na lista mesmo que ela já não esteja no
+  // banco: assim as conversas antigas com ela também são limpas, uma vez só.
+  const chat = ['suporte'];
+  for (const id in db.users) {
+    const u = db.users[id];
+    if (!u) continue;
+    if (u.id === 'suporte' || u.username === 'suporte_good_look' || u.isSupport) {
+      delete db.users[id];
+      db.del.users = db.del.users || {};
+      db.del.users[id] = ++clock;
+      chat.push(id);
+      mexeu = true;
+      console.log('conta de suporte removida: ' + id);
+    }
+  }
+  chat.forEach(function (id) {
+    for (const mid in db.privMsgs) {
+      const m = db.privMsgs[mid];
+      if (!m || (m.fromId !== id && m.toId !== id)) continue;
+      delete db.privMsgs[mid];
+      db.del.privMsgs = db.del.privMsgs || {};
+      db.del.privMsgs[mid] = ++clock;
+      mexeu = true;
+    }
+  });
+  if (mexeu) saveDb();
+}
+
+function salvarUsuario(extra) {
+  const id = 'u' + Date.now().toString(36) + crypto.randomBytes(2).toString('hex');
+  const u = Object.assign({
+    id: id, photo: null, bio: '', followers: 0, following: [], likes: 0,
+    verified: false, verifiedType: null, isCreator: false, isAdmin: false,
+    banned: false, banUntil: null, savedVideos: [],
+    moedas: MOEDAS_NOVO
+  }, extra);
+  if (u.photo) u = localizarMedia(u);
+  u._u = ++clock;
+  db.users[id] = u;
+  saveDb();
+  return u;
+}
+
+function acharPorNome(nome) {
+  const alvo = String(nome || '').trim().toLowerCase();
+  for (const id in db.users) {
+    const u = db.users[id];
+    if (String(u.name || '').toLowerCase() === alvo || String(u.username || '').toLowerCase() === alvo) return u;
+  }
+  return null;
+}
+
+function acharCriador() {
+  for (const id in db.users) if (db.users[id].isCreator) return db.users[id];
+  return null;
+}
+
+// Quem atende quem está banido é o criador: é por essa conversa que a pessoa se
+// explica e consegue a liberação da conta.
+function contasQueAtendem() {
+  const criador = acharCriador();
+  return criador ? [criador.id] : [];
+}
+
+/* ==================== MÍDIA ==================== */
+
+function localizarMedia(item) {
+  ['photo', 'image'].forEach(function (campo) {
+    const v = item[campo];
+    if (typeof v !== 'string' || v.indexOf('data:') !== 0 || v.indexOf(';base64,') < 0) return;
+    if (v.length > MAX_DATA_URL) { item[campo] = null; return; }
+    const m = v.match(/^data:([^;]+);base64,([\s\S]*)$/);
+    if (!m) return;
+    let ext = (m[1].split('/')[1] || 'bin').toLowerCase().replace('jpeg', 'jpg').replace('quicktime', 'mov');
+    if (EXT_OK.indexOf(ext) < 0) ext = 'bin';
+    const nome = 'mid' + Date.now().toString(36) + '-' + crypto.randomBytes(3).toString('hex') + '.' + ext;
+    try {
+      fs.writeFileSync(path.join(UPLOAD_DIR, nome), Buffer.from(m[2], 'base64'));
+      item[campo] = '/uploads/' + nome;
+    } catch (e) {
+      console.error('não deu para guardar a mídia:', e.message);
+      item[campo] = null;
+    }
+  });
+  return item;
+}
+
+/* ==================== VÍDEO PRONTO PARA TOCAR ==================== */
+
+// Roda um programa e devolve o que ele respondeu. Nunca derruba o servidor: se
+// o programa não existe no servidor (sem ffmpeg), volta com código -1.
+function rodarComando(programa, args) {
+  return new Promise(function (ok) {
+    let p;
+    try { p = spawn(programa, args, { stdio: ['ignore', 'ignore', 'pipe'] }); }
+    catch (e) { return ok({ codigo: -1, saida: String((e && e.message) || e) }); }
+    let saida = '';
+    p.stderr.on('data', function (d) { if (saida.length < 8000) saida += d.toString(); });
+    p.on('error', function (e) { ok({ codigo: -1, saida: String((e && e.message) || e) }); });
+    p.on('close', function (c) { ok({ codigo: c, saida: saida }); });
+  });
+}
+
+function duracaoDoVideo(saida) {
+  const m = /Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/.exec(saida || '');
+  if (!m) return null;
+  return Math.round(Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]));
+}
+
+// Deixa o vídeo enviado pronto para o celular: o índice do MP4 (moov) quase
+// sempre vem no fim do arquivo, e aí o aparelho baixa quase tudo antes de
+// mostrar o primeiro quadro. O "-c copy" só reescreve esse índice na frente
+// (não reencoda nada) e o vídeo passa a abrir na hora. Sem ffmpeg instalado no
+// servidor nada disso acontece e o vídeo sobe exatamente como veio.
+async function prepararVideo(caminho, ext) {
+  const pronto = { dur: null };
+  if (['mp4', 'm4v', 'mov'].indexOf(ext) >= 0) {
+    const tmp = caminho + '.fast.mp4';
+    const r = await rodarComando(FFMPEG, ['-y', '-i', caminho, '-c', 'copy', '-movflags', '+faststart', tmp]);
+    pronto.dur = duracaoDoVideo(r.saida);
+    try {
+      if (r.codigo === 0 && fs.statSync(tmp).size > 0) fs.renameSync(tmp, caminho);
+      else fs.unlinkSync(tmp);
+    } catch (e) { /* o arquivo enviado continua como veio */ }
+  } else {
+    pronto.dur = duracaoDoVideo((await rodarComando(FFMPEG, ['-i', caminho])).saida);
+  }
+  return pronto;
+}
+
+/* ==================== SINCRONIA ==================== */
+
+// Membresia: quem manda no vídeo de membro é o dono do canal e quem é membro
+// dele. A lista de canais de que a pessoa é membro é do servidor (ver
+// /api/membro) — o aparelho não assina canal nenhum sozinho.
+function ehMembroDe(u, canalId) {
+  if (!u || !canalId) return false;
+  if (u.id === canalId) return true;
+  return (u.membroDe || []).indexOf(canalId) >= 0;
+}
+function podeVerVideo(v, quem) {
+  if (!v || !v.membro) return true;
+  return ehMembroDe(quem, v.userId);
+}
+// Vídeo de membro sai daqui SEM o link para quem não é membro do canal: assim
+// ninguém assiste sem pagar, nem abrindo o endereço do vídeo por fora. A capa
+// vai junto, para o card mostrar o vídeo trancado com o cadeado.
+function videoParaFora(v, quem) {
+  if (podeVerVideo(v, quem)) return v;
+  const o = Object.assign({}, v);
+  delete o.url;
+  return o;
+}
+// Os vídeos de membro de um canal, completos (com o link): é o que volta para o
+// aparelho logo depois do pagamento, e é assim que o vídeo abre.
+function videosDeMembroDoCanal(canalId) {
+  return Object.keys(db.videos)
+    .filter(function (id) { return db.videos[id].userId === canalId && !!db.videos[id].membro; })
+    .map(function (id) { return db.videos[id]; });
+}
+
+function deltasDe(since, quem) {
+  const out = { now: clock, users: [], videos: [], pubMsgs: [], privMsgs: [], deleted: {}, live: db.live, liveU: db.liveU };
+  KINDS.forEach(function (kind) {
+    const bag = db[kind], del = db.del[kind] || {};
+    out.deleted[kind] = [];
+    for (const id in bag) {
+      if ((bag[id]._u || 0) <= since) continue;
+      if (kind === 'users') out[kind].push(usuarioPublico(bag[id]));
+      else if (kind === 'videos') out[kind].push(videoParaFora(bag[id], quem));
+      else out[kind].push(bag[id]);
+    }
+    for (const id in del) if (del[id] > since) out.deleted[kind].push(id);
+  });
+  return out;
+}
+
+function aplicarPush(body, quem) {
+  let mexeu = false;
+  KINDS.forEach(function (kind) {
+    const itens = Array.isArray(body[kind]) ? body[kind] : [];
+    itens.forEach(function (item) {
+      if (!item || !item.id) return;
+      let novo = Object.assign({}, item);
+      if (kind === 'users') {
+        // Cada um edita o próprio perfil; o criador mexe na conta de todos e a
+        // conta liberada por código (painel de banimentos) também precisa banir
+        // e desbanir os outros — e quem ganhou o sorteio tem o mesmo painel até
+        // o prêmio vencer.
+        if (novo.id !== quem.id && !podeBanir(quem)) return;
+        const antigo = db.users[novo.id];
+        delete novo.password;
+        // Prêmio do sorteio e membresia não se inventam pelo aparelho: os dois
+        // são do servidor (ver premioDe e /api/membro).
+        delete novo.premio;
+        novo.membroDe = (antigo && antigo.membroDe) || [];
+        novo._server = true;
+        novo = localizarMedia(novo);
+        if (antigo && antigo.password) novo.password = antigo.password;
+        if (antigo && antigo.isCreator && !novo.isCreator) novo.isCreator = true;
+        // Cargo não se inventa pelo aparelho: quem não é o criador não vira um.
+        if (!quem.isCreator) {
+          if (antigo && antigo.isCreator) novo.isCreator = true;
+          novo.modOnly = !!(antigo && antigo.modOnly);
+        }
+        // O teto de seguidores é do servidor: o perfil editado no aparelho não
+        // pode apagá-lo (ver VIDA DO APP).
+        if (antigo && antigo._limSeg) novo._limSeg = antigo._limSeg;
+        // Moedas e o tempo das missões também são do servidor: o aparelho sobe o
+        // perfil, mas não o saldo (ver MOEDAS). Sem isso, bastava mexer no
+        // cadastro do celular para virar membro de graça.
+        if (antigo) {
+          novo.moedas = Number(antigo.moedas) || 0;
+          novo._mts = antigo._mts;
+          novo._mseg = antigo._mseg;
+          novo._mdia = antigo._mdia;
+          novo._mmins = antigo._mmins;
+          novo._mganhas = antigo._mganhas;
+          novo._mbonus = antigo._mbonus;
+        } else {
+          novo.moedas = MOEDAS_NOVO;
+        }
+      }
+      if (kind === 'videos' || kind === 'pubMsgs' || kind === 'privMsgs') novo = localizarMedia(novo);
+      if (kind === 'videos') {
+        // O app mexe sozinho nas curtidas e nas visualizações (ver VIDA DO APP):
+        // a cópia de um aparelho que ficou alguns segundos para trás não pode
+        // derrubar o número que já subiu. Um ajuste feito na mão, no painel do
+        // criador, vem marcado (statAdj) e vale como veio.
+        const antigo = db.videos[novo.id];
+        if (antigo) {
+          if (!((novo.statAdj || 0) > (antigo.statAdj || 0))) {
+            novo.likes = Math.max(Number(novo.likes) || 0, Number(antigo.likes) || 0);
+            novo.views = Math.max(Number(novo.views) || 0, Number(antigo.views) || 0);
+          }
+          if (antigo._lim) novo._lim = antigo._lim;
+          // A capa e a duração quem arruma é o servidor (ver CAPA E DURAÇÃO DE
+          // TODO VÍDEO): o aparelho que publicou sem elas (celular que não consegue
+          // decodificar) não pode apagá-las na sincronia, senão o feed volta a
+          // baixar o vídeo inteiro só para desenhar um quadro.
+          if (antigo.poster && !novo.poster) novo.poster = antigo.poster;
+          if (antigo.dur && !novo.dur) novo.dur = antigo.dur;
+          // O link do vídeo de membro não volta de um aparelho que não é membro:
+          // ele chega sem o link, e sem isso a cópia de lá apagaria o vídeo.
+          if (antigo.url) novo.url = antigo.url;
+        }
+        // O preço da membresia também tem faixa (ver MEMBRESIA_MIN): o valor
+        // que vem do aparelho não entra fora dela.
+        if (novo.membro) novo.preco = precoDeMembro(novo.preco);
+      }
+      novo._u = ++clock;
+      db[kind][novo.id] = novo;
+      if (db.del[kind]) delete db.del[kind][novo.id];
+      mexeu = true;
+    });
+    const apagar = (body.deleted && Array.isArray(body.deleted[kind])) ? body.deleted[kind] : [];
+    apagar.forEach(function (id) {
+      if (!id) return;
+      if (kind === 'users' && id !== quem.id && !quem.isCreator) return;
+      delete db[kind][id];
+      db.del[kind] = db.del[kind] || {};
+      db.del[kind][id] = ++clock;
+      mexeu = true;
+    });
+  });
+  if (body.temLive) {
+    db.live = body.live || null;
+    db.liveU = ++clock;
+    mexeu = true;
+  }
+  if (mexeu) saveDb();
+  return { ok: true, now: clock, mexeu: mexeu };
+}
+
+/* ==================== CAPA E DURAÇÃO DE TODO VÍDEO ==================== */
+
+// O feed abre na hora quando o card mostra uma imagem (a capa) em vez do vídeo.
+// Quem publica manda a capa junto, mas vídeo que o celular não conseguiu
+// decodificar chega sem ela — e aí cada card volta a baixar o vídeo inteiro só
+// para desenhar um quadro, que é justo o que deixa o app lento no celular. Aqui
+// o servidor completa o que faltou (capa em JPEG + duração) com o ffmpeg.
+
+function arquivoDoVideo(url) {
+  const u = String(url || '');
+  if (u.indexOf('/uploads/') !== 0) return null;      // vídeo de fora: não é nosso
+  return path.join(UPLOAD_DIR, path.basename(u));
+}
+
+// Um quadro pouco depois do começo vira a capa do vídeo.
+async function tirarCapa(arq) {
+  const nome = 'capa' + Date.now().toString(36) + '-' + crypto.randomBytes(3).toString('hex') + '.jpg';
+  const destino = path.join(UPLOAD_DIR, nome);
+  const r = await rodarComando(FFMPEG, ['-y', '-ss', '0.5', '-i', arq, '-frames:v', '1', '-vf', 'scale=480:-2', destino]);
+  try {
+    if (r.codigo === 0 && fs.statSync(destino).size > 0) return '/uploads/' + nome;
+    fs.unlinkSync(destino);
+  } catch (e) { /* sem capa: o card usa o próprio vídeo */ }
+  return null;
+}
+
+async function completarVideo(v) {
+  const arq = arquivoDoVideo(v.url);
+  if (!arq || !fs.existsSync(arq)) return false;
+  const ext = path.extname(arq).slice(1).toLowerCase();
+  if (IMG_OK.indexOf(ext) >= 0) return false;
+  let mexeu = false;
+  if (!v.dur) {
+    const dur = duracaoDoVideo((await rodarComando(FFMPEG, ['-i', arq])).saida);
+    if (dur) { v.dur = dur; mexeu = true; }
+  }
+  if (!v.poster) {
+    const capa = await tirarCapa(arq);
+    if (capa) { v.poster = capa; mexeu = true; }
+  }
+  if (mexeu) {
+    v._u = ++clock;
+    console.log('capa/duração prontas: ' + v.id);
+  }
+  return mexeu;
+}
+
+// Todo vídeo do acervo, um por vez, para não pesar o servidor de uma vez só.
+async function prepararAcervo() {
+  for (const id in db.videos) await completarVideo(db.videos[id]);
+  saveDb();
+}
+
+let acerviOcupado = false;
+function passoDoAcervo() {
+  if (acerviOcupado) return;
+  const faltando = Object.keys(db.videos).find(function (id) {
+    const v = db.videos[id];
+    return (!v.poster || !v.dur) && arquivoDoVideo(v.url);
+  });
+  if (!faltando) return;
+  acerviOcupado = true;
+  completarVideo(db.videos[faltando]).then(function (mexeu) {
+    acerviOcupado = false;
+    if (mexeu) saveDb();
+  }).catch(function () { acerviOcupado = false; });
+}
+
+/* ==================== MOEDAS E MISSÕES ==================== */
+
+// Como o saldo aparece nas mensagens do servidor: "10,00 moedas".
+function moedaTxt(n) { return (Math.round(Number(n) * 100) / 100).toFixed(2).replace('.', ',') + ' moedas'; }
+
+// O dia das missões: o histórico de hoje zera à meia-noite.
+function diaDe(ts) {
+  const d = new Date(ts);
+  return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+}
+
+// Vale moeda só o tempo que passou entre um batimento e o outro: com o app
+// fechado não há batimento, então não há moeda nenhuma. Um batimento atrasado
+// (aba dormindo, celular guardado) vale no máximo BATIMENTO_SEG_MAX segundos —
+// é assim que ninguém junta moeda deixando o app aberto a noite toda.
+function passoMissao(u) {
+  const agora = Date.now();
+  const hoje = diaDe(agora);
+  if (u._mdia !== hoje) { u._mdia = hoje; u._mmins = 0; u._mganhas = 0; u._mbonus = false; }
+  let ganhas = 0;
+  let seg = 0;
+  if (u._mts && agora > u._mts) seg = Math.min(BATIMENTO_SEG_MAX, Math.floor((agora - u._mts) / 1000));
+  u._mts = agora;
+  if (seg > 0) {
+    u._mmins = (u._mmins || 0) + seg / 60;
+    u._mseg = (u._mseg || 0) + seg;
+    let novas = Math.floor(u._mseg / MOEDA_SEG);
+    if (novas > 0) {
+      u._mseg -= novas * MOEDA_SEG;
+      novas = Math.min(novas, Math.max(0, MOEDAS_DIA_MAX - (u._mganhas || 0)));
+      if (novas > 0) {
+        u.moedas = (Number(u.moedas) || 0) + novas;
+        u._mganhas = (u._mganhas || 0) + novas;
+        ganhas += novas;
+      }
+    }
+    // Missão do dia: 7 horas no app pagam 5 moedas, uma vez só.
+    if (!u._mbonus && u._mmins >= MISSAO_MIN) {
+      u._mbonus = true;
+      u.moedas = (Number(u.moedas) || 0) + MISSAO_MOEDAS;
+      ganhas += MISSAO_MOEDAS;
+    }
+  }
+  if (ganhas) u._u = ++clock;
+  return ganhas;
+}
+
+/* ==================== VIDA DO APP ==================== */
+
+// Vídeo publicado ganha o que ganha vídeo de gente de verdade: com o tempo
+// chegam visualizações, curtidas e comentários, e quem publicou ganha
+// seguidores. Quem faz esse movimento é o servidor, não o aparelho de ninguém,
+// então os números são os mesmos em todo lugar. Duas regras seguram o resto:
+//   • cada vídeo tem o seu teto, sorteado: o número sobe devagar e para;
+//   • dois vídeos nunca ficam com a mesma quantidade de curtidas — é isso que
+//     faz o número parecer de verdade em vez de contador.
+
+const PASSO_MS = 15000;
+const MAX_VIDEOS_POR_PASSO = 25;
+
+const COMENTARISTAS = ['Ana', 'Lucas', 'Bia', 'Pedro', 'Júlia', 'Rafa', 'Carol', 'Mateus', 'Lari', 'Thiago',
+  'Vitor', 'Sofi', 'Duda', 'Bruno', 'Isa', 'Gabriel', 'Léo', 'Nanda', 'Caio', 'Yasmin', 'Rê', 'Marcos', 'Bel', 'Tati'];
+
+const COMENTARIOS = ['top 👏', 'que vídeo bom', 'muito bom mesmo', 'amei 😍', 'boa!!', 'sensacional 🔥', 'adorei',
+  'show demais', 'parabéns 👏', 'curti demais', '🤩🤩', 'que vídeo legal', 'boa demais', 'gostei muito',
+  'esse foi bom 😂', 'simplesmente top', 'olha isso 😱', 'que lindo', 'muito massa', 'melhor vídeo',
+  'continue assim 👏', 'que isso 🔥'];
+
+// O assunto do comentário sai do texto do próprio vídeo: a descrição é o texto
+// que o vídeo tem (o feed mostra ela como título do card). Achando as palavras
+// de um tema, o comentarista automático fala do que o vídeo mostra — vídeo de
+// terror recebe comentário de terror. Vídeo sem nenhuma palavra conhecida recebe
+// a frase genérica de sempre. As palavras são escritas sem acento porque o texto
+// do vídeo é comparado sem acento (ver textoDoTema).
+const TEMAS = [
+  { chaves: ['terror', 'medo', 'susto', 'assombro', 'assustador', 'fantasma', 'demonio', 'maldicao', 'zumbi', 'bruxa', 'espirito', 'arrepiante', 'macabro', 'vampiro'],
+    frases: ['que susto 😱', 'assisti de luz acesa 😨', 'isso arrepiou tudo aqui', 'que vídeo de terror bom 👻', 'nunca mais assisto isso sozinho', 'tô com medo até agora'] },
+  { chaves: ['musica', 'batida', 'violao', 'sertanejo', 'funk', 'karaoke', 'playlist', 'cantor', 'cover'],
+    frases: ['que som bom 🎵', 'já salvei pra ouvir depois', 'essa música ficou na cabeça', 'a batida tá top 🔥', 'que voz, viu 😍'] },
+  { chaves: ['comedia', 'piada', 'engracad', 'risada', 'meme', 'zoeira', 'humor', 'palhaco', 'kkk'],
+    frases: ['ri demais 😂', 'não aguento 😂😂', 'melhor vídeo pra rir', 'morri de rir com esse final', 'kkkkk isso foi ótimo'] },
+  { chaves: ['futebol', 'gol', 'jogador', 'campeonato', 'luta', 'mma', 'boxe', 'skate', 'corrida', 'time'],
+    frases: ['que jogada 🔥', 'melhor lance do dia', 'esse foi de craque ⚽', 'jogo bom demais', 'que raça nesse time'] },
+  { chaves: ['game', 'gameplay', 'free fire', 'minecraft', 'roblox', 'valorant', 'partida', 'fps', 'level'],
+    frases: ['que jogada insana 🎮', 'joga muito', 'esse gameplay tá top', 'GG 🔥', 'quero ver a próxima partida'] },
+  { chaves: ['comida', 'receita', 'cozinh', 'bolo', 'doce', 'salgado', 'hamburguer', 'pizza', 'churrasco'],
+    frases: ['deu fome aqui 🤤', 'essa receita é boa demais', 'vou fazer hoje mesmo', 'que cara de delicioso 😋'] },
+  { chaves: ['danca', 'coreografia', 'passinho', 'ballet', 'forro'],
+    frases: ['que coreografia 👏', 'dança muito bem', 'queria aprender esses passos'] },
+  { chaves: ['maquiagem', 'make', 'skincare', 'moda', 'look', 'cabelo', 'unha'],
+    frases: ['o look tá maravilhoso 😍', 'que make linda', 'vou tentar fazer igual'] },
+  { chaves: ['cachorro', 'gato', 'filhote', 'puppy', 'dog'],
+    frases: ['que fofura 🐶', 'amei o bichinho 😍', 'que bonzinho'] },
+  { chaves: ['viagem', 'praia', 'trilha', 'montanha', 'passeio', 'paisagem'],
+    frases: ['que lugar lindo 😍', 'quero conhecer esse lugar', 'que paisagem boa'] },
+  { chaves: ['aula', 'dica', 'tutorial', 'aprend', 'ensin'],
+    frases: ['aprendi muito, valeu!', 'dica ótima 👏', 'salvando pra depois'] },
+  { chaves: ['unboxing', 'review', 'celular', 'computador', 'tecnologia', 'aplicativo'],
+    frases: ['explicou bem demais', 'boa análise 👏', 'quero esse também'] }
+];
+
+// O texto do vídeo vai para a comparação em minúsculas e sem acento: assim
+// "TERROR" e "terror" acham o mesmo tema.
+function textoDoTema(txt) {
+  return String(txt || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+// O tema do vídeo, na ordem da lista acima: o primeiro que aparece no texto é o
+// que vale. Vídeo sem nenhuma palavra conhecida fica sem tema.
+function temaDoVideo(v) {
+  const txt = textoDoTema(v && v.description);
+  return TEMAS.filter(function (t) {
+    return t.chaves.some(function (k) { return txt.indexOf(k) >= 0; });
+  })[0] || null;
+}
+
+// O assunto do vídeo é o que está escrito na descrição: um vídeo descrito como
+// "Neymar 👑" rende comentário falando de Neymar. Emoji e pontuação saem, e as
+// palavras vazias ("sem descrição", "de", "o"...) não viram assunto.
+const PALAVRAS_VAZIAS = ['sem', 'descricao', 'video', 'videos', 'short', 'shorts', 'clipe', 'um', 'uma', 'uns', 'umas', 'o', 'a', 'os', 'as', 'de', 'da', 'do', 'das', 'dos', 'e', 'em', 'no', 'na', 'nos', 'nas', 'para', 'pra', 'com', 'que', 'meu', 'minha', 'por', 'sobre', 'the', 'of'];
+
+function assuntoDoVideo(v) {
+  const limpo = String((v && v.description) || '')
+    .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{200D}]/gu, ' ')
+    .replace(/[^\p{L}\p{N}\s'-]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!limpo) return '';
+  // A comparação com as palavras vazias é sem acento: "descrição" e "descricao"
+  // caem as duas fora do assunto.
+  const palavras = limpo.split(' ').filter(function (p) {
+    return p.length > 2 && PALAVRAS_VAZIAS.indexOf(textoDoTema(p)) < 0;
+  });
+  if (!palavras.length) return null;
+  const curto = palavras.length <= 3;
+  // Nome curto ("Neymar") entra direto na frase; descrição maior entra inteira,
+  // com as palavras de ligação, para a frase ficar natural.
+  const texto = curto ? palavras.slice(0, 3).join(' ') : limpo;
+  return { texto: texto.length > 40 ? texto.slice(0, 40).replace(/\s\S*$/, '') : texto, curto: curto };
+}
+
+// Frases prontas em cima do assunto: é delas que saem os comentários dos bots.
+// Nome curto ("Neymar") entra direto na frase; descrição maior vira uma frase
+// sobre o que o vídeo fala.
+const FRASES_ASSUNTO = [
+  '{a} é top demais 🔥', 'gosto muito de {a} 👏', '{a} nunca decepciona 😍',
+  '{a} é fera demais 👑', 'só vídeo bom de {a} por aqui', '{a} merece mais views',
+  'assisti só por causa de {a}', '{a} de novo! amo 🙌', 'melhor vídeo de {a} que já vi',
+  '{a} sempre 👑', 'tava esperando um vídeo de {a} assim', '{a} 👑👑👑',
+  'não canso de ver {a}', 'esse vídeo de {a} ficou demais 🎯', 'quem mais veio por causa de {a}? 😄',
+  '{a} é outro nível 🔥', 'que vídeo bom de {a} 😍', '{a} pra sempre 🙌'
+];
+const FRASES_TEMA_TEXTO = [
+  'vídeo sobre {a} ficou ótimo 👏', 'gosto quando falam de {a}', 'esse vídeo sobre {a} tá bom demais 🔥',
+  'conteúdo sobre {a} sempre bom', 'tava precisando ver algo sobre {a}', 'boa escolha falar de {a} 👏',
+  'assisti tudo sobre {a} 😍', 'nunca canso de ver coisa de {a}', 'quem mais gosta de {a}? 🙌',
+  'bom demais ver algo sobre {a}', 'sobre {a} sempre rende vídeo bom 🔥', 'salvei pra ver de novo, adorei esse sobre {a}'
+];
+
+function frasesDoAssunto(assunto) {
+  return (assunto.curto ? FRASES_ASSUNTO : FRASES_TEMA_TEXTO).map(function (f) {
+    return f.replace('{a}', assunto.texto);
+  });
+}
+
+function sorteio(max) { return Math.floor(Math.random() * max); }
+function escolha(lista) { return lista[sorteio(lista.length)]; }
+
+// O teto de cada vídeo: sorteado uma vez e guardado nele. Nunca fica abaixo do
+// que o vídeo já tem, porque o criador também ajusta esses números no painel.
+function tetosDoVideo(v) {
+  if (!v._lim) v._lim = { views: 120 + sorteio(6000), likes: 15 + sorteio(1200), cmts: 2 + sorteio(50) };
+  v._lim.views = Math.max(v._lim.views, v.views || 0);
+  v._lim.likes = Math.max(v._lim.likes, v.likes || 0);
+  v._lim.cmts = Math.max(v._lim.cmts, (v.comments || []).length);
+  return v._lim;
+}
+
+// Quanto sobe neste passo: pouco, e cada vez menos perto do teto.
+function passoDeCrescimento(atual, teto, maxPasso) {
+  const falta = Math.max(0, teto - atual);
+  return falta ? Math.min(falta, 1 + sorteio(maxPasso)) : 0;
+}
+
+// Um comentário novo: só o nome de quem comentou, como no "Comentário Falso" do
+// painel — nenhuma conta é inventada no app por causa disso.
+function comentarioNovo(v) {
+  const nome = escolha(COMENTARISTAS);
+  const assunto = assuntoDoVideo(v);
+  const tema = temaDoVideo(v);
+  // O comentário fala do assunto da descrição; quando não dá para tirar assunto
+  // nenhum, entram as frases do tema e, na falta dele, as frases soltas.
+  const pool = assunto
+    ? (Math.random() < 0.75 ? frasesDoAssunto(assunto) : (tema ? tema.frases.concat(COMENTARIOS) : COMENTARIOS))
+    : (tema ? tema.frases : COMENTARIOS);
+  // Tudo variado: o que já foi dito nesse vídeo não se repete.
+  const jaDitas = (v.comments || []).slice(-10).map(function (c) { return c.text; });
+  const livres = pool.filter(function (t) { return jaDitas.indexOf(t) < 0; });
+  return {
+    id: 'c' + Date.now().toString(36) + crypto.randomBytes(2).toString('hex'),
+    userId: 'auto_' + nome.toLowerCase(), userName: nome,
+    text: escolha(livres.length ? livres : pool), ts: Date.now(), auto: true
+  };
+}
+
+function movimentarVideo(v) {
+  const t = tetosDoVideo(v);
+  v.views = (v.views || 0) + passoDeCrescimento(v.views || 0, t.views, 8);
+  v.likes = (v.likes || 0) + passoDeCrescimento(v.likes || 0, t.likes, 4);
+  const cmts = v.comments || [];
+  if (cmts.length < t.cmts && Math.random() < 0.35) v.comments = cmts.concat([comentarioNovo(v)]);
+  // Quem publicou ganha seguidores junto. O criador não: ele tem o número que tem.
+  const dono = db.users[v.userId];
+  if (dono && !dono.isCreator) {
+    if (!dono._limSeg) dono._limSeg = (dono.followers || 0) + 25 + sorteio(900);
+    const ganho = passoDeCrescimento(dono.followers || 0, dono._limSeg, 3);
+    if (ganho) {
+      dono.followers = (dono.followers || 0) + ganho;
+      dono._u = ++clock;
+    }
+  }
+  v._u = ++clock;
+}
+
+// Dois vídeos nunca com o mesmo número de curtidas: quando um alcança o outro, o
+// segundo sai um pouco do lugar. Se o vídeo tiver menos visualizações do que
+// curtidas, as visualizações acompanham.
+function curtidasDiferentes() {
+  const ocupados = {};
+  for (const id in db.videos) {
+    const v = db.videos[id];
+    let n = Math.max(0, Number(v.likes) || 0);
+    if (ocupados[n] === undefined) {
+      ocupados[n] = id;
+      v.likes = n;
+      continue;
+    }
+    while (ocupados[n] !== undefined) n += 1 + sorteio(7);
+    v.likes = n;
+    if (n > (v.views || 0)) v.views = n + 1 + sorteio(20);
+    v._u = ++clock;
+    ocupados[n] = id;
+  }
+}
+
+function passoDaVida() {
+  Object.keys(db.videos).slice(0, MAX_VIDEOS_POR_PASSO).forEach(function (id) { movimentarVideo(db.videos[id]); });
+  curtidasDiferentes();
+  saveDb();
+}
+
+/* ==================== HTTP ==================== */
+
+function json(res, code, obj) {
+  const s = JSON.stringify(obj);
+  res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'Content-Length': Buffer.byteLength(s) });
+  res.end(s);
+}
+
+function corpo(req, limite) {
+  return new Promise(function (ok, falha) {
+    const partes = [];
+    let n = 0;
+    req.on('data', function (d) {
+      n += d.length;
+      if (n > limite) { falha(new Error('grande')); req.destroy(); return; }
+      partes.push(d);
+    });
+    req.on('end', function () { ok(Buffer.concat(partes)); });
+    req.on('error', falha);
+  });
+}
+
+const TIPOS = {
+  '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8', '.mp4': 'video/mp4', '.webm': 'video/webm', '.mov': 'video/quicktime',
+  '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp',
+  '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.txt': 'text/plain; charset=utf-8'
+};
+
+// Range = "me manda só este pedaço do arquivo". É o que o navegador usa para
+// abrir o vídeo, pular para um tempo e mostrar o quadro da capa. Sem isso o
+// player fica na tela preta (ou não anda) em vários celulares.
+function pedacoPedido(req, tamanho) {
+  const m = /^bytes=(\d*)-(\d*)$/.exec(String(req.headers.range || '').trim());
+  if (!m || (!m[1] && !m[2])) return null;
+  let inicio, fim;
+  if (!m[1]) {                                   // bytes=-500 → os últimos 500
+    const n = Number(m[2]);
+    if (!n) return null;
+    inicio = Math.max(0, tamanho - n);
+    fim = tamanho - 1;
+  } else {
+    inicio = Number(m[1]);
+    fim = m[2] ? Number(m[2]) : tamanho - 1;
+  }
+  if (!isFinite(inicio) || !isFinite(fim) || inicio > fim || inicio >= tamanho) return null;
+  return { inicio: inicio, fim: Math.min(fim, tamanho - 1) };
+}
+
+function enviarArquivo(req, res, arquivo, cache) {
+  fs.stat(arquivo, function (err, st) {
+    if (err || !st.isFile()) { res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); res.end('não encontrado'); return; }
+    const tipo = TIPOS[path.extname(arquivo).toLowerCase()] || 'application/octet-stream';
+    const cabecalhos = {
+      'Content-Type': tipo,
+      // Os nomes em /uploads/ são únicos e nunca mudam: o aparelho pode guardar
+      // o arquivo e não baixar de novo quando a pessoa volta para o feed.
+      'Cache-Control': cache === 'long' ? 'public, max-age=31536000, immutable' : (cache ? 'public, max-age=3600' : 'no-cache'),
+      'Accept-Ranges': 'bytes'
+    };
+    const pedaco = pedacoPedido(req, st.size);
+    if (pedaco) {
+      cabecalhos['Content-Range'] = 'bytes ' + pedaco.inicio + '-' + pedaco.fim + '/' + st.size;
+      cabecalhos['Content-Length'] = pedaco.fim - pedaco.inicio + 1;
+      res.writeHead(206, cabecalhos);
+      fs.createReadStream(arquivo, { start: pedaco.inicio, end: pedaco.fim }).pipe(res);
+      return;
+    }
+    cabecalhos['Content-Length'] = st.size;
+    res.writeHead(200, cabecalhos);
+    fs.createReadStream(arquivo).pipe(res);
+  });
+}
+
+function arquivoDoSite(p) {
+  if (p === '/' || p === '') return path.join(ROOT, 'index.html');
+  if (p === '/home') return path.join(ROOT, 'home.html');
+  if (p === '/app') return path.join(ROOT, 'app.html');
+  const f = path.normalize(path.join(ROOT, p));
+  if (f.indexOf(ROOT + path.sep) !== 0) return null;
+  return f;
+}
+
+async function api(req, res, url) {
+  const rota = url.pathname.replace(/\/+$/, '');
+  const corpoJson = async function () {
+    const b = await corpo(req, MAX_BODY);
+    if (!b.length) return {};
+    return JSON.parse(b.toString('utf8'));
+  };
+
+  try {
+    if (rota === '/api/ping' && req.method === 'GET') return json(res, 200, { ok: true, contas: Object.keys(db.users).length, videos: Object.keys(db.videos).length });
+
+    if (rota === '/api/signup' && req.method === 'POST') {
+      const b = await corpoJson();
+      const name = String(b.name || '').trim();
+      const pass = String(b.pass || '');
+      if (!name || pass.length < 4) return json(res, 400, { error: 'Preencha nome e senha (mínimo 4 letras).' });
+      if (acharPorNome(name)) return json(res, 409, { error: 'Esse nome já existe. Use "Entrar".' });
+      const u = salvarUsuario({
+        name: name,
+        username: name.toLowerCase().replace(/\s+/g, '_').replace(/[^\w]/g, '') || ('u' + Date.now().toString(36)),
+        photo: b.photo || null,
+        password: novaSenha(pass)
+      });
+      return json(res, 200, { token: novoToken(u.id), user: usuarioPublico(u) });
+    }
+
+    if (rota === '/api/login' && req.method === 'POST') {
+      const b = await corpoJson();
+      const u = acharPorNome(b.name);
+      if (!u) return json(res, 404, { error: 'nao_existe', message: 'Não achei essa conta. Use "Criar conta".' });
+      if (!confereSenha(b.pass, u.password)) return json(res, 401, { error: 'senha', message: 'Nome ou senha incorretos' });
+      return json(res, 200, { token: novoToken(u.id), user: usuarioPublico(u) });
+    }
+
+    // Resgate do código: não sai mais conta nenhuma. Quem digita o código entra
+    // no sorteio com 20% de chance de ganhar — o sorteio é do criador, que vê a
+    // lista de quem entrou no perfil e sorteia o ganhador.
+    if (rota === '/api/code' && req.method === 'POST') {
+      const b = await corpoJson();
+      if (String(b.code || '').trim().toLowerCase() !== CODIGO_SORTEIO) {
+        return json(res, 403, { error: 'codigo', message: 'Código inválido.' });
+      }
+      const nome = String(b.name || '').trim().slice(0, 40);
+      if (!nome) return json(res, 400, { error: 'nome', message: 'Digite seu nome para entrar no sorteio.' });
+      const ja = db.sorteio.filter(function (p) { return p.nome.toLowerCase() === nome.toLowerCase(); });
+      if (ja.length) {
+        return json(res, 200, { nome: ja[0].nome, chance: CHANCE_INICIAL, participantes: db.sorteio.length, repetido: true });
+      }
+      db.sorteio.push({ nome: nome, chance: CHANCE_INICIAL, ts: Date.now() });
+      saveDb();
+      console.log('sorteio: entrou ' + nome);
+      return json(res, 200, { nome: nome, chance: CHANCE_INICIAL, participantes: db.sorteio.length });
+    }
+
+    const quem = logado(req);
+    if (!quem) return json(res, 401, { error: 'sem_sessao', message: 'Entre de novo para continuar.' });
+
+    // Código do visual Halloween: com o código certo a conta ganha o tema, e o
+    // tema é gravado no cadastro — assim ele aparece também nos outros aparelhos.
+    if (rota === '/api/theme' && req.method === 'POST') {
+      const b = await corpoJson();
+      if (String(b.code || '').trim().toLowerCase() !== CODIGO_HALLOWEEN) {
+        return json(res, 403, { error: 'codigo', message: 'Código inválido.' });
+      }
+      quem.tema = 'halloween';
+      quem._u = ++clock;
+      saveDb();
+      console.log('visual halloween ligado em: ' + quem.name);
+      return json(res, 200, { user: usuarioPublico(quem) });
+    }
+
+    // Missões do tempo: enquanto a pessoa está no app o aparelho manda um
+    // batimento e o servidor paga o minuto. Quem conta o tempo é o relógio
+    // daqui, nunca o do celular.
+    if (rota === '/api/missao' && req.method === 'POST') {
+      if (estaBanido(quem)) return json(res, 403, { error: 'banido', message: 'Conta banida.' });
+      const ganhas = passoMissao(quem);
+      saveDb();
+      return json(res, 200, {
+        user: usuarioPublico(quem), ganhas: ganhas,
+        minutos: Math.floor(quem._mmins || 0), ganhasHoje: quem._mganhas || 0,
+        tetoDia: MOEDAS_DIA_MAX, missaoMin: MISSAO_MIN,
+        missaoBaseMin: MISSAO_BASE_MIN,
+        missaoMoedas: MISSAO_MOEDAS, missaoFeita: !!quem._mbonus
+      });
+    }
+
+    // Membresia do canal: é o vídeo de membro que se paga com as moedas. Quem
+    // paga vira membro do canal — é isso que abre os vídeos de membro dele e
+    // deixa o nome da pessoa verde nos comentários desse canal. As moedas saem
+    // do saldo daqui: o aparelho não desconta nada por conta própria.
+    if (rota === '/api/membro' && req.method === 'POST') {
+      const b = await corpoJson();
+      const canal = db.users[String(b.canalId || '')];
+      if (!canal) return json(res, 404, { error: 'canal', message: 'Não achei esse canal.' });
+      if (canal.id === quem.id) return json(res, 400, { error: 'canal', message: 'Este canal é seu.' });
+      // A membresia tem faixa: mesmo que o aparelho mande outro valor, o
+      // pagamento não fecha fora de MEMBRESIA_MIN..MEMBRESIA_MAX.
+      const valor = Math.round(Number(b.valor) * 100) / 100;
+      if (!(valor >= MEMBRESIA_MIN)) return json(res, 400, { error: 'valor', message: 'A membresia de um canal começa em ' + moedaTxt(MEMBRESIA_MIN) + '.' });
+      if (valor > MEMBRESIA_MAX) return json(res, 400, { error: 'valor', message: 'A membresia de um canal vai até ' + moedaTxt(MEMBRESIA_MAX) + '.' });
+      const saldo = Number(quem.moedas) || 0;
+      if (saldo < valor) {
+        return json(res, 402, {
+          error: 'moedas',
+          message: 'Você tem ' + moedaTxt(saldo) + ' — faltam ' + moedaTxt(valor - saldo) + '. Fique no app para ganhar mais moedas.',
+          moedas: saldo
+        });
+      }
+      quem.moedas = Math.round((saldo - valor) * 100) / 100;
+      // O que a pessoa pagou cai inteirinho no saldo de quem publicou o vídeo —
+      // o dono do canal. Nenhuma moeda fica pelo caminho.
+      canal.moedas = Math.round(((Number(canal.moedas) || 0) + valor) * 100) / 100;
+      canal._u = ++clock;
+      if (!quem.membroDe) quem.membroDe = [];
+      if (quem.membroDe.indexOf(canal.id) < 0) quem.membroDe.push(canal.id);
+      quem._u = ++clock;
+      saveDb();
+      console.log('membresia: ' + quem.name + ' virou membro de ' + canal.name + ' por ' + moedaTxt(valor));
+      return json(res, 200, { user: usuarioPublico(quem), videos: videosDeMembroDoCanal(canal.id) });
+    }
+
+    // Códigos do app: o criador é quem espalha os códigos, então só ele vê a
+    // lista (com o código pronto para copiar) e quantos entraram no sorteio.
+    if (rota === '/api/codes' && req.method === 'GET') {
+      if (!quem.isCreator) return json(res, 403, { error: 'so_criador', message: 'Só o criador vê os códigos.' });
+      return json(res, 200, {
+        codigos: CODIGOS_DO_APP.map(function (c) {
+          return {
+            code: c.code,
+            nome: c.nome,
+            desc: c.desc,
+            participantes: c.code === CODIGO_SORTEIO ? db.sorteio.length : null
+          };
+        })
+      });
+    }
+
+    // Sorteio: é do criador. Ele vê quem entrou e é ele quem aperta o botão que
+    // escolhe o ganhador (sorteio marcado para 12 de novembro). Quem ganha leva
+    // o selo verde com o painel de banimentos até 27 de novembro — depois dessa
+    // data o prêmio sai da conta sozinho (ver premioDe).
+    if (rota === '/api/sorteio' && req.method === 'GET') {
+      if (!quem.isCreator) return json(res, 403, { error: 'so_criador', message: 'Só o criador vê o sorteio.' });
+      return json(res, 200, {
+        participantes: db.sorteio.map(function (p) { return { nome: p.nome, chance: CHANCE_INICIAL, ts: p.ts || 0 }; }),
+        ganhador: db.premio ? { nome: db.premio.nome, ts: db.premio.ts || 0 } : null,
+        premioAte: PREMIO_ATE
+      });
+    }
+
+    if (rota === '/api/sorteio/sortear' && req.method === 'POST') {
+      if (!quem.isCreator) return json(res, 403, { error: 'so_criador', message: 'Só o criador sorteia.' });
+      if (!db.sorteio.length) return json(res, 400, { error: 'vazio', message: 'Ninguém entrou no sorteio ainda.' });
+      // Um ganhador só, sorteado entre todos os que entraram.
+      const ganhador = db.sorteio[sorteio(db.sorteio.length)];
+      db.premio = { nome: ganhador.nome, ts: Date.now() };
+      saveDb();
+      // O prêmio é do nome sorteado: se já existe uma conta com esse nome, o
+      // selo verde e o painel aparecem nela na hora; se ainda não existe, o
+      // prêmio entra quando essa conta aparecer.
+      const conta = acharPorNome(ganhador.nome);
+      console.log('sorteio: ganhou ' + ganhador.nome + (conta ? ' (conta ' + conta.name + ')' : ' (sem conta ainda)'));
+      return json(res, 200, {
+        ganhador: { nome: db.premio.nome, ts: db.premio.ts },
+        conta: conta ? usuarioPublico(conta) : null,
+        premioAte: PREMIO_ATE
+      });
+    }
+
+    if (rota === '/api/sync' && req.method === 'GET') {
+      const since = Number(url.searchParams.get('since') || 0) || 0;
+      return json(res, 200, deltasDe(since, quem));
+    }
+
+    if (rota === '/api/push' && req.method === 'POST') {
+      const b = await corpoJson();
+      // Quem está banido continua podendo conversar com quem atende: o criador
+      // — é por essa conversa que a pessoa pede desculpas e é liberada. Passam
+      // só esses recados e o próprio cadastro (que guarda a liberação); post,
+      // vídeo, chat público e conversa com outras pessoas seguem barrados.
+      if (estaBanido(quem)) {
+        const atendem = contasQueAtendem();
+        const recados = (Array.isArray(b.privMsgs) ? b.privMsgs : []).filter(function (m) {
+          if (!m) return false;
+          const de = String(m.fromId || ''), para = String(m.toId || '');
+          return (de === quem.id && atendem.indexOf(para) >= 0) ||
+            (para === quem.id && atendem.indexOf(de) >= 0);
+        });
+        const meu = (Array.isArray(b.users) ? b.users : []).filter(function (u) { return u && u.id === quem.id; });
+        if (!recados.length && !meu.length) return json(res, 403, { error: 'banido', message: 'Conta banida.' });
+        b.users = meu; b.videos = []; b.pubMsgs = []; b.deleted = {}; b.temLive = false; b.privMsgs = recados;
+      }
+      return json(res, 200, aplicarPush(b, quem));
+    }
+
+    if (rota === '/api/upload' && req.method === 'POST') {
+      if (estaBanido(quem)) return json(res, 403, { error: 'banido' });
+      let ext = String(url.searchParams.get('ext') || 'mp4').toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (EXT_OK.indexOf(ext) < 0) ext = 'bin';
+      const dados = await corpo(req, MAX_UPLOAD);
+      if (!dados.length) return json(res, 400, { error: 'arquivo vazio' });
+      const nome = 'up' + Date.now().toString(36) + '-' + crypto.randomBytes(3).toString('hex') + '.' + ext;
+      const destino = path.join(UPLOAD_DIR, nome);
+      fs.writeFileSync(destino, dados);
+      // Foto (capa do vídeo, foto de perfil) não passa pelo preparo de vídeo.
+      const pronto = IMG_OK.indexOf(ext) >= 0 ? { dur: null } : await prepararVideo(destino, ext);
+      return json(res, 200, { url: '/uploads/' + nome, dur: pronto.dur });
+    }
+
+    return json(res, 404, { error: 'rota desconhecida' });
+  } catch (e) {
+    return json(res, 400, { error: 'pedido inválido', message: e.message });
+  }
+}
+
+const server = http.createServer(function (req, res) {
+  const url = new URL(req.url, 'http://localhost');
+  const p = decodeURIComponent(url.pathname);
+
+  if (p.indexOf('/api/') === 0) return api(req, res, url);
+
+  if (p.indexOf('/uploads/') === 0) {
+    const nome = path.basename(p);
+    return enviarArquivo(req, res, path.join(UPLOAD_DIR, nome), 'long');
+  }
+
+  const arquivo = arquivoDoSite(p);
+  if (!arquivo) { res.writeHead(404); res.end('não encontrado'); return; }
+  return enviarArquivo(req, res, arquivo, /\.(mp4|webm|mov|png|jpg|jpeg|gif|webp)$/i.test(arquivo));
+});
+
+loadDb();
+seedCriador();
+removerSuporte();
+completarMoedas();
+// A vida do app: curtidas, visualizações, comentários e seguidores andam
+// sozinhos no relógio daqui, não no aparelho de ninguém.
+setInterval(passoDaVida, PASSO_MS);
+setInterval(passoDoAcervo, 5000);
+// Vídeo que subiu sem capa ou sem duração ganha as duas aqui (o feed abre na
+// hora, sem baixar o vídeo só para desenhar o primeiro quadro).
+prepararAcervo();
+server.listen(PORT, HOST, function () {
+  console.log('Good Look no ar em http://' + HOST + ':' + PORT);
+});
