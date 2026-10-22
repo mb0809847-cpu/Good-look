@@ -53,17 +53,17 @@ const CODIGOS_DO_APP = [
 // ==================== MOEDAS ====================
 // O saldo de moedas é do servidor: ele vive na conta aqui, nunca no aparelho —
 // é isso que impede o bug de alguém inventar moeda no próprio celular.
-//   • quem cria a conta agora ganha 2 moedas de boas-vindas;
+//   • conta nova não ganha moeda nenhuma de boas-vindas;
 //   • o criador começa com 1000k (1.000.000) de moedas;
-//   • ficar no app rende 1 moeda por minuto e, aos 20 minutos, 5 de bônus;
+//   • ficar no app rende 1 moeda por hora e, às 7 horas, 5 de bônus;
 //   • com moedas a pessoa paga a membresia de um canal (ver /api/membro).
-const MOEDAS_NOVO = 2;
+const MOEDAS_NOVO = 0;
 const MOEDAS_CRIADOR = 1000 * 1000;
-const MOEDA_SEG = 60;            // 1 moeda a cada minuto de app
-const MOEDAS_DIA_MAX = 60;       // teto de moedas ganhas por dia, no tempo
+const MOEDA_SEG = 3600;          // 1 moeda a cada hora de app
+const MOEDAS_DIA_MAX = 24;       // teto de moedas ganhas por dia, no tempo
 const BATIMENTO_SEG_MAX = 30;    // batimento atrasado vale no máximo 30s
-const MISSAO_BASE_MIN = 5;       // primeira missão: 5 minutos no app
-const MISSAO_MIN = 20;           // missão do dia: 20 minutos no app
+const MISSAO_BASE_MIN = 60;      // primeira missão: 1 hora no app
+const MISSAO_MIN = 420;          // missão do dia: 7 horas no app
 const MISSAO_MOEDAS = 5;         // e ela paga 5 moedas
 const MEMBRESIA_MIN = 15;        // a membresia de um canal começa em 15 moedas
 
@@ -587,7 +587,7 @@ function passoMissao(u) {
         ganhas += novas;
       }
     }
-    // Missão do dia: 20 minutos no app pagam 5 moedas, uma vez só.
+    // Missão do dia: 7 horas no app pagam 5 moedas, uma vez só.
     if (!u._mbonus && u._mmins >= MISSAO_MIN) {
       u._mbonus = true;
       u.moedas = (Number(u.moedas) || 0) + MISSAO_MOEDAS;

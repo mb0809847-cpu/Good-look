@@ -320,6 +320,12 @@ body{background:#000;color:#fff}
 .vd-actgrp .vd-act+.vd-act{border-left:1px solid #333}
 .vd-cmt-head{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700;color:#fff;margin-bottom:14px}
 .vd-cmt-head .cnt{font-weight:400;color:#aaa;font-size:14px}
+.vd-cmt-preview{display:flex;gap:10px;margin-bottom:8px;cursor:pointer}
+.vd-cmt-preview .ca{width:32px;height:32px;border-radius:50%;background:#333;overflow:hidden;flex-shrink:0}
+.vd-cmt-preview .ca img{width:100%;height:100%;object-fit:cover}
+.vd-cmt-preview .ct{flex:1}
+.vd-cmt-preview .cn{font-size:13px;font-weight:600;color:#fff;display:flex;align-items:center;gap:3px}
+.vd-cmt-preview .cc{font-size:13px;color:#ccc}
 /* Outros vídeos: os que já estão na Home, embaixo dos comentários */
 .vo-titulo{font-size:15.5px;font-weight:700;color:#fff;margin:2px 0 12px}
 .vo-item{display:flex;gap:10px;margin-bottom:12px;cursor:pointer}
@@ -872,9 +878,11 @@ function renderVideoDetail(){
           '<span>Salvar</span>'+
         '</button>'+
       '</div>'+
-      // Os comentários ficam fechados: a barra só abre o painel quando é tocada,
-      // e os outros vídeos da Home ficam logo abaixo dela.
+      // Comentários da Home: a barra, uma prévia do que estão falando e, logo
+      // abaixo, os outros vídeos. Tocando na barra o chat abre e esses vídeos
+      // saem da tela; fechando o chat, eles voltam (ver openComments).
       '<div class="vd-cmt-head" onclick="openComments(\''+v.id+'\')" style="cursor:pointer">Comentários <span class="cnt">'+(v.comments?v.comments.length:0)+'</span><span style="margin-left:auto;color:#3ea6ff;font-size:13px;font-weight:600">'+(v.comments&&v.comments.length?'Abrir ›':'Comentar ›')+'</span></div>'+
+      previewComentariosHtml(v)+
       outrosVideosHtml(v)+
     '</div>'+
   '</div>';
@@ -882,14 +890,29 @@ function renderVideoDetail(){
   lazyLoadEls(document.querySelectorAll('.vd-body .vo-thumb video'));
 }
 
+// A prévia dos comentários na tela do vídeo: os últimos recados, do jeito que
+// aparecem no chat. É só a prévia — o chat completo abre no toque.
+function previewComentariosHtml(v){
+  var list = (v.comments||[]).slice(-2).reverse();
+  if(list.length===0) return '';
+  return list.map(function(c){
+    var cu = getUser(c.userId) || {name:c.userName, photo:null, verifiedType:null, isCreator:false};
+    return '<div class="vd-cmt-preview" onclick="openComments(\''+v.id+'\')">'+
+      '<div style="flex-shrink:0">'+avatarHtml(cu,32)+'</div>'+
+      '<div class="ct"><div class="cn">'+userNameDisplay(cu, v.userId)+'</div><div class="cc">'+escapeHtml(c.text)+'</div></div>'+
+    '</div>';
+  }).join('');
+}
+
 // Embaixo dos comentários ficam os outros vídeos — os mesmos que já aparecem na
-// Home, menos este. Tocar em um abre ele.
+// Home, menos este. Tocar em um abre ele. Enquanto o chat está aberto, essa
+// lista sai da tela (ver esconderOutrosVideos).
 function outrosVideosHtml(v){
   var list = DB.videos().filter(function(x){
     return x.id!==v.id && x.type!=='short';
   }).sort(function(a,b){ return (b.timestamp||0)-(a.timestamp||0); }).slice(0,8);
   if(list.length===0) return '';
-  return '<div class="vo-titulo">Outros vídeos</div>'+list.map(function(x){
+  return '<div class="vo-outros"><div class="vo-titulo">Outros vídeos</div>'+list.map(function(x){
     var o = getUser(x.userId) || {name:x.userName, photo:x.userPhoto, verifiedType:null, isCreator:false};
     return '<div class="vo-item" onclick="openVideoDetail(\''+x.id+'\')">'+
       '<div class="vo-thumb">'+capaHtml(x)+duracaoHtml(x)+'</div>'+
@@ -898,7 +921,7 @@ function outrosVideosHtml(v){
         '<div class="vo-s">'+escapeHtml(o.name||'')+' · '+fmt(x.views||0)+' visualizações · '+timeAgoStr(x.timestamp)+'</div>'+
       '</div>'+
     '</div>';
-  }).join('');
+  }).join('')+'</div>';
 }
 
 function likeVideoDetail(vid){
@@ -1161,7 +1184,7 @@ function commentsPanelHtml(v){
       (v && v.userId===curUser().id?'<div style="font-size:11px;color:#888;font-weight:400;margin-top:3px">Toque em quem comentou para fixar, excluir ou bloquear</div>':'')+
       '<span class="cp-close" onclick="closeComments()">×</span>'+
     '</div>'+
-    '<div class="cp-list" id="cpList">'+(v?commentsListHtml(v):'')+(v?outrosVideosHtml(v):'')+'</div>'+
+    '<div class="cp-list" id="cpList">'+(v?commentsListHtml(v):'')+'</div>'+
     (cpReplyTo?'<div class="cp-repbar">Respondendo <b>@'+escapeHtml(cpReplyTo.userName)+'</b><span class="x" onclick="cancelReply()">✕</span></div>':'')+
     '<div class="cp-input"><input id="cpText" placeholder="'+(cpReplyTo?('Responder @'+cpReplyTo.userName+'...'):'Comentar...')+'" onkeydown="if(event.key===\'Enter\')addComment()"><button onclick="addComment()">➤</button></div>'+
   '</div>';
@@ -1171,9 +1194,10 @@ function openComments(vid){
   if(blockedAction()) return;
   currentVideoId = vid;
   cpReplyTo = null;
+  // Com o chat aberto os vídeos de baixo saem da tela; fechando, eles voltam.
+  esconderOutrosVideos(true);
   var r = loadVideoWithIds(vid);
   document.body.insertAdjacentHTML('beforeend', commentsPanelHtml(r.v));
-  lazyLoadEls(document.querySelectorAll('#cp .vo-thumb video'));
 }
 
 function refreshComments(){
@@ -1181,7 +1205,6 @@ function refreshComments(){
   if(!cp) return;
   var r = loadVideoWithIds(currentVideoId);
   cp.outerHTML = commentsPanelHtml(r.v);
-  lazyLoadEls(document.querySelectorAll('#cp .vo-thumb video'));
   var inp = document.getElementById('cpText');
   if(inp) inp.focus();
 }
@@ -1190,6 +1213,13 @@ function closeComments(){
   var cp = document.getElementById('cp');
   if(cp) cp.remove();
   cpReplyTo = null;
+  esconderOutrosVideos(false);
+}
+
+// Some com a lista de outros vídeos enquanto o chat está aberto.
+function esconderOutrosVideos(esconder){
+  var el = document.querySelector('.vo-outros');
+  if(el) el.style.display = esconder ? 'none' : '';
 }
 
 function findComment(vid, cid){
@@ -1793,7 +1823,7 @@ function abrirPagamento(canalId, valor, videoId){
       '<div class="pag-linha"><span>Seu saldo</span><b>'+moedaCurta(saldo)+'</b></div>'+
       '<div class="pag-linha"><span>O que você recebe</span><b>Vídeos de membro e nome verde no canal</b></div>'+
       (falta > 0
-        ? '<div class="pag-nota">Faltam '+moedaNum(falta)+' moedas. Fique no app para ganhar: cada minuto vale 1 moeda.</div>'+
+        ? '<div class="pag-nota">Faltam '+moedaNum(falta)+' moedas. Fique no app para ganhar: cada hora vale 1 moeda.</div>'+
           '<button class="post-btn" style="background:#333" onclick="document.getElementById(\'pagModal\').remove()">Fechar</button>'
         : '<button class="post-btn" id="pagBtn" onclick="pagarMembresia(\''+canalId+'\','+Number(valor)+',\''+(videoId||'')+'\')">Pagar '+txt+'</button>'+
           '<button class="post-btn" style="background:#333;margin-top:8px" onclick="document.getElementById(\'pagModal\').remove()">Cancelar</button>')+
@@ -1849,7 +1879,17 @@ function copiarCodigo(code){
 // O saldo é do servidor (ver MOEDAS no server.js): aqui a gente só mostra o
 // número que ele mandou e pede o pagamento do minuto. Com as moedas a pessoa
 // paga a membresia de um canal e assiste aos vídeos de membro dele.
-var moedasInfo = { minutos:0, ganhasHoje:0, tetoDia:60, missaoFeita:false, missaoMin:20, missaoBaseMin:5, missaoMoedas:5 };
+var moedasInfo = { minutos:0, ganhasHoje:0, tetoDia:24, missaoFeita:false, missaoMin:420, missaoBaseMin:60, missaoMoedas:5 };
+
+// O tempo das missões é contado em horas: 420 min aparece como "7 horas" e o
+// meio do caminho como "6h 52min".
+function tempoApp(min){
+  var m = Math.floor(Number(min)||0);
+  if(m < 60) return m + ' min';
+  var h = Math.floor(m/60), r = m%60;
+  if(!r) return h + (h===1 ? ' hora' : ' horas');
+  return h + 'h ' + r + 'min';
+}
 
 function renderMoedas(){
   var saldo = saldoMoedas();
@@ -1862,14 +1902,14 @@ function renderMoedas(){
     '<div class="moeda-card">'+
       '<div class="moeda-titulo">Missões de hoje</div>'+
       '<div class="missao">'+
-        '<div class="mleft"><b>Fique '+moedasInfo.missaoBaseMin+' minutos no app</b><span>Ganha 1 moeda a cada minuto</span></div>'+
+        '<div class="mleft"><b>Fique '+tempoApp(moedasInfo.missaoBaseMin)+' no app</b><span>Ganha 1 moeda a cada hora</span></div>'+
         '<div class="mdir">'+moedasInfo.ganhasHoje+'/'+moedasInfo.tetoDia+'<small>hoje</small></div>'+
       '</div>'+
       '<div class="missao">'+
-        '<div class="mleft"><b>Fique '+moedasInfo.missaoMin+' minutos no app</b><span>Bônus de '+moedasInfo.missaoMoedas+' moedas, uma vez por dia</span></div>'+
-        '<div class="mdir">'+(moedasInfo.missaoFeita?'✅':'+'+moedasInfo.missaoMoedas)+'<small>'+moedasInfo.minutos+' min</small></div>'+
+        '<div class="mleft"><b>Fique '+tempoApp(moedasInfo.missaoMin)+' no app</b><span>Bônus de '+moedasInfo.missaoMoedas+' moedas, uma vez por dia</span></div>'+
+        '<div class="mdir">'+(moedasInfo.missaoFeita?'✅':'+'+moedasInfo.missaoMoedas)+'<small>'+tempoApp(moedasInfo.minutos)+'</small></div>'+
       '</div>'+
-      '<div class="moeda-nota">Ficando no app o saldo sobe sozinho: 1 moeda por minuto, até '+moedasInfo.tetoDia+' moedas por dia. Quem acaba de criar a conta começa com 2 moedas. Com as moedas você vira membro de um canal — a membresia começa em '+MIN_MEMBRESIA+' moedas — e assiste aos vídeos de membro dele.</div>'+
+      '<div class="moeda-nota">Ficando no app o saldo sobe sozinho: 1 moeda por hora, até '+moedasInfo.tetoDia+' moedas por dia. Conta nova não ganha moedas de presente — elas vêm do tempo no app. As missões reiniciam todo dia. Com as moedas você vira membro de um canal — a membresia começa em '+MIN_MEMBRESIA+' moedas — e assiste aos vídeos de membro dele.</div>'+
     '</div>'+
     '<button class="moeda-voltar" onclick="view=\'profile\';profileUserId=curUser().id;render()">Voltar ao perfil</button>'+
   '</div>';
@@ -1898,8 +1938,8 @@ function baterMissao(forcar){
     moedasInfo.ganhasHoje = j.ganhasHoje || 0;
     moedasInfo.tetoDia = j.tetoDia || 60;
     moedasInfo.missaoFeita = !!j.missaoFeita;
-    moedasInfo.missaoMin = j.missaoMin || 20;
-    moedasInfo.missaoBaseMin = j.missaoBaseMin || 5;
+    moedasInfo.missaoMin = j.missaoMin || 420;
+    moedasInfo.missaoBaseMin = j.missaoBaseMin || 60;
     moedasInfo.missaoMoedas = j.missaoMoedas || 5;
     // Guarda o cadastro que o servidor devolveu (com o saldo novo) sem marcar
     // como mudança local: quem manda no saldo é ele.
@@ -2277,6 +2317,11 @@ function publishVideo(){
   if(blockedAction()) return;
   var url, desc;
   var type = postMode==='shorts' ? 'short' : 'video';
+  // A descrição vale em qualquer modo — link, vídeo ou short. Antes ela só era
+  // lida quando o vídeo vinha da galeria: quem publicava por link digitava a
+  // descrição e ela não aparecia em lugar nenhum.
+  var descEl = document.getElementById('postDesc');
+  desc = String(descEl ? descEl.value : postDescVal).trim() || 'Sem descrição';
   // Só vídeo pode ser de membro (short não passa por pagamento).
   var extra = { membro: postMembro && type === 'video', preco: postMembro && type === 'video' ? valorMembresia() : null };
   if(postMode==='link'){
@@ -2284,7 +2329,6 @@ function publishVideo(){
     if(!url){ showNotif('Cole o link do vídeo! 🔗'); return; }
   } else {
     if(!postFile && !postFileUrl){ showNotif('Escolha um '+(type==='short'?'short':'vídeo')+' primeiro! 📹'); return; }
-    desc = document.getElementById('postDesc').value.trim() || 'Sem descrição';
     if(postFile && window.SYNC && SYNC.logged()){
       // O vídeo sobe para o servidor: é isso que faz ele abrir no celular de
       // qualquer pessoa. Se o envio falhar, não publica um vídeo que só existe
