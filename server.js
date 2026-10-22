@@ -65,7 +65,15 @@ const BATIMENTO_SEG_MAX = 30;    // batimento atrasado vale no máximo 30s
 const MISSAO_BASE_MIN = 60;      // primeira missão: 1 hora no app
 const MISSAO_MIN = 420;          // missão do dia: 7 horas no app
 const MISSAO_MOEDAS = 5;         // e ela paga 5 moedas
-const MEMBRESIA_MIN = 15;        // a membresia de um canal começa em 15 moedas
+const MEMBRESIA_MIN = 25;        // a membresia de um canal começa em 25 moedas
+const MEMBRESIA_MAX = 30;        // e vai no máximo até 30 moedas
+
+// O preço do vídeo de membro vive entre MEMBRESIA_MIN e MEMBRESIA_MAX: o que
+// vem do aparelho entra sempre dentro dessa faixa.
+function precoDeMembro(n) {
+  const v = Number(n) || MEMBRESIA_MIN;
+  return Math.min(MEMBRESIA_MAX, Math.max(MEMBRESIA_MIN, v));
+}
 
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
@@ -455,9 +463,9 @@ function aplicarPush(body, quem) {
           // ele chega sem o link, e sem isso a cópia de lá apagaria o vídeo.
           if (antigo.url) novo.url = antigo.url;
         }
-        // O preço da membresia também tem piso (ver MEMBRESIA_MIN): o valor que
-        // vem do aparelho não entra abaixo dele.
-        if (novo.membro) novo.preco = Math.max(MEMBRESIA_MIN, Number(novo.preco) || MEMBRESIA_MIN);
+        // O preço da membresia também tem faixa (ver MEMBRESIA_MIN): o valor
+        // que vem do aparelho não entra fora dela.
+        if (novo.membro) novo.preco = precoDeMembro(novo.preco);
       }
       novo._u = ++clock;
       db[kind][novo.id] = novo;
@@ -667,6 +675,55 @@ function temaDoVideo(v) {
   })[0] || null;
 }
 
+// O assunto do vídeo é o que está escrito na descrição: um vídeo descrito como
+// "Neymar 👑" rende comentário falando de Neymar. Emoji e pontuação saem, e as
+// palavras vazias ("sem descrição", "de", "o"...) não viram assunto.
+const PALAVRAS_VAZIAS = ['sem', 'descricao', 'video', 'videos', 'short', 'shorts', 'clipe', 'um', 'uma', 'uns', 'umas', 'o', 'a', 'os', 'as', 'de', 'da', 'do', 'das', 'dos', 'e', 'em', 'no', 'na', 'nos', 'nas', 'para', 'pra', 'com', 'que', 'meu', 'minha', 'por', 'sobre', 'the', 'of'];
+
+function assuntoDoVideo(v) {
+  const limpo = String((v && v.description) || '')
+    .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{200D}]/gu, ' ')
+    .replace(/[^\p{L}\p{N}\s'-]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!limpo) return '';
+  // A comparação com as palavras vazias é sem acento: "descrição" e "descricao"
+  // caem as duas fora do assunto.
+  const palavras = limpo.split(' ').filter(function (p) {
+    return p.length > 2 && PALAVRAS_VAZIAS.indexOf(textoDoTema(p)) < 0;
+  });
+  if (!palavras.length) return null;
+  const curto = palavras.length <= 3;
+  // Nome curto ("Neymar") entra direto na frase; descrição maior entra inteira,
+  // com as palavras de ligação, para a frase ficar natural.
+  const texto = curto ? palavras.slice(0, 3).join(' ') : limpo;
+  return { texto: texto.length > 40 ? texto.slice(0, 40).replace(/\s\S*$/, '') : texto, curto: curto };
+}
+
+// Frases prontas em cima do assunto: é delas que saem os comentários dos bots.
+// Nome curto ("Neymar") entra direto na frase; descrição maior vira uma frase
+// sobre o que o vídeo fala.
+const FRASES_ASSUNTO = [
+  '{a} é top demais 🔥', 'gosto muito de {a} 👏', '{a} nunca decepciona 😍',
+  '{a} é fera demais 👑', 'só vídeo bom de {a} por aqui', '{a} merece mais views',
+  'assisti só por causa de {a}', '{a} de novo! amo 🙌', 'melhor vídeo de {a} que já vi',
+  '{a} sempre 👑', 'tava esperando um vídeo de {a} assim', '{a} 👑👑👑',
+  'não canso de ver {a}', 'esse vídeo de {a} ficou demais 🎯', 'quem mais veio por causa de {a}? 😄',
+  '{a} é outro nível 🔥', 'que vídeo bom de {a} 😍', '{a} pra sempre 🙌'
+];
+const FRASES_TEMA_TEXTO = [
+  'vídeo sobre {a} ficou ótimo 👏', 'gosto quando falam de {a}', 'esse vídeo sobre {a} tá bom demais 🔥',
+  'conteúdo sobre {a} sempre bom', 'tava precisando ver algo sobre {a}', 'boa escolha falar de {a} 👏',
+  'assisti tudo sobre {a} 😍', 'nunca canso de ver coisa de {a}', 'quem mais gosta de {a}? 🙌',
+  'bom demais ver algo sobre {a}', 'sobre {a} sempre rende vídeo bom 🔥', 'salvei pra ver de novo, adorei esse sobre {a}'
+];
+
+function frasesDoAssunto(assunto) {
+  return (assunto.curto ? FRASES_ASSUNTO : FRASES_TEMA_TEXTO).map(function (f) {
+    return f.replace('{a}', assunto.texto);
+  });
+}
+
 function sorteio(max) { return Math.floor(Math.random() * max); }
 function escolha(lista) { return lista[sorteio(lista.length)]; }
 
@@ -690,11 +747,20 @@ function passoDeCrescimento(atual, teto, maxPasso) {
 // painel — nenhuma conta é inventada no app por causa disso.
 function comentarioNovo(v) {
   const nome = escolha(COMENTARISTAS);
+  const assunto = assuntoDoVideo(v);
   const tema = temaDoVideo(v);
+  // O comentário fala do assunto da descrição; quando não dá para tirar assunto
+  // nenhum, entram as frases do tema e, na falta dele, as frases soltas.
+  const pool = assunto
+    ? (Math.random() < 0.75 ? frasesDoAssunto(assunto) : (tema ? tema.frases.concat(COMENTARIOS) : COMENTARIOS))
+    : (tema ? tema.frases : COMENTARIOS);
+  // Tudo variado: o que já foi dito nesse vídeo não se repete.
+  const jaDitas = (v.comments || []).slice(-10).map(function (c) { return c.text; });
+  const livres = pool.filter(function (t) { return jaDitas.indexOf(t) < 0; });
   return {
     id: 'c' + Date.now().toString(36) + crypto.randomBytes(2).toString('hex'),
     userId: 'auto_' + nome.toLowerCase(), userName: nome,
-    text: escolha(tema ? tema.frases : COMENTARIOS), ts: Date.now(), auto: true
+    text: escolha(livres.length ? livres : pool), ts: Date.now(), auto: true
   };
 }
 
@@ -923,10 +989,11 @@ async function api(req, res, url) {
       const canal = db.users[String(b.canalId || '')];
       if (!canal) return json(res, 404, { error: 'canal', message: 'Não achei esse canal.' });
       if (canal.id === quem.id) return json(res, 400, { error: 'canal', message: 'Este canal é seu.' });
-      // A membresia tem piso: mesmo que o aparelho mande menos, o pagamento não
-      // fecha por menos de MEMBRESIA_MIN moedas.
+      // A membresia tem faixa: mesmo que o aparelho mande outro valor, o
+      // pagamento não fecha fora de MEMBRESIA_MIN..MEMBRESIA_MAX.
       const valor = Math.round(Number(b.valor) * 100) / 100;
       if (!(valor >= MEMBRESIA_MIN)) return json(res, 400, { error: 'valor', message: 'A membresia de um canal começa em ' + moedaTxt(MEMBRESIA_MIN) + '.' });
+      if (valor > MEMBRESIA_MAX) return json(res, 400, { error: 'valor', message: 'A membresia de um canal vai até ' + moedaTxt(MEMBRESIA_MAX) + '.' });
       const saldo = Number(quem.moedas) || 0;
       if (saldo < valor) {
         return json(res, 402, {
@@ -936,6 +1003,10 @@ async function api(req, res, url) {
         });
       }
       quem.moedas = Math.round((saldo - valor) * 100) / 100;
+      // O que a pessoa pagou cai inteirinho no saldo de quem publicou o vídeo —
+      // o dono do canal. Nenhuma moeda fica pelo caminho.
+      canal.moedas = Math.round(((Number(canal.moedas) || 0) + valor) * 100) / 100;
+      canal._u = ++clock;
       if (!quem.membroDe) quem.membroDe = [];
       if (quem.membroDe.indexOf(canal.id) < 0) quem.membroDe.push(canal.id);
       quem._u = ++clock;

@@ -518,10 +518,13 @@ function podeVerVideo(v, u){ if(!v || !v.membro) return true; return ehMembroDe(
 function videoTrancado(v, u){ return !!(v && v.membro && !podeVerVideo(v, u)); }
 // ==================== MOEDAS ====================
 // A membresia de um canal é paga com moedas: o valor do vídeo é em moedas, não
-// em dinheiro. O piso é MIN_MEMBRESIA — o servidor também não deixa entrar nem
-// pagar menos que isso (ver MEMBRESIA_MIN no server.js).
-var MIN_MEMBRESIA = 15;
-function precoMembresia(v){ var n = Number(v && v.preco); return Math.max(MIN_MEMBRESIA, n > 0 ? n : MIN_MEMBRESIA); }
+// em dinheiro, e vive entre MIN_MEMBRESIA e MAX_MEMBRESIA — o servidor não
+// deixa entrar nem pagar fora dessa faixa (ver MEMBRESIA_MIN e MEMBRESIA_MAX
+// no server.js). O que a pessoa paga cai inteirinho no saldo do dono do vídeo.
+var MIN_MEMBRESIA = 25;
+var MAX_MEMBRESIA = 30;
+function precoDeMembro(n){ var v = Number(n) || MIN_MEMBRESIA; return Math.min(MAX_MEMBRESIA, Math.max(MIN_MEMBRESIA, v)); }
+function precoMembresia(v){ return precoDeMembro(v && v.preco); }
 function moedaNum(n){ return (Math.round(Number(n||0)*100)/100).toFixed(2).replace('.', ','); }
 function moedaTxt(n){ return '🪙 '+moedaNum(n)+' moedas'; }
 function moedaCurta(n){ return '🪙 '+moedaNum(n); }
@@ -2154,12 +2157,11 @@ var postMode = 'link';
 var postMembro = false;
 var postDescVal = '';
 
-// O valor digitado no postar (aceita "15,50" e "15.50"), em moedas. A membresia
-// começa em MIN_MEMBRESIA: valor abaixo disso sobe para o piso.
+// O valor digitado no postar (aceita "25,50" e "25.50"), em moedas. A membresia
+// vive entre MIN_MEMBRESIA e MAX_MEMBRESIA: o que estiver fora entra na faixa.
 function valorMembresia(){
   var el = document.getElementById('postPreco');
-  var n = Number(String(el ? el.value : '').replace(',', '.'));
-  return Math.max(MIN_MEMBRESIA, n > 0 ? n : MIN_MEMBRESIA);
+  return precoDeMembro(Number(String(el ? el.value : '').replace(',', '.')));
 }
 var postFileUrl = null;
 var postFile = null;
@@ -2197,8 +2199,8 @@ function renderPost(){
         '</div>'+
       '</div>'+
       (postMembro?
-        '<input class="post-field" id="postPreco" inputmode="decimal" value="15" placeholder="Valor da membresia em moedas">'+
-        '<div class="pf-note">🔒 Só quem for membro do seu canal assiste a esse vídeo. Quem pagar a membresia vê todos os seus vídeos de membro e fica com o nome verde nos comentários do seu canal. O valor é em moedas, a partir de '+MIN_MEMBRESIA+': a pessoa paga com as moedas que ganha ficando no app.</div>'
+        '<input class="post-field" id="postPreco" inputmode="decimal" value="'+MIN_MEMBRESIA+'" placeholder="Valor da membresia em moedas">'+
+        '<div class="pf-note">🔒 Só quem for membro do seu canal assiste a esse vídeo. Quem pagar a membresia vê todos os seus vídeos de membro e fica com o nome verde nos comentários do seu canal. O valor é em moedas, de '+MIN_MEMBRESIA+' a '+MAX_MEMBRESIA+', e cai inteirinho no seu saldo: a pessoa paga com as moedas que ganha ficando no app.</div>'
       :'')
     :'')+
     (isLive?
@@ -2302,7 +2304,7 @@ function publicarVideo(url, type, desc, extra){
   var vid = { id:'vid'+Date.now(), userId:u.id, userName:u.name, userPhoto:u.photo, url:url, poster:extra.poster||null, dur:extra.dur||null, description:desc, type:type, likes:0, views:0, comments:[], timestamp:Date.now(), likedBy:[], dislikedBy:[] };
   // Vídeo de membro: sem o pagamento da membresia do canal ninguém assiste (o
   // servidor não manda nem o link do vídeo para quem não é membro).
-  if(extra.membro){ vid.membro = true; vid.preco = Math.max(MIN_MEMBRESIA, Number(extra.preco) || MIN_MEMBRESIA); }
+  if(extra.membro){ vid.membro = true; vid.preco = precoDeMembro(extra.preco); }
   vids.unshift(vid);
   DB.saveVideos(vids);
   postFile = null;
