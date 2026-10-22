@@ -53,17 +53,19 @@ const CODIGOS_DO_APP = [
 // ==================== MOEDAS ====================
 // O saldo de moedas é do servidor: ele vive na conta aqui, nunca no aparelho —
 // é isso que impede o bug de alguém inventar moeda no próprio celular.
-//   • quem cria a conta agora ganha 5 moedas de boas-vindas;
+//   • quem cria a conta agora ganha 2 moedas de boas-vindas;
 //   • o criador começa com 1000k (1.000.000) de moedas;
-//   • ficar no app rende 1 moeda por minuto e, aos 10 minutos, 5 de bônus;
+//   • ficar no app rende 1 moeda por minuto e, aos 20 minutos, 5 de bônus;
 //   • com moedas a pessoa paga a membresia de um canal (ver /api/membro).
-const MOEDAS_NOVO = 5;
+const MOEDAS_NOVO = 2;
 const MOEDAS_CRIADOR = 1000 * 1000;
 const MOEDA_SEG = 60;            // 1 moeda a cada minuto de app
 const MOEDAS_DIA_MAX = 60;       // teto de moedas ganhas por dia, no tempo
 const BATIMENTO_SEG_MAX = 30;    // batimento atrasado vale no máximo 30s
-const MISSAO_MIN = 10;           // missão do dia: 10 minutos no app
+const MISSAO_BASE_MIN = 5;       // primeira missão: 5 minutos no app
+const MISSAO_MIN = 20;           // missão do dia: 20 minutos no app
 const MISSAO_MOEDAS = 5;         // e ela paga 5 moedas
+const MEMBRESIA_MIN = 15;        // a membresia de um canal começa em 15 moedas
 
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
@@ -453,6 +455,9 @@ function aplicarPush(body, quem) {
           // ele chega sem o link, e sem isso a cópia de lá apagaria o vídeo.
           if (antigo.url) novo.url = antigo.url;
         }
+        // O preço da membresia também tem piso (ver MEMBRESIA_MIN): o valor que
+        // vem do aparelho não entra abaixo dele.
+        if (novo.membro) novo.preco = Math.max(MEMBRESIA_MIN, Number(novo.preco) || MEMBRESIA_MIN);
       }
       novo._u = ++clock;
       db[kind][novo.id] = novo;
@@ -582,7 +587,7 @@ function passoMissao(u) {
         ganhas += novas;
       }
     }
-    // Missão do dia: 10 minutos no app pagam 5 moedas, uma vez só.
+    // Missão do dia: 20 minutos no app pagam 5 moedas, uma vez só.
     if (!u._mbonus && u._mmins >= MISSAO_MIN) {
       u._mbonus = true;
       u.moedas = (Number(u.moedas) || 0) + MISSAO_MOEDAS;
@@ -614,6 +619,54 @@ const COMENTARIOS = ['top 👏', 'que vídeo bom', 'muito bom mesmo', 'amei 😍
   'esse foi bom 😂', 'simplesmente top', 'olha isso 😱', 'que lindo', 'muito massa', 'melhor vídeo',
   'continue assim 👏', 'que isso 🔥'];
 
+// O assunto do comentário sai do texto do próprio vídeo: a descrição é o texto
+// que o vídeo tem (o feed mostra ela como título do card). Achando as palavras
+// de um tema, o comentarista automático fala do que o vídeo mostra — vídeo de
+// terror recebe comentário de terror. Vídeo sem nenhuma palavra conhecida recebe
+// a frase genérica de sempre. As palavras são escritas sem acento porque o texto
+// do vídeo é comparado sem acento (ver textoDoTema).
+const TEMAS = [
+  { chaves: ['terror', 'medo', 'susto', 'assombro', 'assustador', 'fantasma', 'demonio', 'maldicao', 'zumbi', 'bruxa', 'espirito', 'arrepiante', 'macabro', 'vampiro'],
+    frases: ['que susto 😱', 'assisti de luz acesa 😨', 'isso arrepiou tudo aqui', 'que vídeo de terror bom 👻', 'nunca mais assisto isso sozinho', 'tô com medo até agora'] },
+  { chaves: ['musica', 'batida', 'violao', 'sertanejo', 'funk', 'karaoke', 'playlist', 'cantor', 'cover'],
+    frases: ['que som bom 🎵', 'já salvei pra ouvir depois', 'essa música ficou na cabeça', 'a batida tá top 🔥', 'que voz, viu 😍'] },
+  { chaves: ['comedia', 'piada', 'engracad', 'risada', 'meme', 'zoeira', 'humor', 'palhaco', 'kkk'],
+    frases: ['ri demais 😂', 'não aguento 😂😂', 'melhor vídeo pra rir', 'morri de rir com esse final', 'kkkkk isso foi ótimo'] },
+  { chaves: ['futebol', 'gol', 'jogador', 'campeonato', 'luta', 'mma', 'boxe', 'skate', 'corrida', 'time'],
+    frases: ['que jogada 🔥', 'melhor lance do dia', 'esse foi de craque ⚽', 'jogo bom demais', 'que raça nesse time'] },
+  { chaves: ['game', 'gameplay', 'free fire', 'minecraft', 'roblox', 'valorant', 'partida', 'fps', 'level'],
+    frases: ['que jogada insana 🎮', 'joga muito', 'esse gameplay tá top', 'GG 🔥', 'quero ver a próxima partida'] },
+  { chaves: ['comida', 'receita', 'cozinh', 'bolo', 'doce', 'salgado', 'hamburguer', 'pizza', 'churrasco'],
+    frases: ['deu fome aqui 🤤', 'essa receita é boa demais', 'vou fazer hoje mesmo', 'que cara de delicioso 😋'] },
+  { chaves: ['danca', 'coreografia', 'passinho', 'ballet', 'forro'],
+    frases: ['que coreografia 👏', 'dança muito bem', 'queria aprender esses passos'] },
+  { chaves: ['maquiagem', 'make', 'skincare', 'moda', 'look', 'cabelo', 'unha'],
+    frases: ['o look tá maravilhoso 😍', 'que make linda', 'vou tentar fazer igual'] },
+  { chaves: ['cachorro', 'gato', 'filhote', 'puppy', 'dog'],
+    frases: ['que fofura 🐶', 'amei o bichinho 😍', 'que bonzinho'] },
+  { chaves: ['viagem', 'praia', 'trilha', 'montanha', 'passeio', 'paisagem'],
+    frases: ['que lugar lindo 😍', 'quero conhecer esse lugar', 'que paisagem boa'] },
+  { chaves: ['aula', 'dica', 'tutorial', 'aprend', 'ensin'],
+    frases: ['aprendi muito, valeu!', 'dica ótima 👏', 'salvando pra depois'] },
+  { chaves: ['unboxing', 'review', 'celular', 'computador', 'tecnologia', 'aplicativo'],
+    frases: ['explicou bem demais', 'boa análise 👏', 'quero esse também'] }
+];
+
+// O texto do vídeo vai para a comparação em minúsculas e sem acento: assim
+// "TERROR" e "terror" acham o mesmo tema.
+function textoDoTema(txt) {
+  return String(txt || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+// O tema do vídeo, na ordem da lista acima: o primeiro que aparece no texto é o
+// que vale. Vídeo sem nenhuma palavra conhecida fica sem tema.
+function temaDoVideo(v) {
+  const txt = textoDoTema(v && v.description);
+  return TEMAS.filter(function (t) {
+    return t.chaves.some(function (k) { return txt.indexOf(k) >= 0; });
+  })[0] || null;
+}
+
 function sorteio(max) { return Math.floor(Math.random() * max); }
 function escolha(lista) { return lista[sorteio(lista.length)]; }
 
@@ -635,12 +688,13 @@ function passoDeCrescimento(atual, teto, maxPasso) {
 
 // Um comentário novo: só o nome de quem comentou, como no "Comentário Falso" do
 // painel — nenhuma conta é inventada no app por causa disso.
-function comentarioNovo() {
+function comentarioNovo(v) {
   const nome = escolha(COMENTARISTAS);
+  const tema = temaDoVideo(v);
   return {
     id: 'c' + Date.now().toString(36) + crypto.randomBytes(2).toString('hex'),
     userId: 'auto_' + nome.toLowerCase(), userName: nome,
-    text: escolha(COMENTARIOS), ts: Date.now(), auto: true
+    text: escolha(tema ? tema.frases : COMENTARIOS), ts: Date.now(), auto: true
   };
 }
 
@@ -649,7 +703,7 @@ function movimentarVideo(v) {
   v.views = (v.views || 0) + passoDeCrescimento(v.views || 0, t.views, 8);
   v.likes = (v.likes || 0) + passoDeCrescimento(v.likes || 0, t.likes, 4);
   const cmts = v.comments || [];
-  if (cmts.length < t.cmts && Math.random() < 0.35) v.comments = cmts.concat([comentarioNovo()]);
+  if (cmts.length < t.cmts && Math.random() < 0.35) v.comments = cmts.concat([comentarioNovo(v)]);
   // Quem publicou ganha seguidores junto. O criador não: ele tem o número que tem.
   const dono = db.users[v.userId];
   if (dono && !dono.isCreator) {
@@ -855,6 +909,7 @@ async function api(req, res, url) {
         user: usuarioPublico(quem), ganhas: ganhas,
         minutos: Math.floor(quem._mmins || 0), ganhasHoje: quem._mganhas || 0,
         tetoDia: MOEDAS_DIA_MAX, missaoMin: MISSAO_MIN,
+        missaoBaseMin: MISSAO_BASE_MIN,
         missaoMoedas: MISSAO_MOEDAS, missaoFeita: !!quem._mbonus
       });
     }
@@ -868,8 +923,10 @@ async function api(req, res, url) {
       const canal = db.users[String(b.canalId || '')];
       if (!canal) return json(res, 404, { error: 'canal', message: 'Não achei esse canal.' });
       if (canal.id === quem.id) return json(res, 400, { error: 'canal', message: 'Este canal é seu.' });
+      // A membresia tem piso: mesmo que o aparelho mande menos, o pagamento não
+      // fecha por menos de MEMBRESIA_MIN moedas.
       const valor = Math.round(Number(b.valor) * 100) / 100;
-      if (!(valor > 0)) return json(res, 400, { error: 'valor', message: 'Valor da membresia inválido.' });
+      if (!(valor >= MEMBRESIA_MIN)) return json(res, 400, { error: 'valor', message: 'A membresia de um canal começa em ' + moedaTxt(MEMBRESIA_MIN) + '.' });
       const saldo = Number(quem.moedas) || 0;
       if (saldo < valor) {
         return json(res, 402, {

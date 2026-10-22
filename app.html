@@ -320,12 +320,14 @@ body{background:#000;color:#fff}
 .vd-actgrp .vd-act+.vd-act{border-left:1px solid #333}
 .vd-cmt-head{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700;color:#fff;margin-bottom:14px}
 .vd-cmt-head .cnt{font-weight:400;color:#aaa;font-size:14px}
-.vd-cmt-preview{display:flex;gap:10px;margin-bottom:8px;cursor:pointer}
-.vd-cmt-preview .ca{width:32px;height:32px;border-radius:50%;background:#333;overflow:hidden;flex-shrink:0}
-.vd-cmt-preview .ca img{width:100%;height:100%;object-fit:cover}
-.vd-cmt-preview .ct{flex:1}
-.vd-cmt-preview .cn{font-size:13px;font-weight:600;color:#fff;display:flex;align-items:center;gap:3px}
-.vd-cmt-preview .cc{font-size:13px;color:#ccc}
+/* Outros vídeos: os que já estão na Home, embaixo dos comentários */
+.vo-titulo{font-size:15.5px;font-weight:700;color:#fff;margin:2px 0 12px}
+.vo-item{display:flex;gap:10px;margin-bottom:12px;cursor:pointer}
+.vo-thumb{position:relative;width:150px;flex-shrink:0;aspect-ratio:16/9;border-radius:10px;overflow:hidden;background:#0f0f0f}
+.vo-thumb .capa,.vo-thumb video{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
+.vo-info{flex:1;min-width:0}
+.vo-t{font-size:13.5px;font-weight:700;color:#fff;line-height:1.3;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.vo-s{font-size:11.5px;color:#aaa}
 
 /* Comments */
 .comments-panel{position:fixed;bottom:0;left:0;right:0;height:60%;background:#1a1a1a;border-radius:16px 16px 0 0;z-index:100;display:none;flex-direction:column}
@@ -510,8 +512,10 @@ function podeVerVideo(v, u){ if(!v || !v.membro) return true; return ehMembroDe(
 function videoTrancado(v, u){ return !!(v && v.membro && !podeVerVideo(v, u)); }
 // ==================== MOEDAS ====================
 // A membresia de um canal é paga com moedas: o valor do vídeo é em moedas, não
-// em dinheiro. Vídeo sem valor definido vale 10 moedas.
-function precoMembresia(v){ return Number(v && v.preco) > 0 ? Number(v.preco) : 10; }
+// em dinheiro. O piso é MIN_MEMBRESIA — o servidor também não deixa entrar nem
+// pagar menos que isso (ver MEMBRESIA_MIN no server.js).
+var MIN_MEMBRESIA = 15;
+function precoMembresia(v){ var n = Number(v && v.preco); return Math.max(MIN_MEMBRESIA, n > 0 ? n : MIN_MEMBRESIA); }
 function moedaNum(n){ return (Math.round(Number(n||0)*100)/100).toFixed(2).replace('.', ','); }
 function moedaTxt(n){ return '🪙 '+moedaNum(n)+' moedas'; }
 function moedaCurta(n){ return '🪙 '+moedaNum(n); }
@@ -817,8 +821,6 @@ function renderVideoDetail(){
   var disliked = v.dislikedBy && v.dislikedBy.indexOf(u.id)>=0;
   var saved = u.savedVideos && u.savedVideos.indexOf(v.id)>=0;
   var isFollowing = u.following && u.following.indexOf(owner.id)>=0;
-  var previewCmt = v.comments && v.comments.length>0 ? v.comments[v.comments.length-1] : null;
-  var pcu = previewCmt ? (getUser(previewCmt.userId) || {name:previewCmt.userName, photo:null, verifiedType:null}) : null;
 
   // Vídeo de membro: quem não é membro do canal não vê o player — vê a tela do
   // cadeado, e é ela que leva ao pagamento.
@@ -870,16 +872,33 @@ function renderVideoDetail(){
           '<span>Salvar</span>'+
         '</button>'+
       '</div>'+
-      '<div class="vd-cmt-head" onclick="openComments(\''+v.id+'\')" style="cursor:pointer">Comentários <span class="cnt">'+(v.comments?v.comments.length:0)+'</span><span style="margin-left:auto;color:#3ea6ff;font-size:13px;font-weight:600">Ver todos ›</span></div>'+
-      (previewCmt?
-        '<div class="vd-cmt-preview" onclick="openComments(\''+v.id+'\')">'+
-          '<div style="flex-shrink:0">'+avatarHtml(pcu,32)+'</div>'+
-          '<div class="ct"><div class="cn">'+userNameDisplay(pcu, v.userId)+'</div><div class="cc">'+escapeHtml(previewCmt.text)+'</div></div>'+
-        '</div>'
-      :'<div style="color:#666;font-size:14px;margin-bottom:8px">Nenhum comentário ainda</div>')+
+      // Os comentários ficam fechados: a barra só abre o painel quando é tocada,
+      // e os outros vídeos da Home ficam logo abaixo dela.
+      '<div class="vd-cmt-head" onclick="openComments(\''+v.id+'\')" style="cursor:pointer">Comentários <span class="cnt">'+(v.comments?v.comments.length:0)+'</span><span style="margin-left:auto;color:#3ea6ff;font-size:13px;font-weight:600">'+(v.comments&&v.comments.length?'Abrir ›':'Comentar ›')+'</span></div>'+
+      outrosVideosHtml(v)+
     '</div>'+
   '</div>';
   document.getElementById('app').innerHTML = html;
+  lazyLoadEls(document.querySelectorAll('.vd-body .vo-thumb video'));
+}
+
+// Embaixo dos comentários ficam os outros vídeos — os mesmos que já aparecem na
+// Home, menos este. Tocar em um abre ele.
+function outrosVideosHtml(v){
+  var list = DB.videos().filter(function(x){
+    return x.id!==v.id && x.type!=='short';
+  }).sort(function(a,b){ return (b.timestamp||0)-(a.timestamp||0); }).slice(0,8);
+  if(list.length===0) return '';
+  return '<div class="vo-titulo">Outros vídeos</div>'+list.map(function(x){
+    var o = getUser(x.userId) || {name:x.userName, photo:x.userPhoto, verifiedType:null, isCreator:false};
+    return '<div class="vo-item" onclick="openVideoDetail(\''+x.id+'\')">'+
+      '<div class="vo-thumb">'+capaHtml(x)+duracaoHtml(x)+'</div>'+
+      '<div class="vo-info">'+
+        '<div class="vo-t">'+escapeHtml(x.description||'Sem descrição')+'</div>'+
+        '<div class="vo-s">'+escapeHtml(o.name||'')+' · '+fmt(x.views||0)+' visualizações · '+timeAgoStr(x.timestamp)+'</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
 }
 
 function likeVideoDetail(vid){
@@ -1142,7 +1161,7 @@ function commentsPanelHtml(v){
       (v && v.userId===curUser().id?'<div style="font-size:11px;color:#888;font-weight:400;margin-top:3px">Toque em quem comentou para fixar, excluir ou bloquear</div>':'')+
       '<span class="cp-close" onclick="closeComments()">×</span>'+
     '</div>'+
-    '<div class="cp-list" id="cpList">'+(v?commentsListHtml(v):'')+'</div>'+
+    '<div class="cp-list" id="cpList">'+(v?commentsListHtml(v):'')+(v?outrosVideosHtml(v):'')+'</div>'+
     (cpReplyTo?'<div class="cp-repbar">Respondendo <b>@'+escapeHtml(cpReplyTo.userName)+'</b><span class="x" onclick="cancelReply()">✕</span></div>':'')+
     '<div class="cp-input"><input id="cpText" placeholder="'+(cpReplyTo?('Responder @'+cpReplyTo.userName+'...'):'Comentar...')+'" onkeydown="if(event.key===\'Enter\')addComment()"><button onclick="addComment()">➤</button></div>'+
   '</div>';
@@ -1154,6 +1173,7 @@ function openComments(vid){
   cpReplyTo = null;
   var r = loadVideoWithIds(vid);
   document.body.insertAdjacentHTML('beforeend', commentsPanelHtml(r.v));
+  lazyLoadEls(document.querySelectorAll('#cp .vo-thumb video'));
 }
 
 function refreshComments(){
@@ -1161,6 +1181,7 @@ function refreshComments(){
   if(!cp) return;
   var r = loadVideoWithIds(currentVideoId);
   cp.outerHTML = commentsPanelHtml(r.v);
+  lazyLoadEls(document.querySelectorAll('#cp .vo-thumb video'));
   var inp = document.getElementById('cpText');
   if(inp) inp.focus();
 }
@@ -1828,7 +1849,7 @@ function copiarCodigo(code){
 // O saldo é do servidor (ver MOEDAS no server.js): aqui a gente só mostra o
 // número que ele mandou e pede o pagamento do minuto. Com as moedas a pessoa
 // paga a membresia de um canal e assiste aos vídeos de membro dele.
-var moedasInfo = { minutos:0, ganhasHoje:0, tetoDia:60, missaoFeita:false, missaoMin:10, missaoMoedas:5 };
+var moedasInfo = { minutos:0, ganhasHoje:0, tetoDia:60, missaoFeita:false, missaoMin:20, missaoBaseMin:5, missaoMoedas:5 };
 
 function renderMoedas(){
   var saldo = saldoMoedas();
@@ -1841,14 +1862,14 @@ function renderMoedas(){
     '<div class="moeda-card">'+
       '<div class="moeda-titulo">Missões de hoje</div>'+
       '<div class="missao">'+
-        '<div class="mleft"><b>Fique 1 minuto no app</b><span>Ganha 1 moeda a cada minuto</span></div>'+
+        '<div class="mleft"><b>Fique '+moedasInfo.missaoBaseMin+' minutos no app</b><span>Ganha 1 moeda a cada minuto</span></div>'+
         '<div class="mdir">'+moedasInfo.ganhasHoje+'/'+moedasInfo.tetoDia+'<small>hoje</small></div>'+
       '</div>'+
       '<div class="missao">'+
         '<div class="mleft"><b>Fique '+moedasInfo.missaoMin+' minutos no app</b><span>Bônus de '+moedasInfo.missaoMoedas+' moedas, uma vez por dia</span></div>'+
         '<div class="mdir">'+(moedasInfo.missaoFeita?'✅':'+'+moedasInfo.missaoMoedas)+'<small>'+moedasInfo.minutos+' min</small></div>'+
       '</div>'+
-      '<div class="moeda-nota">Ficando no app o saldo sobe sozinho: 1 moeda por minuto, até '+moedasInfo.tetoDia+' moedas por dia. Quem acaba de criar a conta começa com 5 moedas. Com as moedas você vira membro de um canal e assiste aos vídeos de membro dele.</div>'+
+      '<div class="moeda-nota">Ficando no app o saldo sobe sozinho: 1 moeda por minuto, até '+moedasInfo.tetoDia+' moedas por dia. Quem acaba de criar a conta começa com 2 moedas. Com as moedas você vira membro de um canal — a membresia começa em '+MIN_MEMBRESIA+' moedas — e assiste aos vídeos de membro dele.</div>'+
     '</div>'+
     '<button class="moeda-voltar" onclick="view=\'profile\';profileUserId=curUser().id;render()">Voltar ao perfil</button>'+
   '</div>';
@@ -1877,7 +1898,8 @@ function baterMissao(forcar){
     moedasInfo.ganhasHoje = j.ganhasHoje || 0;
     moedasInfo.tetoDia = j.tetoDia || 60;
     moedasInfo.missaoFeita = !!j.missaoFeita;
-    moedasInfo.missaoMin = j.missaoMin || 10;
+    moedasInfo.missaoMin = j.missaoMin || 20;
+    moedasInfo.missaoBaseMin = j.missaoBaseMin || 5;
     moedasInfo.missaoMoedas = j.missaoMoedas || 5;
     // Guarda o cadastro que o servidor devolveu (com o saldo novo) sem marcar
     // como mudança local: quem manda no saldo é ele.
@@ -2092,12 +2114,12 @@ var postMode = 'link';
 var postMembro = false;
 var postDescVal = '';
 
-// O valor digitado no postar (aceita "10,50" e "10.50"), em moedas; sem valor,
-// fica o padrão de 10 moedas.
+// O valor digitado no postar (aceita "15,50" e "15.50"), em moedas. A membresia
+// começa em MIN_MEMBRESIA: valor abaixo disso sobe para o piso.
 function valorMembresia(){
   var el = document.getElementById('postPreco');
   var n = Number(String(el ? el.value : '').replace(',', '.'));
-  return n > 0 ? n : 10;
+  return Math.max(MIN_MEMBRESIA, n > 0 ? n : MIN_MEMBRESIA);
 }
 var postFileUrl = null;
 var postFile = null;
@@ -2135,8 +2157,8 @@ function renderPost(){
         '</div>'+
       '</div>'+
       (postMembro?
-        '<input class="post-field" id="postPreco" inputmode="decimal" value="10" placeholder="Valor da membresia em moedas">'+
-        '<div class="pf-note">🔒 Só quem for membro do seu canal assiste a esse vídeo. Quem pagar a membresia vê todos os seus vídeos de membro e fica com o nome verde nos comentários do seu canal. O valor é em moedas: a pessoa paga com as moedas que ganha ficando no app.</div>'
+        '<input class="post-field" id="postPreco" inputmode="decimal" value="15" placeholder="Valor da membresia em moedas">'+
+        '<div class="pf-note">🔒 Só quem for membro do seu canal assiste a esse vídeo. Quem pagar a membresia vê todos os seus vídeos de membro e fica com o nome verde nos comentários do seu canal. O valor é em moedas, a partir de '+MIN_MEMBRESIA+': a pessoa paga com as moedas que ganha ficando no app.</div>'
       :'')
     :'')+
     (isLive?
@@ -2240,7 +2262,7 @@ function publicarVideo(url, type, desc, extra){
   var vid = { id:'vid'+Date.now(), userId:u.id, userName:u.name, userPhoto:u.photo, url:url, poster:extra.poster||null, dur:extra.dur||null, description:desc, type:type, likes:0, views:0, comments:[], timestamp:Date.now(), likedBy:[], dislikedBy:[] };
   // Vídeo de membro: sem o pagamento da membresia do canal ninguém assiste (o
   // servidor não manda nem o link do vídeo para quem não é membro).
-  if(extra.membro){ vid.membro = true; vid.preco = Number(extra.preco) > 0 ? Number(extra.preco) : 10; }
+  if(extra.membro){ vid.membro = true; vid.preco = Math.max(MIN_MEMBRESIA, Number(extra.preco) || MIN_MEMBRESIA); }
   vids.unshift(vid);
   DB.saveVideos(vids);
   postFile = null;
