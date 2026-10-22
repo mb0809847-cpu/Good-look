@@ -50,6 +50,21 @@ const CODIGOS_DO_APP = [
   { code: CODIGO_HALLOWEEN, nome: 'Visual Halloween', desc: 'Liga o visual de Halloween na conta' }
 ];
 
+// ==================== MOEDAS ====================
+// O saldo de moedas é do servidor: ele vive na conta aqui, nunca no aparelho —
+// é isso que impede o bug de alguém inventar moeda no próprio celular.
+//   • quem cria a conta agora ganha 5 moedas de boas-vindas;
+//   • o criador começa com 1000k (1.000.000) de moedas;
+//   • ficar no app rende 1 moeda por minuto e, aos 10 minutos, 5 de bônus;
+//   • com moedas a pessoa paga a membresia de um canal (ver /api/membro).
+const MOEDAS_NOVO = 5;
+const MOEDAS_CRIADOR = 1000 * 1000;
+const MOEDA_SEG = 60;            // 1 moeda a cada minuto de app
+const MOEDAS_DIA_MAX = 60;       // teto de moedas ganhas por dia, no tempo
+const BATIMENTO_SEG_MAX = 30;    // batimento atrasado vale no máximo 30s
+const MISSAO_MIN = 10;           // missão do dia: 10 minutos no app
+const MISSAO_MOEDAS = 5;         // e ela paga 5 moedas
+
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 /* ==================== BANCO ==================== */
@@ -149,6 +164,11 @@ function usuarioPublico(u) {
   delete o.password;
   o._server = true;
   o.premio = premioDe(u);
+  // O saldo nunca sai faltando: conta que nunca teve moeda aparece com 0.
+  o.moedas = Number(u.moedas) || 0;
+  // O tempo das missões é controle interno do servidor: o aparelho não precisa
+  // dele e não tem como mexer nele.
+  for (const k in o) if (k.indexOf('_m') === 0) delete o[k];
   return o;
 }
 
@@ -159,10 +179,26 @@ function seedCriador() {
     photo: null, followers: 100000, following: [], likes: 0,
     verified: true, verifiedType: 'blue', isCreator: true, isAdmin: true,
     banned: false, banUntil: null, savedVideos: [],
+    moedas: MOEDAS_CRIADOR,
     password: novaSenha('12345678910'), _u: ++clock
   };
   saveDb();
   console.log('conta do criador criada: tex_tt');
+}
+
+// Contas que já existiam antes das moedas: quem nunca teve saldo ganha o de
+// boas-vindas, e o criador ganha as 1000k dele. Uma vez entregue, o saldo passa
+// a ser do servidor e nenhum aparelho muda mais (ver aplicarPush).
+function completarMoedas() {
+  let mexeu = false;
+  for (const id in db.users) {
+    const u = db.users[id];
+    if (!u || u.moedas != null) continue;
+    u.moedas = u.isCreator ? MOEDAS_CRIADOR : MOEDAS_NOVO;
+    u._u = ++clock;
+    mexeu = true;
+  }
+  if (mexeu) { saveDb(); console.log('moedas de boas-vindas entregues'); }
 }
 
 // A conta "suporte good look" saiu do app: quem cuida de quem está banido é o
@@ -204,7 +240,8 @@ function salvarUsuario(extra) {
   const u = Object.assign({
     id: id, photo: null, bio: '', followers: 0, following: [], likes: 0,
     verified: false, verifiedType: null, isCreator: false, isAdmin: false,
-    banned: false, banUntil: null, savedVideos: []
+    banned: false, banUntil: null, savedVideos: [],
+    moedas: MOEDAS_NOVO
   }, extra);
   if (u.photo) u = localizarMedia(u);
   u._u = ++clock;
@@ -378,6 +415,20 @@ function aplicarPush(body, quem) {
         // O teto de seguidores é do servidor: o perfil editado no aparelho não
         // pode apagá-lo (ver VIDA DO APP).
         if (antigo && antigo._limSeg) novo._limSeg = antigo._limSeg;
+        // Moedas e o tempo das missões também são do servidor: o aparelho sobe o
+        // perfil, mas não o saldo (ver MOEDAS). Sem isso, bastava mexer no
+        // cadastro do celular para virar membro de graça.
+        if (antigo) {
+          novo.moedas = Number(antigo.moedas) || 0;
+          novo._mts = antigo._mts;
+          novo._mseg = antigo._mseg;
+          novo._mdia = antigo._mdia;
+          novo._mmins = antigo._mmins;
+          novo._mganhas = antigo._mganhas;
+          novo._mbonus = antigo._mbonus;
+        } else {
+          novo.moedas = MOEDAS_NOVO;
+        }
       }
       if (kind === 'videos' || kind === 'pubMsgs' || kind === 'privMsgs') novo = localizarMedia(novo);
       if (kind === 'videos') {
@@ -493,6 +544,53 @@ function passoDoAcervo() {
     acerviOcupado = false;
     if (mexeu) saveDb();
   }).catch(function () { acerviOcupado = false; });
+}
+
+/* ==================== MOEDAS E MISSÕES ==================== */
+
+// Como o saldo aparece nas mensagens do servidor: "10,00 moedas".
+function moedaTxt(n) { return (Math.round(Number(n) * 100) / 100).toFixed(2).replace('.', ',') + ' moedas'; }
+
+// O dia das missões: o histórico de hoje zera à meia-noite.
+function diaDe(ts) {
+  const d = new Date(ts);
+  return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+}
+
+// Vale moeda só o tempo que passou entre um batimento e o outro: com o app
+// fechado não há batimento, então não há moeda nenhuma. Um batimento atrasado
+// (aba dormindo, celular guardado) vale no máximo BATIMENTO_SEG_MAX segundos —
+// é assim que ninguém junta moeda deixando o app aberto a noite toda.
+function passoMissao(u) {
+  const agora = Date.now();
+  const hoje = diaDe(agora);
+  if (u._mdia !== hoje) { u._mdia = hoje; u._mmins = 0; u._mganhas = 0; u._mbonus = false; }
+  let ganhas = 0;
+  let seg = 0;
+  if (u._mts && agora > u._mts) seg = Math.min(BATIMENTO_SEG_MAX, Math.floor((agora - u._mts) / 1000));
+  u._mts = agora;
+  if (seg > 0) {
+    u._mmins = (u._mmins || 0) + seg / 60;
+    u._mseg = (u._mseg || 0) + seg;
+    let novas = Math.floor(u._mseg / MOEDA_SEG);
+    if (novas > 0) {
+      u._mseg -= novas * MOEDA_SEG;
+      novas = Math.min(novas, Math.max(0, MOEDAS_DIA_MAX - (u._mganhas || 0)));
+      if (novas > 0) {
+        u.moedas = (Number(u.moedas) || 0) + novas;
+        u._mganhas = (u._mganhas || 0) + novas;
+        ganhas += novas;
+      }
+    }
+    // Missão do dia: 10 minutos no app pagam 5 moedas, uma vez só.
+    if (!u._mbonus && u._mmins >= MISSAO_MIN) {
+      u._mbonus = true;
+      u.moedas = (Number(u.moedas) || 0) + MISSAO_MOEDAS;
+      ganhas += MISSAO_MOEDAS;
+    }
+  }
+  if (ganhas) u._u = ++clock;
+  return ganhas;
 }
 
 /* ==================== VIDA DO APP ==================== */
@@ -746,22 +844,46 @@ async function api(req, res, url) {
       return json(res, 200, { user: usuarioPublico(quem) });
     }
 
-    // Membresia do canal: é o pagamento do vídeo de membro. Pagou, virou membro
-    // do canal — e é isso que abre os vídeos de membro dele e deixa o nome da
-    // pessoa verde nos comentários desse canal. A membresia fica na conta (no
-    // servidor), então ela vale em qualquer aparelho em que a pessoa entrar.
+    // Missões do tempo: enquanto a pessoa está no app o aparelho manda um
+    // batimento e o servidor paga o minuto. Quem conta o tempo é o relógio
+    // daqui, nunca o do celular.
+    if (rota === '/api/missao' && req.method === 'POST') {
+      if (estaBanido(quem)) return json(res, 403, { error: 'banido', message: 'Conta banida.' });
+      const ganhas = passoMissao(quem);
+      saveDb();
+      return json(res, 200, {
+        user: usuarioPublico(quem), ganhas: ganhas,
+        minutos: Math.floor(quem._mmins || 0), ganhasHoje: quem._mganhas || 0,
+        tetoDia: MOEDAS_DIA_MAX, missaoMin: MISSAO_MIN,
+        missaoMoedas: MISSAO_MOEDAS, missaoFeita: !!quem._mbonus
+      });
+    }
+
+    // Membresia do canal: é o vídeo de membro que se paga com as moedas. Quem
+    // paga vira membro do canal — é isso que abre os vídeos de membro dele e
+    // deixa o nome da pessoa verde nos comentários desse canal. As moedas saem
+    // do saldo daqui: o aparelho não desconta nada por conta própria.
     if (rota === '/api/membro' && req.method === 'POST') {
       const b = await corpoJson();
       const canal = db.users[String(b.canalId || '')];
       if (!canal) return json(res, 404, { error: 'canal', message: 'Não achei esse canal.' });
       if (canal.id === quem.id) return json(res, 400, { error: 'canal', message: 'Este canal é seu.' });
-      const valor = Number(b.valor);
-      if (!(valor > 0)) return json(res, 400, { error: 'valor', message: 'Valor do pagamento inválido.' });
+      const valor = Math.round(Number(b.valor) * 100) / 100;
+      if (!(valor > 0)) return json(res, 400, { error: 'valor', message: 'Valor da membresia inválido.' });
+      const saldo = Number(quem.moedas) || 0;
+      if (saldo < valor) {
+        return json(res, 402, {
+          error: 'moedas',
+          message: 'Você tem ' + moedaTxt(saldo) + ' — faltam ' + moedaTxt(valor - saldo) + '. Fique no app para ganhar mais moedas.',
+          moedas: saldo
+        });
+      }
+      quem.moedas = Math.round((saldo - valor) * 100) / 100;
       if (!quem.membroDe) quem.membroDe = [];
       if (quem.membroDe.indexOf(canal.id) < 0) quem.membroDe.push(canal.id);
       quem._u = ++clock;
       saveDb();
-      console.log('membresia: ' + quem.name + ' virou membro de ' + canal.name + ' (R$ ' + valor.toFixed(2) + ')');
+      console.log('membresia: ' + quem.name + ' virou membro de ' + canal.name + ' por ' + moedaTxt(valor));
       return json(res, 200, { user: usuarioPublico(quem), videos: videosDeMembroDoCanal(canal.id) });
     }
 
@@ -878,6 +1000,7 @@ const server = http.createServer(function (req, res) {
 loadDb();
 seedCriador();
 removerSuporte();
+completarMoedas();
 // A vida do app: curtidas, visualizações, comentários e seguidores andam
 // sozinhos no relógio daqui, não no aparelho de ninguém.
 setInterval(passoDaVida, PASSO_MS);
